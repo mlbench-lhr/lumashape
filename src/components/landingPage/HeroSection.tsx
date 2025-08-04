@@ -29,7 +29,7 @@ function HeroSection() {
         </Text>
         <div className="my-10 flex justify-center">
           <Button
-          className='md:px-8 px-6 md:py-3 py-2 text-lg rounded-full'
+          className='md:px-8 px-6 md:py-3 py-2 md:text-lg text-md rounded-full'
           >
             Try Lumashape Now
           </Button>

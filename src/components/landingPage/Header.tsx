@@ -18,11 +18,11 @@ const Header: React.FC = () => {
 
   const navigation: NavigationItem[] = [
     { name: 'Home', href: '/', sectionId: 'home' },
-    { name: 'Benefits', href: '/benefits', sectionId: 'benefits' },
-    { name: 'How It Works', href: '/how-it-works', sectionId: 'working' },
-    { name: 'Pricing', href: '/pricing', sectionId: 'pricing' },
-    { name: 'FAQs', href: '/faq', sectionId: 'faq' },
-    { name: 'Contact Us', href: '/contact-us', sectionId: 'contact' }
+    { name: 'Benefits', href: '/#benefits', sectionId: 'benefits' },
+    { name: 'How It Works', href: '/#how-it-works', sectionId: 'working' },
+    { name: 'Pricing', href: '/#pricing', sectionId: 'pricing' },
+    { name: `FAQ's`, href: '/faqs' },
+    { name: 'Contact Us', href: '/contact-us' }
   ];
 
   // Scroll spy functionality
@@ -36,7 +36,7 @@ const Header: React.FC = () => {
 
       // Find the current section in view
       let currentSection = '';
-      
+
       for (const sectionId of sections) {
         const element = document.getElementById(sectionId!);
         if (element) {
@@ -95,13 +95,13 @@ const Header: React.FC = () => {
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
   };
-
+  const router = useRouter();
   const handleTabClick = (href: string, sectionId?: string) => {
     // If we're on home page and clicking a section link
     if (pathname === '/' && sectionId) {
       const element = document.getElementById(sectionId);
       if (element) {
-        element.scrollIntoView({ 
+        element.scrollIntoView({
           behavior: 'smooth',
           block: 'start'
         });
@@ -110,7 +110,7 @@ const Header: React.FC = () => {
         return;
       }
     }
-    
+    router.push(href);
     // For regular navigation
     setActiveTab(href);
     closeMobileMenu();
@@ -124,10 +124,10 @@ const Header: React.FC = () => {
             {/* Logo */}
             <div className="flex items-center flex-shrink-0">
               <Link href="/" className="flex items-center space-x-2">
-                <Image 
-                  src="/images/logo/lumashape.svg" 
-                  alt="Logo" 
-                  width={180} 
+                <Image
+                  src="/images/logo/lumashape.svg"
+                  alt="Logo"
+                  width={180}
                   height={40}
                   className="sm:w-[200px] sm:h-[45px] md:w-[238px] md:h-[54px]"
                 />
@@ -143,9 +143,8 @@ const Header: React.FC = () => {
                     e.preventDefault();
                     handleTabClick(item.href, item.sectionId);
                   }}
-                  className={`text-gray-600 hover:text-primary px-3 py-2 text-md font-medium transition-colors whitespace-nowrap cursor-pointer ${
-                    activeTab === item.href ? 'text-primary font-semibold' : ''
-                  }`}
+                  className={`text-gray-600 hover:text-primary px-3 py-2 text-md font-medium transition-colors whitespace-nowrap cursor-pointer ${activeTab === item.href ? 'text-primary font-semibold' : ''
+                    }`}
                 >
                   {item.name}
                 </button>
@@ -158,7 +157,7 @@ const Header: React.FC = () => {
                 variant="primary"
                 size="sm"
                 width="auto"
-                className="xl:text-base xl:px-6"
+                className="xl:text-base xl:px-6 py-2 rounded-full"
               >
                 Login/Signup
               </Button>
@@ -174,11 +173,11 @@ const Header: React.FC = () => {
                 aria-expanded={isMobileMenuOpen}
               >
                 {isMobileMenuOpen ? (
-                  <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 ) : (
-                  <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-5 w-5 sm:h-6 sm:w-6 cursor-pointer" fill="none" viewBox="0 0 24 24" stroke="var(--primary)">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 )}
@@ -191,7 +190,7 @@ const Header: React.FC = () => {
       {/* Mobile/Tablet Sidebar Overlay */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 xl:hidden"
+          className="fixed inset-0 bg-opacity-50 z-40 xl:hidden"
           onClick={closeMobileMenu}
           aria-hidden="true"
         />
@@ -199,18 +198,17 @@ const Header: React.FC = () => {
 
       {/* Mobile/Tablet Sidebar */}
       <div
-        className={`fixed top-0 right-0 h-full bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out xl:hidden ${
-          isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
-        } w-72 sm:w-80 md:w-96 lg:w-80`}
+        className={`fixed top-0 right-0 h-full bg-white shadow-xl z-50 transform transition-transform duration-300 ease-in-out xl:hidden ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          } w-72 sm:w-80 md:w-96 lg:w-80`}
       >
         <div className="flex flex-col h-full">
           {/* Mobile Sidebar Header */}
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
             <div className="flex items-center space-x-2">
-              <Image 
-                src="/images/logo/lumashape.svg" 
-                alt="Logo" 
-                width={180} 
+              <Image
+                src="/images/logo/lumashape.svg"
+                alt="Logo"
+                width={180}
                 height={40}
                 className="sm:w-[200px] sm:h-[45px]"
               />
@@ -220,7 +218,7 @@ const Header: React.FC = () => {
               className="p-2 text-gray-400 hover:text-gray-600 rounded-md transition-colors"
               aria-label="Close menu"
             >
-              <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-5 w-5 sm:h-6 cursor-pointer sm:w-6" fill="none" viewBox="0 0 24 24" stroke="var(--primary)">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -232,9 +230,8 @@ const Header: React.FC = () => {
               <button
                 key={item.name}
                 onClick={() => handleTabClick(item.href, item.sectionId)}
-                className={`block w-full text-left px-3 sm:px-4 py-3 sm:py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg text-base sm:text-lg font-medium transition-colors ${
-                  activeTab === item.href ? 'text-primary font-semibold bg-blue-50' : ''
-                }`}
+                className={`block w-full text-left px-3 sm:px-4 py-3 sm:py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg text-base sm:text-lg font-medium transition-colors ${activeTab === item.href ? 'text-primary font-semibold bg-blue-50' : ''
+                  }`}
               >
                 {item.name}
               </button>
@@ -245,7 +242,7 @@ const Header: React.FC = () => {
           <div className="p-4 sm:p-6 border-t border-gray-200 space-y-3">
             <button
               onClick={closeMobileMenu}
-              className="block w-full text-center bg-primary hover:bg-blue-700 text-white px-4 py-3 sm:py-4 rounded-lg text-base sm:text-lg font-medium transition-colors"
+              className="block w-full text-center bg-primary hover:bg-blue-700 text-white px-4 py-3 sm:py-4 rounded-full text-base sm:text-lg font-medium transition-colors"
             >
               Login/Signup
             </button>

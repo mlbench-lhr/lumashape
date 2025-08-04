@@ -5,14 +5,14 @@
   --background-light: #f7f7f7;
   --foreground: #171717;
   --primary: #266CA8;
-  --greyish:#666666;
-  --secondary:#222222;
+  --greyish: #666666;
+  --secondary: #222222;
   --secondary-light: #22222280;
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-secondary-light: var(--secondary-light);  
+  --color-secondary-light: var(--secondary-light);
   --color-background-light: var(--background-light);
   --color-greyish: var(--greyish);
   --color-foreground: var(--foreground);
@@ -28,6 +28,6 @@
 body {
   background: var(--background);
   color: var(--foreground);
-    font-family: var(--font-raleway), 'Raleway', Arial, Helvetica, sans-serif;
+  font-family: var(--font-raleway), 'Raleway', Arial, Helvetica, sans-serif;
 
 }

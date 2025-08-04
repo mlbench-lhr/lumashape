@@ -15,7 +15,7 @@ const data: { left: DataItem[]; right: DataItem[] } = {
   left: [
     {
       id: 1,
-      image: '/images/icons/LandingPage/preview.svg',
+      image: '/images/icons/LandingPage/howItWorks/preview.webp',
     },
     {
       id: 3,
@@ -25,7 +25,7 @@ const data: { left: DataItem[]; right: DataItem[] } = {
     },
     {
       id: 5,
-      image: '/images/icons/LandingPage/save.svg',
+      image: '/images/icons/LandingPage/howItWorks/save.webp',
       
     },
     {
@@ -42,7 +42,7 @@ const data: { left: DataItem[]; right: DataItem[] } = {
     },
     {
       id: 4,
-      image: '/images/icons/LandingPage/Layout.svg',
+      image: '/images/icons/LandingPage/howItWorks/Layout.webp',
     },
     {
       id: 6,
@@ -51,7 +51,7 @@ const data: { left: DataItem[]; right: DataItem[] } = {
     },
     {
       id: 8,
-      image: '/images/icons/LandingPage/Earnings.svg', // Add your fourth step image
+      image: '/images/icons/LandingPage/howItWorks/Earnings.webp', // Add your fourth step image
     }
   ],
 }
@@ -81,7 +81,7 @@ function HowItWorks() {
         </Text>
         <Text
           as="p1"
-          className="text-center text-[#00000066] mx-auto md:max-w-[80%]"
+          className="text-center text-secondary-light mx-auto md:max-w-[80%]"
         >
           Lumashape simplifies the file creation process, offering an intuitive and user-friendly experience powered by advanced AI.
         </Text>
@@ -133,7 +133,7 @@ function HowItWorks() {
             >
               <Image
                 className="w-24 h-24"
-                src={`/images/icons/LandingPage/${stepImages[index]}.svg`}
+                src={`/images/icons/LandingPage/howItWorks/${stepImages[index]}.svg`}
                 alt={`step-${stepImages[index]}`}
                 width={96}
                 height={96}
@@ -175,10 +175,10 @@ function HowItWorks() {
         {/* line */}
         <div className="flex flex-col -ml-5">
           {[
-            { img: '/images/icons/LandingPage/one.svg', indices: [1, 2] },
-            { img: '/images/icons/LandingPage/two.svg', indices: [3, 4] },
-            { img: '/images/icons/LandingPage/three.svg', indices: [5, 6] },
-            { img: '/images/icons/LandingPage/four.svg', indices: [7, 8] },
+            { img: '/images/icons/LandingPage/howItWorks/one.svg', indices: [1, 2] },
+            { img: '/images/icons/LandingPage/howItWorks/two.svg', indices: [3, 4] },
+            { img: '/images/icons/LandingPage/howItWorks/three.svg', indices: [5, 6] },
+            { img: '/images/icons/LandingPage/howItWorks/four.svg', indices: [7, 8] },
           ].map(({ img, indices }, i) => (
             <div key={i} className="flex items-start">
               {/* Image */}
@@ -194,7 +194,7 @@ function HowItWorks() {
                 {i < 3 && (
                   <Image
                     className="z-0 h-full opacity-60 mx-auto"
-                    src="/images/icons/LandingPage/line.svg"
+                    src="/images/icons/LandingPage/howItWorks/line.svg"
                     alt="centerline"
                     width={5}
                     height={80}
