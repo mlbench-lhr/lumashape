@@ -38,7 +38,7 @@ const WhyChoose = () => {
                         viewport={{ once: false }}
                     >
                         <Image
-                            src="/images/icons/LandingPage/AI.svg"
+                            src="/images/icons/LandingPage/Order.svg"
                             alt=""
                             className=""
                             width={120}
@@ -64,7 +64,7 @@ const WhyChoose = () => {
                         viewport={{ once: false }}
                     >
                         <Image
-                            src="/images/icons/LandingPage/access.svg"
+                            src="/images/icons/LandingPage/Profit.svg"
                             alt=""
                             className=""
                             width={120}

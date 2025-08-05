@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Raleway } from "next/font/google";
-
+import "../../init.ts";
 import "./globals.css";
 // import { TabProvider } from "@/context/TabContext";
 

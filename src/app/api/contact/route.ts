@@ -189,7 +189,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Data received and both emails sent successfully',
+      message: 'Message Sent Successfully',
     })
   } catch (error) {
     console.error('Email error:', error)
