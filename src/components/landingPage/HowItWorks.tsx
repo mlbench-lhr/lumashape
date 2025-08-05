@@ -15,7 +15,7 @@ const data: { left: DataItem[]; right: DataItem[] } = {
   left: [
     {
       id: 1,
-      image: '/images/icons/LandingPage/howItWorks/preview.webp',
+      image: '/images/icons/LandingPage/howItWorks/Preview.jpg',
     },
     {
       id: 3,
@@ -51,7 +51,7 @@ const data: { left: DataItem[]; right: DataItem[] } = {
     },
     {
       id: 8,
-      image: '/images/icons/LandingPage/howItWorks/Earnings.webp', // Add your fourth step image
+      image: '/images/icons/LandingPage/howItWorks/Profit.jpg', // Add your fourth step image
     }
   ],
 }

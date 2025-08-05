@@ -154,6 +154,7 @@ const Header: React.FC = () => {
             {/* Desktop Action Buttons */}
             <div className="hidden xl:flex items-center space-x-4 flex-shrink-0">
               <Button
+              onClick={() => router.push('/auth/login')}
                 variant="primary"
                 size="sm"
                 width="auto"
