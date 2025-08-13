@@ -32,7 +32,7 @@ const ForgotPasswordPage = () => {
                 Forgot Password?
               </h1>
               <span className="text-[14px] text-gray-600">
-                Enter the email address linked to your account, and we'll send
+                Enter the email address linked to your account, and we&apos;ll send
                 you a link to reset your password.
               </span>
 
