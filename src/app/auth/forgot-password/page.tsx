@@ -5,11 +5,32 @@ import { ChevronLeft } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const ForgotPasswordPage = () => {
   const router = useRouter();
   const [otp, setOtp] = useState(false);
   const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    if (!email) {
+      toast.error("Please fill the email field", {
+        position: 'top-center',
+        autoClose: 5000,
+      })
+      setIsLoading(false);
+      return;
+    }
+
+    toast.dismiss();
+
+    router.push("/auth/reset-password");
+  }
 
   return (
     <div className="h-screen flex overflow-hidden bg-gray-50">
@@ -18,10 +39,11 @@ const ForgotPasswordPage = () => {
           <div className="flex gap-[3px] h-[30px] w-[96px] items-center justify-center">
             <div className="flex w-[30px] h-full items-center justify-center">
               <img
-                className=""
+                className="cursor-pointer"
                 src="/images/icons/auth/BackTick.svg"
                 width={7.5}
                 height={15.5}
+                onClick={() => {router.push("/auth/login")}}
               />
             </div>
             <span className="text-[#666666] font-semibold">Go Back</span>
@@ -36,7 +58,7 @@ const ForgotPasswordPage = () => {
                 you a link to reset your password.
               </span>
 
-              <form className="space-y-3">
+              <form onSubmit={handleSubmit} className="space-y-3">
                 <div>
                   <label
                     htmlFor="email"
@@ -45,8 +67,8 @@ const ForgotPasswordPage = () => {
                     Email Address
                   </label>
                   <input
-                    id="email"
                     type="email"
+                    name="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email address"
@@ -79,9 +101,6 @@ const ForgotPasswordPage = () => {
                 <button
                   type="submit"
                   className="w-full bg-primary text-white py-2.5 cursor-pointer px-4 rounded-lg transition-colors font-medium mt-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => {
-                    router.push("/auth/reset-password");
-                  }}
                 >
                   Verify
                 </button>
