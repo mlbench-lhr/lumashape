@@ -23,14 +23,7 @@ const Signup = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  // const error = useSearchParams().get('error');
-  //  useEffect(() => {
-  //     if (error === 'email_taken') {
-  //       toast.error('An account with this email already exists. Please login using that method.');
-  //     }
-  //   }, [error]);
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("HELLO");
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -40,8 +33,6 @@ const Signup = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
-    // console.log("HELLO")
 
     // Validate if passwords match
     if (formData.password !== formData.confirmPassword) {
@@ -141,6 +132,8 @@ const Signup = () => {
         },
         body: JSON.stringify({ email: formData.email }),
       });
+
+      debugger
 
       const data = await response.json();
 

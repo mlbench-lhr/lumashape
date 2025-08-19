@@ -1,20 +1,28 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState} from "react";
 import { toast } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
-  import { useRouter } from 'next/navigation';
+import "react-toastify/dist/ReactToastify.css";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const ResetPasswordPage = () => {
-    const router = useRouter()
+  const router = useRouter();
 
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+  const [currentStep, setCurrentStep] = useState<"reset" | "success">("reset");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     password: "",
     confirmPassword: "",
+    
   });
+
+  debugger;
+  const [resetToken, setResetToken] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -28,9 +36,6 @@ const ResetPasswordPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
-    // console.log("HELLO")
-    debugger;
 
     // Validate if passwords match
     if (formData.password !== formData.confirmPassword) {
@@ -53,6 +58,33 @@ const ResetPasswordPage = () => {
 
     // Clear any previous error messages
     toast.dismiss();
+
+    try {
+      const response = await fetch("/api/user/auth/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resetToken: token,
+          newPassword: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setCurrentStep("success");
+        window.location.href = "/auth/password-updated";
+      } else {
+        setError(data.message || "Failed to reset password. Please try again.");
+      }
+    } catch (error) {
+      console.error("Reset password error:", error);
+      setError("Network error. Please check your connection and try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -62,10 +94,13 @@ const ResetPasswordPage = () => {
           <div className="flex gap-[3px] h-[30px] w-[96px] items-center justify-center">
             <div className="flex w-[30px] h-full items-center justify-center">
               <img
-                className=""
+                className="cursor-pointer"
                 src="/images/icons/auth/BackTick.svg"
                 width={7.5}
                 height={15.5}
+                onClick={() => {
+                  router.push("/auth/forgot-password");
+                }}
               />
             </div>
             <span className="text-[#666666] font-semibold">Go Back</span>
@@ -171,9 +206,6 @@ const ResetPasswordPage = () => {
                 <button
                   type="submit"
                   className="w-full bg-primary text-white py-2.5 cursor-pointer px-4 rounded-lg transition-colors font-medium mt-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  onClick={() => {
-                    router.push("/auth/password-updated");
-                  }}
                 >
                   Continue
                 </button>

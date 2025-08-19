@@ -1,6 +1,11 @@
+"use client"
+
 import Image from "next/image";
+import { useRouter } from 'next/navigation';
 
 const PasswordUpdatedPage = () => {
+    const router = useRouter();
+
   return (
     <div className="h-screen flex overflow-hidden bg-gray-50">
       {/* Centered Sign-Up Form */}
@@ -17,6 +22,7 @@ const PasswordUpdatedPage = () => {
 
             <button
               className="w-full mt-[35px] bg-primary text-white py-2.5 cursor-pointer px-4 rounded-lg transition-colors font-medium mt-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => {router.push("/auth/login")}}
             >
               Back To Login
             </button>

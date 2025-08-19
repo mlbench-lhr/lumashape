@@ -1,33 +1,57 @@
+import User from "@/lib/models/User";
 import dbConnect from "@/utils/dbConnect";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-    const {email, password, username} = await req.json();
+  try {
+    const {
+      username,
+      email,
+      password,
+    }: { username: string; email: string; password: string } = await req.json();
+    console.log(
+      "Email->",
+      email,
+      " Username->",
+      username,
+      "Password->",
+      password
+    );
 
-    if (!email || !password || !username) {
-        return NextResponse.json(
-            { error: 'All fields (email, password, username) are required' },
-            { status: 400 }
-        );
+    // Basic validation for the incoming data
+    if (!username || !email || !password) {
+      return NextResponse.json(
+        { message: "All fields are required" },
+        { status: 400 }
+      );
     }
 
-        try {
-        // Simulate a dummy response for testing without connecting to DB
-        const dummyResponse = {
-            message: 'User successfully created (dummy response)',
-            data: { email, username },
-        };
-
-        // Simulate a delay for response (optional, to mimic DB operation)
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // Return dummy response
-        return NextResponse.json(dummyResponse, { status: 200 });
-
-    } catch (error) {
-        return NextResponse.json(
-            { error: 'Something went wrong' },
-            { status: 500 }
-        );
+    // Check if the user already exists
+    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+    if (existingUser) {
+      return NextResponse.json(
+        { message: "User with this email or username already exists" },
+        { status: 400 }
+      );
     }
+
+    // Create new user
+    const newUser = new User({
+      username,
+      email,
+      password,
+    });
+
+    // Save the new user to the database
+    await newUser.save();
+
+    // Send response
+    return NextResponse.json(
+      { message: "User created successfully", user: newUser },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ message: "Server error" }, { status: 500 });
+  }
 }
