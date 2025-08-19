@@ -18,10 +18,9 @@ const ResetPasswordPage = () => {
   const [formData, setFormData] = useState({
     password: "",
     confirmPassword: "",
-    
+
   });
 
-  debugger;
   const [resetToken, setResetToken] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);

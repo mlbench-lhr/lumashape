@@ -2,7 +2,7 @@ import React from 'react'
 
 const ToolsInventory = () => {
   return (
-    <div>ToolsInventory</div>
+    <div></div>
   )
 }
 

@@ -108,7 +108,7 @@ const SignInPage: React.FC = () => {
 
       // Redirect to dashboard or home page
       setTimeout(() => {
-        router.push('/dashboard'); // Change this to your desired redirect path
+        router.push('/tools'); // Change this to your desired redirect path
       }, 1500);
 
     } catch (err: unknown) {
