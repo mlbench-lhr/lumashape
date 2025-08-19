@@ -1,24 +1,25 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { useRouter } from 'next/navigation';
 // import { toast } from 'react-toastify';
 // import 'react-toastify/dist/ReactToastify.css';
-// import { UserContext } from '@/context/UserContext';
+import { UserContext } from '@/context/UserContext';
 import { ChevronLeft } from 'lucide-react';
 import Image from 'next/image';
+// import Error from 'next/error';
 
 
-// interface LoginResponse {
-//   message: string;
-//   user: {
-//     _id: string;
-//     username: string;
-//     email: string;
-//     createdAt: string;
-//     updatedAt: string;
-//   };
-//   token?: string; // Optional for localStorage approach
-// }
+interface LoginResponse {
+  message: string;
+  user: {
+    _id: string;
+    username: string;
+    email: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  token?: string; // Optional for localStorage approach
+}
 
 const SignInPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -29,32 +30,32 @@ const SignInPage: React.FC = () => {
   const [success, setSuccess] = useState('');
 
   const router = useRouter();
-//   const { login } = useContext(UserContext);
+  const { login } = useContext(UserContext);
 
 
 
 //   // Login function using HTTP-only cookies (recommended)
-//   const loginWithCookies = async (email: string, password: string): Promise<LoginResponse> => {
-//     const response = await fetch('/api/user/auth/login', {
-//       method: 'POST',
-//       headers: {
-//         'Content-Type': 'application/json',
-//       },
-//       credentials: 'include', // Important for cookies
-//       body: JSON.stringify({ email, password }),
-//     });
+  const loginWithCookies = async (email: string, password: string): Promise<LoginResponse> => {
+    const response = await fetch('/api/user/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Important for cookies
+      body: JSON.stringify({ email, password }),
+    });
 
-//     const data = await response.json();
-//     const { token } = data
-//     login(token);
+    const data = await response.json();
+    const { token } = data
+    login(token);
 
 
-//     if (!response.ok) {
-//       throw new Error(data.message || 'Login failed');
-//     }
+    if (!response.ok) {
+      throw new Error(data.message || 'Login failed');
+    }
 
-//     return data;
-//   };
+    return data;
+  };
 
 //   // Alternative: Login function using localStorage
 //   const loginWithLocalStorage = async (email: string, password: string): Promise<LoginResponse> => {
@@ -84,39 +85,51 @@ const SignInPage: React.FC = () => {
 //     return data;
 //   };
 
-//   const handleSubmit = async (e: React.FormEvent) => {
-//     e.preventDefault();
-//     setIsLoading(true);
-//     setError('');
-//     setSuccess('');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
 
-//     try {
-//       // Validate inputs
-//       if (!email || !password) {
-//         throw new Error('Please fill in all fields');
-//       }
+    try {
+      // Validate inputs
+      if (!email || !password) {
+        throw new Error('Please fill in all fields');
+      }
 
-//       // Use cookies approach (recommended)
-//       // const result = await loginWithCookies(email, password);
+      // Use cookies approach (recommended)
+      const result = await loginWithCookies(email, password);
 
-//       // Alternative: Use localStorage approach
-//       const result = await loginWithLocalStorage(email, password);
+      // Alternative: Use localStorage approach
+      // const result = await loginWithLocalStorage(email, password);
 
-//       setSuccess('Login successful! Redirecting...');
+      setSuccess('Login successful! Redirecting...');
 
 
-//       // Redirect to dashboard or home page
-//       setTimeout(() => {
-//         router.push('/dashboard'); // Change this to your desired redirect path
-//       }, 1500);
+      // Redirect to dashboard or home page
+      setTimeout(() => {
+        router.push('/dashboard'); // Change this to your desired redirect path
+      }, 1500);
 
-//     } catch (err: any) {
-//        const message = err.response?.data?.message || 'Invalid Credentials';
-//   setError(message);
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
+    } catch (err: unknown) {
+  let message = 'Invalid Credentials';
+
+  if (
+    typeof err === 'object' &&
+    err !== null &&
+    'response' in err &&
+    typeof (err).response === 'object' &&
+    typeof(err ).response
+  ) {
+    message = typeof(err).response;
+  }
+
+  setError(message);
+}
+ finally {
+      setIsLoading(false);
+    }
+  };
   const handleGoBack = () => {
 
     router.push('/');
@@ -173,7 +186,7 @@ const SignInPage: React.FC = () => {
     
 
           {/* Sign In Form */}
-          <form  className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <label htmlFor="email" className="block text-xs font-bold text-secondary mb-1">
                 Email Address

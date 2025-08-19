@@ -1,20 +1,27 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState} from "react";
 import { toast } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
-  import { useRouter } from 'next/navigation';
+import "react-toastify/dist/ReactToastify.css";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const ResetPasswordPage = () => {
-    const router = useRouter()
+  const router = useRouter();
 
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+  const [currentStep, setCurrentStep] = useState<"reset" | "success">("reset");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     password: "",
     confirmPassword: "",
   });
+
+  debugger;
+  const [resetToken, setResetToken] = useState("");
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -51,7 +58,32 @@ const ResetPasswordPage = () => {
     // Clear any previous error messages
     toast.dismiss();
 
-    router.push("/auth/login")
+    try {
+      const response = await fetch("/api/user/auth/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resetToken: token,
+          newPassword: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setCurrentStep("success");
+        window.location.href = "/auth/password-updated";
+      } else {
+        setError(data.message || "Failed to reset password. Please try again.");
+      }
+    } catch (error) {
+      console.error("Reset password error:", error);
+      setError("Network error. Please check your connection and try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -65,7 +97,9 @@ const ResetPasswordPage = () => {
                 src="/images/icons/auth/BackTick.svg"
                 width={7.5}
                 height={15.5}
-                onClick={() => {router.push("/auth/forgot-password")}}
+                onClick={() => {
+                  router.push("/auth/forgot-password");
+                }}
               />
             </div>
             <span className="text-[#666666] font-semibold">Go Back</span>

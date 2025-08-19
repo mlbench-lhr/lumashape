@@ -133,6 +133,8 @@ const Signup = () => {
         body: JSON.stringify({ email: formData.email }),
       });
 
+      debugger
+
       const data = await response.json();
 
       if (response.ok) {
