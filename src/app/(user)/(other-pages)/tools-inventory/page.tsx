@@ -53,7 +53,7 @@ const ToolsInventory = () => {
             <Text as="p1" className="font-medium w-[100px]">
               Sort By:
             </Text>
-            <InputField label="" name="All Brands" placeholder="All Brands" />
+            <InputField label="" name="All Brands" placeholder="All Brands" isDropdown={true} />
           </div>
         </div>
       </div>
