@@ -6,6 +6,7 @@ import "./globals.css";
 // import { TabProvider } from "@/context/TabContext";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { SidebarProvider } from "../context/SidebarContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,6 +43,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${raleway.variable}  antialiased`}
       >
+          <SidebarProvider>
         <ToastContainer
         position="top-center"
         autoClose={5000}
@@ -54,6 +56,7 @@ export default function RootLayout({
         pauseOnHover
       />
         {children}
+        </SidebarProvider>
       </body>
     </html>
   );
