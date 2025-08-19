@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
 
     // Find user by email
     const user = await User.findOne({ email }).select("+password");
+
     if (!user?.isVerified) {
       return NextResponse.json(
         { message: "Please verify your email before logging in." },
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       );
     }
+
     if (!user) {
       return NextResponse.json(
         { message: "Invalid credentials" },
@@ -52,6 +54,8 @@ export async function POST(req: NextRequest) {
 
     // Compare password
     const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    console.log("password: ", isPasswordValid)
     if (!isPasswordValid) {
       return NextResponse.json(
         { message: "Invalid credentials" },
