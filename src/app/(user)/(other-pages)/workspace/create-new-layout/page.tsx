@@ -49,7 +49,7 @@ const CreateNewLayout = () => {
               Brand
             </label>
             <p className="text-sm text-gray-600 mb-3">
-              Choose a brand to use standard container dimensions, or select 'Custom' to enter your own.
+              Choose a brand to use standard container dimensions, or select &apos;Custom&apos; to enter your own.
             </p>
             
             {/* Brand Options */}
