@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState} from "react";
+import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useRouter, useSearchParams } from "next/navigation";
+import { form } from "framer-motion/client";
 
 const ResetPasswordPage = () => {
   const router = useRouter();
@@ -18,7 +19,6 @@ const ResetPasswordPage = () => {
   const [formData, setFormData] = useState({
     password: "",
     confirmPassword: "",
-
   });
 
   const [resetToken, setResetToken] = useState("");
@@ -37,6 +37,15 @@ const ResetPasswordPage = () => {
     setIsLoading(true);
 
     // Validate if passwords match
+    if (!formData.password.trim() || !formData.confirmPassword.trim()) {
+      toast.error("Please fill in all fields", {
+        position: "top-center",
+        autoClose: 5000,
+      });
+      setIsLoading(false);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match", {
         position: "top-center",
@@ -46,9 +55,8 @@ const ResetPasswordPage = () => {
       return;
     }
 
-    if (!formData.password) {
-      toast.error("Please fill in all fields", {
-        position: "top-center",
+    if (formData.password.length < 6) {
+      toast.error("Password must be at least 6 characters long", {
         autoClose: 5000,
       });
       setIsLoading(false);
@@ -56,7 +64,6 @@ const ResetPasswordPage = () => {
     }
 
     // Clear any previous error messages
-    toast.dismiss();
 
     try {
       const response = await fetch("/api/user/auth/reset-password", {

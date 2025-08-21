@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import User from "@/lib/models/User";
 import dbConnect from "@/utils/dbConnect";
-import jwt,{JwtPayload} from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
@@ -24,21 +24,20 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate password strength
-    if (newPassword.length < 6) {
+    if (typeof newPassword !== "string" || newPassword.length < 6) {
       return NextResponse.json(
-        {
-          message: "Password must be at least 6 characters long",
-        },
+        { message: "Password must be at least 6 characters long" },
         { status: 400 }
       );
     }
 
     // Verify reset token
-    // let decoded: any; 
-    const decoded = jwt.verify(resetToken, JWT_SECRET) as JwtPayload & { purpose: string }
-    
-       try {
-      
+    // let decoded: any;
+    const decoded = jwt.verify(resetToken, JWT_SECRET) as JwtPayload & {
+      purpose: string;
+    };
+
+    try {
       if (decoded.purpose !== "password-reset") {
         throw new Error("Invalid token purpose");
       }
