@@ -1,25 +1,25 @@
 "use client";
 
+import Button from "@/components/ui/Button";
 import Text from "@/components/ui/Text";
 import { Listbox } from "@headlessui/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
-type Brand = {
+type Paper = {
   id: number;
-  brand_logo: string;
+  type: string;
 };
 
-const BRANDS: Brand[] = [
-  { id: 0, brand_logo: "Custom" },
-  { id: 1, brand_logo: "/images/icons/milwaukee.svg" },
-  { id: 2, brand_logo: "/images/icons/bosch.svg" },
-  { id: 3, brand_logo: "/images/icons/makita.svg" },
+const BRANDS: Paper[] = [
+  { id: 0, type: "A3" },
+  { id: 1, type: "A4" },
+  { id: 2, type: "US Letter" },
 ];
 
 const UploadNewTool = () => {
-  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
+  const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
 
   return (
     <>
@@ -51,27 +51,14 @@ const UploadNewTool = () => {
               </Text>
             </div>
             <div className="mt-[18px]">
-              <Listbox value={selectedBrand} onChange={setSelectedBrand}>
+              <Listbox value={selectedPaper} onChange={setSelectedPaper}>
                 <div className="relative w-full">
-                  <Listbox.Button className="relative w-full h-[50px] border p-4 rounded-lg border-[#e6e6e6] text-left focus:outline-none">
+                  <Listbox.Button className="relative w-full h-[50px] p-2 border rounded-lg border-[#e6e6e6] text-left focus:outline-none">
                     <span className="flex items-center gap-2">
-                      {selectedBrand ? (
-                        selectedBrand.brand_logo.endsWith(".svg") ? (
-                          <Image
-                            src={selectedBrand.brand_logo}
-                            width={24}
-                            height={24}
-                            alt="Selected brand"
-                          />
-                        ) : (
-                          <span className="text-sm">
-                            {selectedBrand.brand_logo}
-                          </span>
-                        )
+                      {selectedPaper ? (
+                        <span className="text-sm">{selectedPaper.type}</span>
                       ) : (
-                        <span className="text-[#808080]">
-                          Select paper type
-                        </span>
+                        <span className="text-gray-400">All Paper Types</span>
                       )}
                     </span>
                     <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
@@ -84,11 +71,11 @@ const UploadNewTool = () => {
                     </span>
                   </Listbox.Button>
 
-                  <Listbox.Options className="absolute mt-1 max-h-60 w-[245px] left-[-50px] top-[65px] overflow-auto rounded-[10px] bg-white p-4 text-base shadow-lg focus:outline-none sm:text-sm">
-                    {BRANDS.map((brand) => (
+                  <Listbox.Options className="absolute mt-1 max-h-60 w-[245px] right-5 top-[50px] overflow-auto rounded-[10px] bg-white p-4 text-base shadow-lg focus:outline-none sm:text-sm">
+                    {BRANDS.map((paper) => (
                       <Listbox.Option
-                        key={brand.id}
-                        value={brand}
+                        key={paper.id}
+                        value={paper}
                         className={({ active }) =>
                           `relative cursor-pointer select-none py-2 pl-3 pr-9 ${
                             active
@@ -103,21 +90,9 @@ const UploadNewTool = () => {
                               type="radio"
                               readOnly
                               checked={selected}
-                              placeholder="All Brands"
                               className="w-4 h-4"
                             />
-                            {brand.brand_logo.endsWith(".svg") ? (
-                              <Image
-                                src={brand.brand_logo}
-                                width={48}
-                                height={24}
-                                alt="Brand logo"
-                              />
-                            ) : (
-                              <span className="text-sm">
-                                {brand.brand_logo}
-                              </span>
-                            )}
+                            <span className="text-sm">{paper.type}</span>
                           </div>
                         )}
                       </Listbox.Option>
@@ -126,23 +101,79 @@ const UploadNewTool = () => {
                 </div>
               </Listbox>
             </div>
-            <div className="flex items-center justify-center w-1/2 mt-[30px] border rounded-[21px] border-dotted border-gray-400">
-              <div className="flex flex-col items-center">
-                <div className="p-[15px]">
-                  <Image
-                    src="/images/icons/upload.svg"
-                    width={30}
-                    height={30}
-                    alt="upload"
-                  />
+            <div className="relative w-1/2 h-[433px] border border-b-0 mt-[30px] rounded-[21px] bg-[#f9fcff] border-dotted border-gray-400">
+              <div className="absolute px-[12px] py-[8.5px] right-0 w-[88px] h-[41px] rounded-tr-[21px] bg-[#ebebeb]">
+                <div className="flex justify-center items-center gap-[12px]">
+                  <div className="p-[7px]">
+                    <Image
+                      src="/images/icons/scan.svg"
+                      width={45}
+                      height={45}
+                      alt="scan"
+                      className="cursor-pointer"
+                    />
+                  </div>
+                  <div className="p-[7px]">
+                    <Image
+                      src="/images/icons/cross.svg"
+                      width={45}
+                      height={45}
+                      alt="cross"
+                      className="cursor-pointer"
+                    />
+                  </div>
                 </div>
-                <p className="mt-[15px] text-[14px] font-semibold">
-                  Drag & Drop the image or Click{" "}
-                  <Link href="/upload" className="text-blue-500 underline">
-                    Click
-                  </Link>{" "}
-                  to upload
-                </p>
+              </div>
+              <div className="flex items-center justify-center h-[376px]">
+                <div className="flex flex-col items-center">
+                  <div className="p-[15px]">
+                    <Image
+                      src="/images/icons/upload.svg"
+                      width={30}
+                      height={30}
+                      alt="upload"
+                      className="cursor-pointer"
+                    />
+                  </div>
+                  <p className="mt-[15px] text-[16px] leading-[18px] font-semibold text-center">
+                    Drag & Drop the image or <br />
+                    <Link href="/upload" className="text-blue-500 underline">
+                      Click
+                    </Link>{" "}
+                    to upload
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-center items-center h-[57px] border-b border-dotted bg-[#ebebeb] rounded-b-[21px]">
+                <div className="flex justify-center gap-[10px]">
+                  <div className="p-[5px]">
+                    <Image
+                      src="/images/icons/upload.svg"
+                      alt="upload"
+                      width={20}
+                      height={20}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                  <div className="p-[5px]">
+                    <Image
+                      src="/images/icons/clipboard.svg"
+                      alt="clipboard"
+                      width={25}
+                      height={25}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="mt-[60px]">
+                <Button
+                  className="px-[3.5rem] py-[1rem]"
+                  variant="primary"
+                  size="lg"
+                >
+                  Continue
+                </Button>
               </div>
             </div>
           </div>
