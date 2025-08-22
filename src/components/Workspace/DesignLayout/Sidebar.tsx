@@ -75,7 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({ droppedTools, selectedTool }) => {
 
             {filteredTools.length === 0 && (
                 <div className="text-center text-gray-500 py-8">
-                    <p>No tools found matching "{searchTerm}"</p>
+                    <p>No tools found matching &quot;{searchTerm}&quot;</p>
                 </div>
             )}
         </>
