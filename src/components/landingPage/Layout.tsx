@@ -12,7 +12,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="min-h-screen bg-white">
       <Header />
       
-      <main className="">{children}</main> {/* <-- Added padding */}
+      <main className="">{children}</
+      main> {/* <-- Added padding */}
       <Footer />
     </div>
   );
