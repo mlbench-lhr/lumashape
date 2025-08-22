@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { cn } from "../../utils/index"; //
+import Image from "next/image";
 
 interface InputFieldProps {
   label: string;
@@ -14,6 +15,8 @@ interface InputFieldProps {
   optional?: boolean;
   required?: boolean;
   showPasswordToggle?: boolean;
+  isSearchable?: boolean;
+  isDropdown?: boolean;
   type?: string;
   className?: string;
 }
@@ -29,6 +32,8 @@ const InputField = ({
   readOnly = false,
   required = false,
   showPasswordToggle = false,
+  isSearchable = false,
+  isDropdown = false,
   type = "text",
   className = "",
 }: InputFieldProps) => {
@@ -60,6 +65,24 @@ const InputField = ({
           className
         )}
       />
+      {isSearchable && (
+        <Image
+          className="absolute top-3 left-3"
+          src="/images/icons/magnifer.svg"
+          width={30}
+          height={30}
+          alt="Search"
+        />
+      )}
+      {isDropdown && (
+        <Image
+          className="absolute top-3 right-3"
+          src="images/icons/arrow_down.svg"
+          width={28}
+          height={28}
+          alt="arrow down"
+        />
+      )}
       {showPasswordToggle && (
         <button
           type="button"
