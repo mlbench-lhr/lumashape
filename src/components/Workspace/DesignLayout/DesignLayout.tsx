@@ -5,11 +5,13 @@ import ControlBar from './ControlBar'
 import OptionsBar from './OptionsBar'
 import Canvas from './Canvas'
 import Sidebar from './Sidebar'
-import { DroppedTool } from './types'
+import { DroppedTool, Tool } from './types'
 
 function DesignLayout() {
   const [droppedTools, setDroppedTools] = useState<DroppedTool[]>([]);
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
+  const [toolToAdd, setToolToAdd] = useState<Tool | null>(null);
+
   return (
     <div className="h-screen flex flex-col bg-gray-100">
       <Header />
