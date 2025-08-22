@@ -25,22 +25,69 @@ import {
     Hash
 } from 'lucide-react';
 import Image from 'next/image';
+import { DroppedTool, Tool } from './types';
+import DraggableTool from './DraggableTool';
 
-interface Tool {
-    name: string;
-    icon: string;
-    brand: string;
+interface SidebarProps {
+    droppedTools: DroppedTool[];
+    selectedTool: string | null;
 }
-
-const Sidebar: React.FC = () => {
+const TOOLS: Tool[] = [
+    { id: '1', name: 'Pliers', icon: '🔧', brand: 'MILWAUKEE', image: '/images/workspace/pliers.png' },
+    { id: '2', name: 'Scissors', icon: '✂️', brand: 'MILWAUKEE', image: '/api/placeholder/80/80' },
+    { id: '3', name: 'Screwdriver', icon: '🪛', brand: 'MILWAUKEE', image: '/api/placeholder/80/80' },
+    { id: '4', name: 'Wrench', icon: '🔧', brand: 'MILWAUKEE', image: '/api/placeholder/80/80' },
+];
+const Sidebar: React.FC<SidebarProps> = ({ droppedTools, selectedTool }) => {
     const [activeTab, setActiveTab] = useState<'inventory' | 'edit'>('inventory');
+    const [searchTerm, setSearchTerm] = useState('');
 
-    const tools: Tool[] = [
-        { name: 'Wrench', icon: '🔧', brand: 'MILWAUKEE' },
-        { name: 'Scissors', icon: '✂️', brand: 'MILWAUKEE' },
-        { name: 'Screwdriver', icon: '🪛', brand: 'MILWAUKEE' },
-        { name: 'Wrench', icon: '🔧', brand: 'MILWAUKEE' },
-    ];
+    const filteredTools = TOOLS.filter(tool =>
+        tool.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const ToolInventoryView = () => (
+        <>
+            <div className="relative mb-4">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                    type="text"
+                    placeholder="Search Tools"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                />
+            </div>
+
+            <div className="flex items-center justify-between mb-4">
+                <span className="text-sm text-gray-600">Sort by:</span>
+                <div className="flex items-center space-x-1 text-sm text-blue-600 cursor-pointer">
+                    <span>All Brands</span>
+                    <ChevronDown className="w-4 h-4" />
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                {filteredTools.map((tool) => (
+                    <DraggableTool key={tool.id} tool={tool} />
+                ))}
+            </div>
+
+            {filteredTools.length === 0 && (
+                <div className="text-center text-gray-500 py-8">
+                    <p>No tools found matching "{searchTerm}"</p>
+                </div>
+            )}
+        </>
+    );
+
+
+    // const tools: Tool[] = [
+    //     { name: 'Wrench', icon: '🔧', brand: 'MILWAUKEE' },
+    //     { name: 'Scissors', icon: '✂️', brand: 'MILWAUKEE' },
+    //     { name: 'Screwdriver', icon: '🪛', brand: 'MILWAUKEE' },
+    //     { name: 'Wrench', icon: '🔧', brand: 'MILWAUKEE' },
+    // ];
 
     const editActions = [
         { icon: "/images/workspace/rotate_left.svg", label: 'rotate' },
@@ -60,47 +107,47 @@ const Sidebar: React.FC = () => {
         { icon: "/images/workspace/arrow.svg", label: 'arrow' },
     ];
 
-    const ToolInventoryView = () => (
-        <>
-            <div className="relative mb-4">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                    type="text"
-                    placeholder="Search Tools"
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                />
-            </div>
+    // const ToolInventoryView = () => (
+    //     <>
+    //         <div className="relative mb-4">
+    //             <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+    //             <input
+    //                 type="text"
+    //                 placeholder="Search Tools"
+    //                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+    //             />
+    //         </div>
 
-            <div className="flex items-center justify-between mb-4">
-                <span className="text-sm text-gray-600">Sort by:</span>
-                <div className="flex items-center space-x-1 text-sm text-blue-600 cursor-pointer">
-                    <span>All Brands</span>
-                    <ChevronDown className="w-4 h-4" />
-                </div>
-            </div>
+    //         <div className="flex items-center justify-between mb-4">
+    //             <span className="text-sm text-gray-600">Sort by:</span>
+    //             <div className="flex items-center space-x-1 text-sm text-blue-600 cursor-pointer">
+    //                 <span>All Brands</span>
+    //                 <ChevronDown className="w-4 h-4" />
+    //             </div>
+    //         </div>
 
-            <div className="space-y-2">
-                {tools.map((tool, index) => (
-                    <div
-                        key={index}
-                        className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                    >
-                        <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
-                            <span className="text-lg">{tool.icon}</span>
-                        </div>
-                        <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium text-gray-900">{tool.name}</span>
-                                <div className="bg-red-600 text-white text-xs px-2 py-0.5 rounded font-medium">
-                                    {tool.brand}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </>
-    );
+    //         <div className="space-y-2">
+    //             {tools.map((tool, index) => (
+    //                 <div
+    //                     key={index}
+    //                     className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+    //                 >
+    //                     <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
+    //                         <span className="text-lg">{tool.icon}</span>
+    //                     </div>
+    //                     <div className="flex-1">
+    //                         <div className="flex items-center justify-between">
+    //                             <span className="text-sm font-medium text-gray-900">{tool.name}</span>
+    //                             <div className="bg-red-600 text-white text-xs px-2 py-0.5 rounded font-medium">
+    //                                 {tool.brand}
+    //                             </div>
+    //                         </div>
+    //                     </div>
+    //                 </div>
+    //             ))}
+    //         </div>
+    //     </>
+    // );
 
     const EditLayoutView = () => (
         <div className="space-y-6">
