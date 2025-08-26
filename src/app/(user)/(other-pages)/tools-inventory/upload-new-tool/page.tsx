@@ -518,12 +518,14 @@ const UploadNewTool = () => {
                         Description
                       </Text>
                       <div className="mt-[16px]">
-                        <InputField
-                          label=""
-                          name=""
-                          className="w-full h-[132px]"
+                        <textarea
+                          name="description"
+                          className="w-full h-[132px] p-4 border border-gray-300 rounded-md resize-none" // Styling for the textarea
                           placeholder="Custom"
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                          value={toolData.description}
+                          onChange={(
+                            e: React.ChangeEvent<HTMLTextAreaElement>
+                          ) => {
                             setToolData({
                               ...toolData,
                               description: e.target.value,

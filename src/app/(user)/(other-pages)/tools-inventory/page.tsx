@@ -180,7 +180,7 @@
 
 // export default ToolsInventory;
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ChevronDown, Search, Bell, Plus, Menu } from "lucide-react";
 import HamburgerMenu from "@/components/ui/HamburgerMenu";
 import Button from "@/components/ui/Button";
@@ -195,17 +195,42 @@ type Brand = {
   brand_logo: string;
 };
 
-const BRANDS: Brand[] = [
+const BRANDS_DESKTOP: Brand[] = [
   { id: 0, brand_logo: "Custom" },
-  { id: 1, brand_logo: "Milwaukee" },
-  { id: 2, brand_logo: "Bosch" },
-  { id: 3, brand_logo: "Makita" },
+  { id: 1, brand_logo: "/images/icons/milwaukee.svg" },
+  { id: 2, brand_logo: "/images/icons/bosch.svg" },
+  { id: 3, brand_logo: "/images/icons/makita.svg" },
+];
+
+const BRANDS_MOBILE: Brand[] = [
+  { id: 0, brand_logo: "Custom" },
+  { id: 1, brand_logo: "/images/icons/milwaukee_mobile.svg" },
+  { id: 2, brand_logo: "/images/icons/bosch_mobile.svg" },
+  { id: 3, brand_logo: "/images/icons/makita_mobile.svg" },
 ];
 
 const MobileToolsInventory = () => {
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const router = useRouter();
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Function to check if the device is mobile or desktop
+  const checkDeviceType = () => {
+    const width = window.innerWidth;
+    setIsMobile(width <= 768); // Adjust the breakpoint as needed
+  };
+
+  // Run checkDeviceType when component mounts and on window resize
+  useEffect(() => {
+    checkDeviceType(); // Initial check
+    window.addEventListener("resize", checkDeviceType); // Update on window resize
+
+    // Cleanup event listener on component unmount
+    return () => {
+      window.removeEventListener("resize", checkDeviceType);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen">
@@ -246,11 +271,7 @@ const MobileToolsInventory = () => {
 
           <div className="relative w-[30px] h-[30px] rounded-[10px] border-[#c7c7c7] border flex items-center justify-center sm:hidden">
             {/* <Bell className="w-5 h-5 text-gray-600" /> */}
-            <Image
-              src="/images/icons/bell.svg"
-              fill
-              alt="notifications"
-            />
+            <Image src="/images/icons/bell.svg" fill alt="notifications" />
           </div>
         </div>
 
@@ -300,57 +321,63 @@ const MobileToolsInventory = () => {
                 </Listbox.Button>
 
                 <Listbox.Options className="absolute mt-1 max-h-60 w-[150px] left-[-50px] z-10 sm:w-[245px] top-[65px] overflow-auto rounded-[10px] bg-white p-4 text-base shadow-lg focus:outline-none sm:text-sm">
-                  {BRANDS.map((brand) => (
-                    <Listbox.Option
-                      key={brand.id}
-                      value={brand}
-                      className={({ active }) =>
-                        `relative cursor-pointer select-none py-2 pl-3 pr-9 ${
-                          active ? "text-blue-900" : "text-gray-900"
-                        }`
-                      }
-                    >
-                      {({ selected }) => (
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="radio"
-                            readOnly
-                            checked={selected}
-                            placeholder="All Brands"
-                            className="w-4 h-4"
-                          />
-                          {brand.brand_logo.endsWith(".svg") ? (
-                            <div
-                              className={`relative ${
-                                brand.brand_logo
-                                  .toLowerCase()
-                                  .includes("milwaukee")
-                                  ? "w-[48px] h-[24px]"
-                                  : brand.brand_logo
-                                      .toLowerCase()
-                                      .includes("bosch")
-                                  ? "w-[53px] h-[19px]"
-                                  : brand.brand_logo
-                                      .toLowerCase()
-                                      .includes("makita")
-                                  ? "w-[55px] h-[41px]"
-                                  : ""
-                              }`}
-                            >
-                              <Image
-                                src={brand.brand_logo}
-                                fill
-                                style={{ objectFit: "contain" }}
-                                alt="Brand logo"
+                  {(!isMobile ? BRANDS_DESKTOP : BRANDS_MOBILE).map(
+                    (brand: Brand) => (
+                      <Listbox.Option
+                        key={brand.id}
+                        value={brand}
+                        className={({ active }) =>
+                          `relative cursor-pointer select-none py-2 pl-3 pr-9 ${
+                            active ? "text-blue-900" : "text-gray-900"
+                          }`
+                        }
+                      >
+                        {({ selected }) => (
+                          <div className="flex items-center gap-2">
+                            <div className="w-[12px] h-[12px] sm:w-[24px] sm:h-[24px] flex items-center justify-center">
+                              <input
+                                type="radio"
+                                readOnly
+                                checked={selected}
+                                placeholder="All Brands"
+                                className="w-[7.61px] h-[7.61px] sm:w-[16px] sm:h-[16px]"
                               />
                             </div>
-                          ) : (
-                            <span className="text-sm">{brand.brand_logo}</span>
-                          )}
-                        </div>
-                      )}
-                    </Listbox.Option>
-                  ))}
+                            {brand.brand_logo.endsWith(".svg") ? (
+                              <div
+                                className={`relative ${
+                                  brand.brand_logo
+                                    .toLowerCase()
+                                    .includes("milwaukee")
+                                    ? "w-[24px] h-[12px] sm:w-[48px] sm:h-[24px]"
+                                    : brand.brand_logo
+                                        .toLowerCase()
+                                        .includes("bosch")
+                                    ? "w-[24px] h-[12px] sm:w-[53px] sm:h-[19px]"
+                                    : brand.brand_logo
+                                        .toLowerCase()
+                                        .includes("makita")
+                                    ? "w-[24px] h-[12px] sm:w-[55px] sm:h-[41px]"
+                                    : "w-[50px] h-[30px]" // Default size if no brand matches
+                                } flex items-center justify-center`}
+                              >
+                                <Image
+                                  src={brand.brand_logo}
+                                  fill
+                                  style={{ objectFit: "contain" }}
+                                  alt="Brand logo"
+                                />
+                              </div>
+                            ) : (
+                              <span className="text-sm">
+                                {brand.brand_logo}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </Listbox.Option>
+                    )
+                  )}
                 </Listbox.Options>
               </div>
             </Listbox>
@@ -447,7 +474,10 @@ const MobileToolsInventory = () => {
       {/* Floating Add Button */}
       <div className="fixed bottom-6 right-6 sm:hidden">
         <button className="w-14 h-14 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center shadow-lg transition-colors">
-          <Plus className="w-6 h-6 text-white" onClick={() => router.push("/tools-inventory/upload-new-tool")}/>
+          <Plus
+            className="w-6 h-6 text-white"
+            onClick={() => router.push("/tools-inventory/upload-new-tool")}
+          />
         </button>
       </div>
     </div>
