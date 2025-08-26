@@ -34,9 +34,9 @@ interface SidebarProps {
 }
 const TOOLS: Tool[] = [
     { id: '1', name: 'Pliers', icon: '🔧', brand: 'MILWAUKEE', image: '/images/workspace/pliers.png', width: 180, height: 180 },
-    { id: '2', name: 'Scissors', icon: '✂️', brand: 'MILWAUKEE', image: '/api/placeholder/80/80' },
-    { id: '3', name: 'Screwdriver', icon: '🪛', brand: 'MILWAUKEE', image: '/api/placeholder/80/80' },
-    { id: '4', name: 'Wrench', icon: '🔧', brand: 'MILWAUKEE', image: '/api/placeholder/80/80' },
+    // { id: '2', name: 'Scissors', icon: '✂️', brand: 'MILWAUKEE', image: '/api/placeholder/80/80' },
+    // { id: '3', name: 'Screwdriver', icon: '🪛', brand: 'MILWAUKEE', image: '/api/placeholder/80/80' },
+    // { id: '4', name: 'Wrench', icon: '🔧', brand: 'MILWAUKEE', image: '/api/placeholder/80/80' },
 ];
 const Sidebar: React.FC<SidebarProps> = ({ droppedTools, selectedTool }) => {
     const [activeTab, setActiveTab] = useState<'inventory' | 'edit'>('inventory');
