@@ -15,9 +15,9 @@ const Modal: React.FC<ModalProps> = ({ isOpen, title, description }) => {
     <>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="flex flex-col justify-center items-center bg-white w-[560px] h-[404px] py-[70px] p-[10px]">
-            <div className="flex justify-start items-start">
-              <div className="w-[195px] h-[130px] relative">
+          <div className="flex flex-col justify-center items-center bg-white sm:w-[560px] sm:h-[404px] w-[90%] max-w-[400px] h-auto py-[20px] px-4 sm:px-[20px]">
+            <div className="flex justify-center items-center w-full">
+              <div className="w-[120px] sm:w-[195px] h-[120px] sm:h-[130px] relative">
                 <Image
                   src="/images/icons/processing.svg"
                   fill
@@ -26,11 +26,17 @@ const Modal: React.FC<ModalProps> = ({ isOpen, title, description }) => {
                 />
               </div>
             </div>
-            <div className="flex flex-col items-center mt-[45px]">
-              <Text className="font-semibold" as="h3">
+            <div className="flex flex-col items-center mt-[20px] sm:mt-[30px]">
+              <Text
+                className="font-semibold text-center text-lg sm:text-xl"
+                as="h3"
+              >
                 {title}
               </Text>
-              <Text className="font-medium text-[#999999] mt-[15px]" as="p1">
+              <Text
+                className="font-medium text-[#999999] mt-[15px] text-center text-sm sm:text-base"
+                as="p1"
+              >
                 {description}
               </Text>
             </div>
