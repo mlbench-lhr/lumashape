@@ -29,15 +29,15 @@ export default function AdminLayout({
   ];
 
   // Check if current path should hide sidebar
-  const shouldHideSidebar = 
+  const shouldHideSidebar =
     hideSidebarRoutes.includes(pathname) || // Exact match
-    hideSidebarPrefixes.some(prefix => pathname.startsWith(prefix)); // Prefix match
+    hideSidebarPrefixes.some((prefix) => pathname.startsWith(prefix)); // Prefix match
 
   // Alternative approach using a single function for more complex matching:
   // const shouldHideSidebar = checkIfShouldHideSidebar(pathname);
 
   // Dynamic margin for responsive layout
-  const sidebarMargin = shouldHideSidebar 
+  const sidebarMargin = shouldHideSidebar
     ? "ml-0" // No margin when sidebar is hidden
     : isMobileOpen
     ? "ml-0" // No margin on mobile when sidebar is open
@@ -52,7 +52,7 @@ export default function AdminLayout({
         <>
           {/* Hamburger Menu - Only visible on mobile */}
           <HamburgerMenu />
-          
+
           {/* Sidebar and Backdrop */}
           <AppSidebar />
           <Backdrop />
