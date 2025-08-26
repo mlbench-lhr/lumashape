@@ -523,7 +523,7 @@ const UploadNewTool = () => {
                           name=""
                           className="w-full h-[132px]"
                           placeholder="Custom"
-                          onChange={(e: any) => {
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             setToolData({
                               ...toolData,
                               description: e.target.value,
@@ -551,7 +551,7 @@ const UploadNewTool = () => {
                     name=""
                     className="w-full"
                     placeholder="Please add purchasing link"
-                    onChange={(e: any) => {
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       setToolData({
                         ...toolData,
                         purchase_link: e.target.value,
