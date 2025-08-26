@@ -362,7 +362,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed flex flex-col top-0 left-0 bg-white text-gray-900 h-screen transition-all duration-300 ease-in-out z-40 border-r border-gray-200 
+      className={`fixed flex flex-col top-0 left-0 bg-white text-gray-900 h-full transition-all duration-300 ease-in-out z-40 border-r border-gray-200 
         ${
           isMobileOpen
             ? "w-[290px] translate-x-0"
@@ -405,7 +405,7 @@ const AppSidebar: React.FC = () => {
             ) : (
               <Image
                 className="ml-2"
-                src="/images/Stelomic.svg"
+                src="/images/logo/lumashape.svg"
                 alt="Stelomic Logo"
                 width={32}
                 height={32}
