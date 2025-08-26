@@ -141,6 +141,7 @@ const AppSidebar: React.FC = () => {
   } = useSidebar();
   const pathname = usePathname();
   const { user } = useContext(UserContext);
+  const [token, setToken] = useState("");
 
   console.log("User:", user);
 
@@ -384,7 +385,7 @@ const AppSidebar: React.FC = () => {
               : "justify-start"
           }`}
         >
-          <Link href="/dashboard" onClick={handleLinkClick}>
+          <Link href="/" onClick={handleLinkClick}>
             {isExpanded || isHovered || isMobileOpen ? (
               <>
                 <Image
