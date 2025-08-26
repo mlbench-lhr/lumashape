@@ -287,8 +287,8 @@ const UploadNewTool = () => {
               </Listbox>
             </div>
 
-            <div className="flex mt-[30px] mb-[25px] gap-[36px]">
-              <div className="relative w-1/2 h-[433px] border border-b-0 rounded-[21px] bg-[#f9fcff] border-dotted border-gray-400">
+            <div className="flex flex-col sm:flex-row mt-[30px] mb-[25px] gap-[36px]">
+              <div className="relative w-full sm:w-1/2 h-[433px] border border-b-0 rounded-[21px] bg-[#f9fcff] border-dotted border-gray-400">
                 <div className="absolute px-[12px] py-[8.5px] right-0 w-[88px] h-[41px] rounded-tr-[21px] bg-[#ebebeb]">
                   <div className="flex justify-center items-center gap-[12px]">
                     <div className="p-[7px]">
@@ -385,7 +385,7 @@ const UploadNewTool = () => {
               </div>
 
               {toolOptions && (
-                <div className="flex flex-col w-1/2">
+                <div className="flex flex-col w-full sm:w-1/2">
                   <Text className="font-bold" as="p1">
                     Brand
                   </Text>
@@ -573,7 +573,7 @@ const UploadNewTool = () => {
               </Button>
             </div>
           </div>
-          <div className="flex-[1]"></div>
+          <div className="hidden sm:flex-[1]"></div>
         </div>
       </div>
     </>

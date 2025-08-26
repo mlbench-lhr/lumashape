@@ -212,7 +212,7 @@ const MobileToolsInventory = () => {
       {/* Mobile Header */}
 
       {/* Status Bar Simulation */}
-      <HamburgerMenu />
+      {/* <HamburgerMenu /> */}
 
       {/* Main Content */}
       <div className="px-4 py-6">

@@ -12,7 +12,7 @@ const HamburgerMenu: React.FC = () => {
 
   return (
     <>
-      <div className="fixed w-[375px] h-[44px] flex top-4 left-4 z-50 p-2 sm:hidden">
+      <div className="fixed top-0 bg-white w-full sm:w-[375px] md:w-[500px] lg:w-[600px] h-[44px] flex z-50 p-2 sm:hidden">
         <button
           onClick={toggleMobileSidebar}
           className="lg:hidden rounded-md bg-white cursor-pointer"
