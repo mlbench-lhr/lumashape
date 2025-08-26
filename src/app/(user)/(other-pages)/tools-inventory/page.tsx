@@ -35,7 +35,11 @@ const ToolsInventory = () => {
             Tools Inventory
           </Text>
           <div className="flex">
-            <Button onClick={() => router.push('/tools-inventory/upload-new-tool')} variant="primary" size="lg">
+            <Button
+              onClick={() => router.push("/tools-inventory/upload-new-tool")}
+              variant="primary"
+              size="lg"
+            >
               <Image
                 src="/images/icons/mdi_add.svg"
                 width={24}
@@ -106,7 +110,7 @@ const ToolsInventory = () => {
                       value={brand}
                       className={({ active }) =>
                         `relative cursor-pointer select-none py-2 pl-3 pr-9 ${
-                          active ? "bg-blue-100 text-blue-900" : "text-gray-900"
+                          active ? "text-blue-900" : "text-gray-900"
                         }`
                       }
                     >
@@ -120,12 +124,30 @@ const ToolsInventory = () => {
                             className="w-4 h-4"
                           />
                           {brand.brand_logo.endsWith(".svg") ? (
-                            <Image
-                              src={brand.brand_logo}
-                              width={48}
-                              height={24}
-                              alt="Brand logo"
-                            />
+                            <div
+                              className={`relative ${
+                                brand.brand_logo
+                                  .toLowerCase()
+                                  .includes("milwaukee")
+                                  ? "w-[48px] h-[24px]"
+                                  : brand.brand_logo
+                                      .toLowerCase()
+                                      .includes("bosch")
+                                  ? "w-[53px] h-[19px]"
+                                  : brand.brand_logo
+                                      .toLowerCase()
+                                      .includes("makita")
+                                  ? "w-[55px] h-[41px]"
+                                  : ""
+                              }`}
+                            >
+                              <Image
+                                src={brand.brand_logo}
+                                fill
+                                style={{ objectFit: "contain" }}
+                                alt="Brand logo"
+                              />
+                            </div>
                           ) : (
                             <span className="text-sm">{brand.brand_logo}</span>
                           )}
