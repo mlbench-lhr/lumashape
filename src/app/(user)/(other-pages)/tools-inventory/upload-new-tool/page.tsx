@@ -7,7 +7,10 @@ import Text from "@/components/ui/Text";
 import { Listbox } from "@headlessui/react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 type Paper = {
   id: number;
@@ -19,6 +22,16 @@ type Tool = {
   type: string;
 };
 
+type ToolData = {
+  id: number;
+  background_img: string;
+  paper_type: string;
+  brand: string;
+  tool_type: string;
+  description: string;
+  purchase_link: string;
+};
+
 const Tools: Tool[] = [
   { id: 0, type: "Custom" },
   { id: 1, type: "Wrench" },
@@ -26,7 +39,7 @@ const Tools: Tool[] = [
   { id: 3, type: "Hammer" },
 ];
 
-const BRANDS: Paper[] = [
+const PAPERS: Paper[] = [
   { id: 0, type: "A3" },
   { id: 1, type: "A4" },
   { id: 2, type: "US Letter" },
@@ -38,20 +51,40 @@ const UploadNewTool = () => {
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
   const [toolOptions, setToolOptions] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalDescription, setModalDescription] = useState("");
+  const router = useRouter();
 
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [toolData, setToolData] = useState<ToolData>({
+    id: 0,
+    background_img: "",
+    paper_type: "",
+    brand: "",
+    tool_type: "",
+    description: "",
+    purchase_link: "",
+  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (pendingUrl) {
       setShowModal(true);
+      setModalTitle("Processing...");
+      setModalDescription(
+        "Detecting tool contours… this usually takes just a few seconds."
+      );
 
       const timer = setTimeout(() => {
         setBackgroundUrl(pendingUrl); // apply as background after modal
         setShowModal(false);
         setToolOptions(true);
         setPendingUrl(null);
+        setModalTitle("");
+        setModalDescription("");
       }, 2000); // show modal for 2s before background updates
 
       return () => clearTimeout(timer);
@@ -76,26 +109,113 @@ const UploadNewTool = () => {
 
   const handleRemoveImage = () => {
     setBackgroundUrl("");
+    setToolOptions(false);
+
     if (fileInputRef.current) {
       fileInputRef.current.value = ""; // reset the input so selecting the same file triggers onChange
     }
   };
 
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files?.[0];
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+    setPendingUrl(url);
+    setShowModal(true);
+
+    console.log("Dropped file:", file);
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault(); // necessary to allow drop
+  };
+
+  const handleImageOutline = () => {
+    if (!toolData.paper_type) {
+      toast.error("Paper type must be selected", {
+        position: "top-center",
+        autoClose: 5000,
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!backgroundUrl) {
+      toast.error("An image must be selected", {
+        position: "top-center",
+        autoClose: 5000,
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!toolData.brand) {
+      toast.error("Brand must be selected", {
+        position: "top-center",
+        autoClose: 5000,
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!toolData.tool_type) {
+      toast.error("Tool type must be selected", {
+        position: "top-center",
+        autoClose: 5000,
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!toolData.description) {
+      toast.error("Description must be added", {
+        position: "top-center",
+        autoClose: 5000,
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    setShowModal(true);
+    setModalTitle("Please hold on....");
+    setModalDescription(
+      "We’re analyzing the image and creating your DXF file. This may take up to 3 minutes."
+    );
+
+    setTimeout(() => {
+      setShowModal(false);
+      setModalTitle("");
+      router.push(
+        `/tools-inventory/tool-detected?paper=${toolData.paper_type}&brand=${toolData.brand}&type=${toolData.tool_type}`
+      );
+    }, 2000);
+  };
+
   return (
     <>
-      {showModal && <Modal isOpen={showModal} />}
+      {showModal && (
+        <Modal
+          isOpen={showModal}
+          title={modalTitle}
+          description={modalDescription}
+        />
+      )}
       <div className="w-full mx-auto my-[45px]">
         <div className="flex gap-[13px]">
           <div className="py-[13px] px-[11px]">
             <Image
+              className="cursor-pointer"
               src="/images/icons/back.svg"
               width={24}
               height={22}
               alt="back"
+              onClick={() => router.push("/tools-inventory")}
             />
           </div>
           <Text as="h3" className="grow">
-            Upload New Tool
+            Enter Tool Info
           </Text>
         </div>
         <div className="mt-[15px]">
@@ -112,7 +232,13 @@ const UploadNewTool = () => {
               </Text>
             </div>
             <div className="mt-[18px]">
-              <Listbox value={selectedPaper} onChange={setSelectedPaper}>
+              <Listbox
+                value={selectedPaper}
+                onChange={(paper: Paper) => {
+                  setSelectedPaper(paper);
+                  setToolData({ ...toolData, paper_type: paper.type });
+                }}
+              >
                 <div className="relative w-full">
                   <Listbox.Button className="relative w-full h-[50px] p-2 border rounded-lg border-[#e6e6e6] text-left focus:outline-none">
                     <span className="flex items-center gap-2">
@@ -133,15 +259,13 @@ const UploadNewTool = () => {
                   </Listbox.Button>
 
                   <Listbox.Options className="absolute mt-1 z-[10] max-h-60 w-[245px] right-5 top-[50px] overflow-auto rounded-[10px] bg-white p-4 text-base shadow-lg focus:outline-none sm:text-sm">
-                    {BRANDS.map((paper) => (
+                    {PAPERS.map((paper) => (
                       <Listbox.Option
                         key={paper.id}
                         value={paper}
                         className={({ active }) =>
                           `relative cursor-pointer select-none py-2 pl-3 pr-9 ${
-                            active
-                              ? "bg-blue-100 text-blue-900"
-                              : "text-gray-900"
+                            active ? "text-blue-900" : "text-gray-900"
                           }`
                         }
                       >
@@ -195,6 +319,8 @@ const UploadNewTool = () => {
                       ? `url(${backgroundUrl})`
                       : undefined,
                   }}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
                 >
                   <div className="flex flex-col items-center">
                     <div className="p-[15px]">
@@ -208,25 +334,20 @@ const UploadNewTool = () => {
                           onClick={handleImageUpload}
                         />
                       )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
                     </div>
                     {!backgroundUrl && (
-                      <p className="mt-[15px] text-[16px] leading-[18px] font-semibold text-center">
-                        Drag & Drop the image or <br />
-                        <Link
-                          href="/upload"
-                          className="text-blue-500 underline"
-                        >
-                          Click
-                        </Link>{" "}
-                        to upload
-                      </p>
+                      <>
+                        <p className="mt-[15px] text-[16px] leading-[18px] font-semibold text-center">
+                          Drag & Drop the image or <br />
+                          <span
+                            className="text-blue-500 underline cursor-pointer"
+                            onClick={handleImageUpload}
+                          >
+                            Click
+                          </span>{" "}
+                          to upload
+                        </p>
+                      </>
                     )}
                   </div>
                 </div>
@@ -241,13 +362,6 @@ const UploadNewTool = () => {
                         className="cursor-pointer"
                         onClick={handleImageUpload}
                       />
-                      <input
-                        type="file"
-                        accept="image/*"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
                     </div>
                     <div className="p-[5px]">
                       <Image
@@ -260,6 +374,14 @@ const UploadNewTool = () => {
                     </div>
                   </div>
                 </div>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
               </div>
 
               {toolOptions && (
@@ -270,36 +392,71 @@ const UploadNewTool = () => {
                   <div className="flex justify-start mt-[20px] gap-[3px]">
                     <div className="w-[91px] h-[65px] bg-[#d9d9d9] relative">
                       <Image
+                        className="cursor-pointer"
                         src="/images/icons/workspace/Bosch.svg"
                         alt="bosch"
                         fill
                         style={{ objectFit: "contain" }} // or "cover" if you want it to fill fully
+                        onClick={(e: React.MouseEvent<HTMLImageElement>) => {
+                          const src = (e.target as HTMLImageElement).src
+                            .split("/")
+                            .pop()
+                            ?.split(".")[0]; // e.target.src
+                          setToolData({ ...toolData, brand: src as string });
+                        }}
                       />
                     </div>
                     <div className="w-[91px] h-[65px] relative">
                       <Image
+                        className="cursor-pointer"
                         src="/images/icons/workspace/Milwakee.svg"
                         fill
                         alt="bosch"
                         style={{ objectFit: "contain" }}
+                        onClick={(e: React.MouseEvent<HTMLImageElement>) => {
+                          const src = (e.target as HTMLImageElement).src
+                            .split("/")
+                            .pop()
+                            ?.split(".")[0]; // e.target.src
+                          setToolData({ ...toolData, brand: src as string });
+                        }}
                       />
                     </div>
                     <div className="w-[91px] h-[65px] relative">
                       <Image
+                        className="cursor-pointer"
                         src="/images/icons/workspace/Dewalt.svg"
                         fill
                         alt="bosch"
                         style={{ objectFit: "contain" }}
+                        onClick={(e: React.MouseEvent<HTMLImageElement>) => {
+                          const src = (e.target as HTMLImageElement).src
+                            .split("/")
+                            .pop()
+                            ?.split(".")[0]; // e.target.src
+                          setToolData({ ...toolData, brand: src as string });
+                        }}
                       />
                     </div>
                   </div>
 
+                  {toolData.brand && (
+                    <span className="text-red-600 text-[14px]">
+                      {toolData.brand}
+                    </span>
+                  )}
                   {toolOptions && (
                     <div className="my-[30px]">
                       <Text className="font-bold" as="p1">
                         Tool Type
                       </Text>
-                      <Listbox value={selectedTool} onChange={setSelectedTool}>
+                      <Listbox
+                        value={selectedTool}
+                        onChange={(tool: Tool) => {
+                          setSelectedTool(tool);
+                          setToolData({ ...toolData, tool_type: tool.type });
+                        }}
+                      >
                         <div className="relative w-full mt-[16px]">
                           <Listbox.Button className="relative w-full h-[50px] p-2 border rounded-lg border-[#e6e6e6] text-left focus:outline-none">
                             <span className="flex items-center gap-2">
@@ -366,6 +523,12 @@ const UploadNewTool = () => {
                           name=""
                           className="w-full h-[132px]"
                           placeholder="Custom"
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                            setToolData({
+                              ...toolData,
+                              description: e.target.value,
+                            });
+                          }}
                         />
                       </div>
                     </div>
@@ -388,6 +551,12 @@ const UploadNewTool = () => {
                     name=""
                     className="w-full"
                     placeholder="Please add purchasing link"
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      setToolData({
+                        ...toolData,
+                        purchase_link: e.target.value,
+                      });
+                    }}
                   />
                 </div>
               </div>
@@ -398,10 +567,9 @@ const UploadNewTool = () => {
                 className="px-[3.5rem] py-[1rem] text-[18px] font-bold"
                 variant="primary"
                 size="lg"
+                onClick={handleImageOutline}
               >
-                <span className="text-[18px] font-semibold">
-                  Save To Tool Inventory
-                </span>
+                <span className="text-[18px] font-semibold">Next</span>
               </Button>
             </div>
           </div>

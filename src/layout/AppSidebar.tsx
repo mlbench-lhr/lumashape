@@ -1,10 +1,16 @@
 "use client";
-import React, { useEffect, useRef, useState, useContext, useCallback } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useContext,
+  useCallback,
+} from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/context/SidebarContext";
-import { UserContext } from '@/context/UserContext';
+import { UserContext } from "@/context/UserContext";
 import CloseButton from "@/components/ui/CloseButton"; // Adjust path as needed
 
 type NavItem = {
@@ -22,41 +28,117 @@ interface User {
 
 const navItems: NavItem[] = [
   {
-    icon: <Image src="/images/icons/sidebar/workspace.svg" alt="Workspace" width={24} height={24} />,
-    iconActive: <Image src="/images/icons/sidebar/active/workspace.svg" alt="Workspace Active" width={24} height={24} />,
+    icon: (
+      <Image
+        src="/images/icons/sidebar/workspace.svg"
+        alt="Workspace"
+        width={24}
+        height={24}
+      />
+    ),
+    iconActive: (
+      <Image
+        src="/images/icons/sidebar/active/workspace.svg"
+        alt="Workspace Active"
+        width={24}
+        height={24}
+      />
+    ),
     name: "Workspace",
-    path: "/workspace",  
+    path: "/workspace",
   },
   {
-    icon: <Image src="/images/icons/sidebar/tools.svg" alt="Tools" width={24} height={24} />,
-    iconActive: <Image src="/images/icons/sidebar/active/tools.svg" alt="Tools Active" width={24} height={24} />,
+    icon: (
+      <Image
+        src="/images/icons/sidebar/tools.svg"
+        alt="Tools"
+        width={24}
+        height={24}
+      />
+    ),
+    iconActive: (
+      <Image
+        src="/images/icons/sidebar/active/tools.svg"
+        alt="Tools Active"
+        width={24}
+        height={24}
+      />
+    ),
     name: "Tools Inventory",
     path: "/tools-inventory",
   },
   {
-    icon: <Image src="/images/icons/sidebar/explore.svg" alt="Explore" width={24} height={24} />,
-    iconActive: <Image src="/images/icons/sidebar/active/explore.svg" alt="Explore Active" width={24} height={24} />,
+    icon: (
+      <Image
+        src="/images/icons/sidebar/explore.svg"
+        alt="Explore"
+        width={24}
+        height={24}
+      />
+    ),
+    iconActive: (
+      <Image
+        src="/images/icons/sidebar/active/explore.svg"
+        alt="Explore Active"
+        width={24}
+        height={24}
+      />
+    ),
     name: "Explore",
     path: "/explore",
   },
   {
-    icon: <Image src="/images/icons/sidebar/cart.svg" alt="Cart" width={24} height={24} />,
-    iconActive: <Image src="/images/icons/sidebar/active/cart.svg" alt="Cart Active" width={24} height={24} />,
+    icon: (
+      <Image
+        src="/images/icons/sidebar/cart.svg"
+        alt="Cart"
+        width={24}
+        height={24}
+      />
+    ),
+    iconActive: (
+      <Image
+        src="/images/icons/sidebar/active/cart.svg"
+        alt="Cart Active"
+        width={24}
+        height={24}
+      />
+    ),
     name: "Cart",
-    path: "/cart"
+    path: "/cart",
   },
   {
-    icon: <Image src="/images/icons/sidebar/profile.svg" alt="Profile" width={24} height={24} />,
-    iconActive: <Image src="/images/icons/sidebar/active/profile.svg" alt="Profile Active" width={24} height={24} />,
+    icon: (
+      <Image
+        src="/images/icons/sidebar/profile.svg"
+        alt="Profile"
+        width={24}
+        height={24}
+      />
+    ),
+    iconActive: (
+      <Image
+        src="/images/icons/sidebar/active/profile.svg"
+        alt="Profile Active"
+        width={24}
+        height={24}
+      />
+    ),
     name: "Profile",
-    path: "/profile"
-  }
+    path: "/profile",
+  },
 ];
 
 const othersItems: NavItem[] = [];
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered, toggleMobileSidebar } = useSidebar();
+  const {
+    isExpanded,
+    isMobileOpen,
+    isHovered,
+    setIsHovered,
+    toggleMobileSidebar,
+  } = useSidebar();
   const pathname = usePathname();
   const { user } = useContext(UserContext);
 
@@ -66,17 +148,22 @@ const AppSidebar: React.FC = () => {
     type: "main" | "others";
     index: number;
   } | null>(null);
-  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>({});
+  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
+    {}
+  );
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const isActive = useCallback((path: string) => {
-    if (!path) return false;
-    return pathname === path || pathname === `${path}/`;
-  }, [pathname]);
+  const isActive = useCallback(
+    (path: string) => {
+      if (!path) return false;
+      return pathname === path || pathname === `${path}/`;
+    },
+    [pathname]
+  );
 
   useEffect(() => {
     let submenuMatched = false;
-    
+
     navItems.forEach((nav, index) => {
       if (nav.subItems) {
         nav.subItems.forEach((subItem) => {
@@ -158,19 +245,24 @@ const AppSidebar: React.FC = () => {
                   : "lg:justify-start"
               }`}
             >
-              <span className={`transition-all duration-200 ${
-                openSubmenu?.type === menuType && openSubmenu?.index === index
-                  ? "text-primary"
-                  : "text-gray-600"
-              }`}>
+              <span
+                className={`transition-all duration-200 ${
+                  openSubmenu?.type === menuType && openSubmenu?.index === index
+                    ? "text-primary"
+                    : "text-gray-600"
+                }`}
+              >
                 {nav.icon}
               </span>
               {(isExpanded || isHovered || isMobileOpen) && (
-                <span className={`font-medium transition-colors ${
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? "text-primary"
-                    : "text-gray-700"
-                }`}>
+                <span
+                  className={`font-medium transition-colors ${
+                    openSubmenu?.type === menuType &&
+                    openSubmenu?.index === index
+                      ? "text-primary"
+                      : "text-gray-700"
+                  }`}
+                >
                   {nav.name}
                 </span>
               )}
@@ -184,17 +276,17 @@ const AppSidebar: React.FC = () => {
                   !isExpanded && !isHovered && !isMobileOpen
                     ? "lg:justify-center"
                     : "lg:justify-start"
-                } hover:bg-gray-50 ${
-                  isActive(nav.path) ? "bg-primary/5" : ""
-                }`}
+                } hover:bg-gray-50 ${isActive(nav.path) ? "bg-primary/5" : ""}`}
               >
                 <span className="transition-all duration-200">
-                  {isActive(nav.path) ? nav.iconActive : nav.icon} 
+                  {isActive(nav.path) ? nav.iconActive : nav.icon}
                 </span>
                 {(isExpanded || isHovered || isMobileOpen) && (
-                  <span className={`font-medium transition-colors ${
-                    isActive(nav.path) ? "text-primary" : "text-gray-700"
-                  }`}>
+                  <span
+                    className={`font-medium transition-colors ${
+                      isActive(nav.path) ? "text-primary" : "text-gray-700"
+                    }`}
+                  >
                     {nav.name}
                   </span>
                 )}
@@ -224,9 +316,13 @@ const AppSidebar: React.FC = () => {
                         isActive(subItem.path) ? "bg-gray-50" : ""
                       }`}
                     >
-                      <span className={`${
-                        isActive(subItem.path) ? "text-primary font-medium" : "text-gray-600"
-                      }`}>
+                      <span
+                        className={`${
+                          isActive(subItem.path)
+                            ? "text-primary font-medium"
+                            : "text-gray-600"
+                        }`}
+                      >
                         {subItem.name}
                       </span>
                       <span className="flex items-center gap-1 ml-auto">
@@ -281,9 +377,13 @@ const AppSidebar: React.FC = () => {
     >
       {/* Header with Logo and Close Button */}
       <div className="py-8 flex items-center justify-between">
-        <div className={`flex ${
-          !isExpanded && !isHovered && !isMobileOpen ? "lg:justify-center" : "justify-start"
-        }`}>
+        <div
+          className={`flex ${
+            !isExpanded && !isHovered && !isMobileOpen
+              ? "lg:justify-center"
+              : "justify-start"
+          }`}
+        >
           <Link href="/dashboard" onClick={handleLinkClick}>
             {isExpanded || isHovered || isMobileOpen ? (
               <>
@@ -313,7 +413,7 @@ const AppSidebar: React.FC = () => {
             )}
           </Link>
         </div>
-        
+
         {/* Close Button - Only visible on mobile when sidebar is open */}
         <CloseButton />
       </div>
@@ -326,35 +426,39 @@ const AppSidebar: React.FC = () => {
               {renderMenuItems(navItems, "main")}
               {othersItems.length > 0 && renderMenuItems(othersItems, "others")}
             </div>
-            
+
             {/* User Profile Section */}
             <div className="mt-auto pb-4">
-              <div className={`flex items-center gap-3 p-3 transition-colors hover:bg-gray-50 rounded-lg ${
-                !isExpanded && !isHovered && !isMobileOpen
-                  ? "lg:justify-center"      
-                  : "lg:justify-start"
-              }`}>
+              <div
+                className={`flex items-center gap-3 p-3 transition-colors hover:bg-gray-50 rounded-lg ${
+                  !isExpanded && !isHovered && !isMobileOpen
+                    ? "lg:justify-center"
+                    : "lg:justify-start"
+                }`}
+              >
                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-white font-semibold text-lg">
                     {user?.avatar ? (
-            <img
-              src={user.avatar}
-              alt="User Avatar"
-              className="w-full h-full rounded-full object-cover"
-            />
-          ) : (
-            <span className="text-2xl">
-              {user?.username ? user.username.charAt(0).toUpperCase() : "U"}
-            </span>
-          )}
+                      <img
+                        src={user.avatar}
+                        alt="User Avatar"
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl">
+                        {user?.username
+                          ? user.username.charAt(0).toUpperCase()
+                          : "U"}
+                      </span>
+                    )}
                   </span>
                 </div>
                 {(isExpanded || isHovered || isMobileOpen) && (
                   <div className="flex flex-col min-w-0 flex-1">
-                    <span className="font-medium text-gray-900 truncate">
+                    <span className="font-semibold text-[16px] text-gray-900 truncate">
                       {user ? user.username : ""}
                     </span>
-                    <span className="text-sm text-gray-500 truncate">
+                    <span className="font-medium text-[12px] text-[#808080] truncate">
                       {user ? user.email : ""}
                     </span>
                   </div>
