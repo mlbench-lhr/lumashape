@@ -9,12 +9,23 @@ import Text from "../ui/Text";
 import Button from "../ui/Button";
 import { useRouter } from "next/navigation";
 function HeroSection() {
-  const [token, setToken] = useState("");
   const router = useRouter();
 
-  useEffect(() => {
-    setToken(localStorage.getItem("auth-token") ?? "");
-  }, []);
+  function getCookie(name: string) {
+    return document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(name + "="))
+      ?.split("=")[1];
+  }
+
+  const handleClick = () => {
+    const token = getCookie("auth-token");
+    if (token) {
+      router.push("/tools-inventory");
+    } else {
+      router.push("/auth/login");
+    }
+  };
 
   return (
     <div className="xl:max-w-[1200px] max-w-[90%] flex flex-col items-center justify-center mx-auto">
@@ -43,9 +54,7 @@ function HeroSection() {
         <div className="my-10 flex justify-center">
           <Button
             className="md:px-8 px-6 md:py-3 py-2 md:text-lg text-md rounded-full"
-            onClick={() => {
-              router.push(`${token ? "/tools-inventory" : "/auth/login"}`);
-            }}
+            onClick={handleClick}
           >
             Try Lumashape Now
           </Button>
