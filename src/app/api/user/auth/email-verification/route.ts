@@ -29,7 +29,6 @@ export async function POST(req: NextRequest) {
     await dbConnect();
 
     const { email }: { email: string } = await req.json();
-    console.log("Email verification request for email:", email);
 
     // Validate email
     if (!email) {

@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       {
-        message: "OTP has been sent to your email address",
+        message: "OTP has been sent to your email addrex",
         otpSent: true,
       },
       { status: 200 }
