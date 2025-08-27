@@ -185,7 +185,7 @@ export default function ForgotPasswordScreen() {
 
         {/* Description */}
         <p className="text-center text-[#666666] mb-8 leading-relaxed">
-          Enter the email address linked to your account, and we'll send you a
+          Enter the email address linked to your account, and we`&apos;`ll send you a
           link to reset your password.
         </p>
 
