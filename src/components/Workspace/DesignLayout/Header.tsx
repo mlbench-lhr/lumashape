@@ -6,12 +6,7 @@ import {Tool } from './types';
 // Types
 
 // Sample tools data with PNG images
-const TOOLS: Tool[] = [
-    { id: '1', name: 'Pliers', icon: '🔧', brand: 'MILWAUKEE', image: '/api/placeholder/80/80' },
-    { id: '2', name: 'Scissors', icon: '✂️', brand: 'MILWAUKEE', image: '/api/placeholder/80/80' },
-    { id: '3', name: 'Screwdriver', icon: '🪛', brand: 'MILWAUKEE', image: '/api/placeholder/80/80' },
-    { id: '4', name: 'Wrench', icon: '🔧', brand: 'MILWAUKEE', image: '/api/placeholder/80/80' },
-];
+
 
 // Header Component
 const Header: React.FC = () => {

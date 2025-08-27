@@ -2,23 +2,44 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 
-const ControlBar: React.FC = () => {
-  const [unit, setUnit] = useState<'mm' | 'inches'>('mm');
-  const [length, setLength] = useState<number>(24); // store as number only
-  const [width, setWidth] = useState<number>(24);
-  const [thickness, setThickness] = useState<number>(12.7); // default 0.5 inch in mm
+interface ControlBarProps {
+  width: number;
+  setWidth: (width: number) => void;
+  length: number;
+  setLength: (length: number) => void;
+  thickness: number;
+  setThickness: (thickness: number) => void;
+  unit: 'mm' | 'inches';
+  setUnit: (unit: 'mm' | 'inches') => void;
+  maxWidth?: number;
+  maxHeight?: number;
+  activeTool: 'cursor' | 'hand' | 'box';
+  setActiveTool: (tool: 'cursor' | 'hand' | 'box') => void;
+}
 
-  const convertValue = (value: number, to: 'mm' | 'inches') => {
-    return to === 'mm' ? value * 25.4 : value / 25.4;
+const ControlBar: React.FC<ControlBarProps> = ({
+  width,
+  setWidth,
+  length,
+  setLength,
+  thickness,
+  setThickness,
+  unit,
+  setUnit,
+  maxWidth = Infinity,
+  maxHeight = Infinity,
+  activeTool,
+  setActiveTool
+}) => {
+
+  // Helper function to handle constrained input changes
+  const handleLengthChange = (value: number) => {
+    setLength(value);
   };
 
-  const handleUnitChange = (newUnit: 'mm' | 'inches') => {
-    if (newUnit !== unit) {
-      setLength(prev => parseFloat(convertValue(prev, newUnit).toFixed(3)));
-      setWidth(prev => parseFloat(convertValue(prev, newUnit).toFixed(3)));
-      setThickness(prev => parseFloat(convertValue(prev, newUnit).toFixed(3)));
-      setUnit(newUnit);
-    }
+  const handleWidthChange = (value: number) => {
+    const constrainedValue = Math.max(0.1, Math.min(value, maxWidth));
+    setWidth(constrainedValue);
   };
 
   return (
@@ -29,7 +50,7 @@ const ControlBar: React.FC = () => {
           <label className="text-sm font-medium">Unit</label>
           <select
             value={unit}
-            onChange={(e) => handleUnitChange(e.target.value as 'mm' | 'inches')}
+            onChange={(e) => setUnit(e.target.value as 'mm' | 'inches')}
             className="bg-white text-gray-900 w-28 py-1 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400"
           >
             <option value="mm">mm</option>
@@ -43,10 +64,17 @@ const ControlBar: React.FC = () => {
           <input
             type="number"
             value={length}
-            onChange={(e) => setLength(Number(e.target.value))}
+            onChange={(e) => handleLengthChange(Number(e.target.value))}
+            min="0.1"
+            step="0.1"
             className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400"
           />
           <span className="text-sm">{unit}</span>
+          {maxHeight !== Infinity && (
+            <span className="text-xs text-gray-400">
+              (max: {maxHeight.toFixed(1)})
+            </span>
+          )}
         </div>
 
         {/* Width */}
@@ -55,15 +83,26 @@ const ControlBar: React.FC = () => {
           <input
             type="number"
             value={width}
-            onChange={(e) => setWidth(Number(e.target.value))}
+            onChange={(e) => handleWidthChange(Number(e.target.value))}
+            min="0.1"
+            max={maxWidth !== Infinity ? maxWidth : undefined}
+            step="0.1"
             className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400"
           />
           <span className="text-sm">{unit}</span>
+          {maxWidth !== Infinity && (
+            <span className="text-xs text-gray-400">
+              (max: {maxWidth.toFixed(1)})
+            </span>
+          )}
         </div>
 
         {/* Tools */}
         <div className="flex items-center space-x-1">
-          <button className="p-1 hover:bg-blue-500 rounded">
+          <button 
+            className={`p-1 rounded ${activeTool === 'cursor' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
+            onClick={() => setActiveTool('cursor')}
+          >
             <Image
               src={"/images/workspace/cursor.svg"}
               alt="Cursor"
@@ -72,7 +111,10 @@ const ControlBar: React.FC = () => {
               className="w-full h-full object-cover"
             />
           </button>
-          <button className="p-1 hover:bg-blue-500 rounded">
+          <button 
+            className={`p-1 rounded ${activeTool === 'hand' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
+            onClick={() => setActiveTool('hand')}
+          >
             <Image
               src={"/images/workspace/hand.svg"}
               alt="Hand"
@@ -81,7 +123,10 @@ const ControlBar: React.FC = () => {
               className="w-full h-full object-cover"
             />
           </button>
-          <button className="p-1 hover:bg-blue-500 rounded">
+          <button 
+            className={`p-1 rounded ${activeTool === 'box' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
+            onClick={() => setActiveTool('box')}
+          >
             <Image
               src={"/images/workspace/box.svg"}
               alt="Box"

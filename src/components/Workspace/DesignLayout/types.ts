@@ -3,7 +3,9 @@ export interface Tool {
     name: string;
     icon: string;
     brand: string;
-    image?: string; // PNG image path
+    image?: string;
+    width?: number;
+    height?: number; // PNG image path
 }
 
 export interface DroppedTool extends Tool {
