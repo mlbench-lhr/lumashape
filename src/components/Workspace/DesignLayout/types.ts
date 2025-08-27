@@ -4,12 +4,17 @@ export interface Tool {
     icon: string;
     brand: string;
     image?: string;
-    width?: number;
-    height?: number; // PNG image path
 }
 
 export interface DroppedTool extends Tool {
-    x: number;
-    y: number;
-    rotation: number;
+  x: number;
+  y: number;
+  rotation: number;
+  flipHorizontal: boolean;
+  flipVertical: boolean;
+  // Add individual dimensions for each tool
+  width: number;
+  length: number;
+  thickness: number;
+  unit: 'mm' | 'inches';
 }

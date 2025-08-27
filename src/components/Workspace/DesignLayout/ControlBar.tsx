@@ -15,6 +15,7 @@ interface ControlBarProps {
   maxHeight?: number;
   activeTool: 'cursor' | 'hand' | 'box';
   setActiveTool: (tool: 'cursor' | 'hand' | 'box') => void;
+  selectedToolId?: string | null; // Add this to show which tool is being edited
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({
@@ -29,7 +30,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
   maxWidth = Infinity,
   maxHeight = Infinity,
   activeTool,
-  setActiveTool
+  setActiveTool,
+  selectedToolId
 }) => {
 
   // Helper function to handle constrained input changes
@@ -45,6 +47,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
   return (
     <div className="bg-primary text-white px-4 py-3 flex items-center justify-between">
       <div className="flex items-center space-x-6">
+        {/* Editing Indicator */}
+
         {/* Unit Selector */}
         <div className="flex items-center space-x-2">
           <label className="text-sm font-medium">Unit</label>
@@ -68,6 +72,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
             min="0.1"
             step="0.1"
             className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400"
+            disabled={!selectedToolId}
           />
           <span className="text-sm">{unit}</span>
           {maxHeight !== Infinity && (
@@ -88,6 +93,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
             max={maxWidth !== Infinity ? maxWidth : undefined}
             step="0.1"
             className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400"
+            disabled={!selectedToolId}
           />
           <span className="text-sm">{unit}</span>
           {maxWidth !== Infinity && (
@@ -123,7 +129,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
               className="w-full h-full object-cover"
             />
           </button>
-          <button 
+          {/* <button 
             className={`p-1 rounded ${activeTool === 'box' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
             onClick={() => setActiveTool('box')}
           >
@@ -134,7 +140,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
               height={20}
               className="w-full h-full object-cover"
             />
-          </button>
+          </button> */}
         </div>
 
         {/* Thickness */}
@@ -144,6 +150,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
             value={thickness}
             onChange={(e) => setThickness(Number(e.target.value))}
             className="bg-white text-gray-900 px-2 py-1 w-32 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400"
+            disabled={!selectedToolId}
           >
             {unit === 'inches' ? (
               <>
