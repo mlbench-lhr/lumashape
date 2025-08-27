@@ -180,16 +180,18 @@ const UploadNewTool = () => {
       return;
     }
 
-    const urlRegex =
-      /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
+    if (toolData.purchase_link.trim()) {
+      const urlRegex =
+        /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
 
-    if (!urlRegex.test(toolData.purchase_link)) {
-      toast.error("Purchase link url is not correct", {
-        position: "top-center",
-        autoClose: 5000,
-      });
-      setIsLoading(false);
-      return;
+      if (!urlRegex.test(toolData.purchase_link)) {
+        toast.error(
+          "Purchase link must be a valid URL (e.g. https://example.com)",
+          { position: "top-center", autoClose: 5000 }
+        );
+        setIsLoading(false);
+        return;
+      }
     }
 
     if (!toolData.purchase_link) setShowModal(true);
@@ -318,7 +320,7 @@ const UploadNewTool = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row mt-[30px] mb-[25px] gap-[36px]">
-              <div className="relative w-full sm:w-1/2 h-[433px] border border-b-0 rounded-[21px] bg-[#f9fcff] border-dotted border-gray-400">
+              <div className="relative w-full sm:w-[430px] h-[433px] border border-b-0 rounded-[21px] bg-[#f9fcff] border-dotted border-gray-400">
                 <div className="absolute px-[12px] py-[8.5px] right-0 w-[88px] h-[41px] rounded-tr-[21px] bg-[#ebebeb]">
                   <div className="flex justify-center items-center gap-[12px]">
                     <div className="p-[7px]">
@@ -343,11 +345,12 @@ const UploadNewTool = () => {
                   </div>
                 </div>
                 <div
-                  className="flex items-center justify-center h-[376px] bg-cover bg-center"
+                  className="flex items-center justify-center h-[376px] bg-cover bg-center border-b-0 rounded-t-[21px] border-transparent overflow-hidden"
                   style={{
                     backgroundImage: backgroundUrl
                       ? `url(${backgroundUrl})`
                       : undefined,
+                    backgroundRepeat: "no-repeat",
                   }}
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
@@ -415,7 +418,7 @@ const UploadNewTool = () => {
               </div>
 
               {toolOptions && (
-                <div className="flex flex-col w-full sm:w-1/2">
+                <div className="flex flex-col w-full sm:w-[431px] sm:h-[428px]">
                   <Text className="font-bold" as="p1">
                     Brand
                   </Text>
@@ -577,7 +580,7 @@ const UploadNewTool = () => {
                     (Optional)
                   </span>
                 </Text>
-                <div className="mt-[18px]">
+                <div className="mt-[18px] w-full sm:w-[897px]">
                   <InputField
                     label=""
                     name="purchase_link"
