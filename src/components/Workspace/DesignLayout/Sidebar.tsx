@@ -27,20 +27,20 @@ import {
 import Image from 'next/image';
 import { DroppedTool, Tool } from './types';
 import DraggableTool from './DraggableTool';
-import { rotateTool, flipToolRelativeToRotation } from './toolUtils';
+import { rotateTool, flipToolRelativeToRotation, alignToolTop, alignToolBottom } from './toolUtils';
 
 interface SidebarProps {
     droppedTools: DroppedTool[];
     selectedTool: string | null;
     activeTool: string;
-    setDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void; // Changed type
+    setDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void;
     onUndo: () => void;
     onRedo: () => void;
     canUndo: boolean;
     canRedo: boolean;
+    canvasHeight?: number;
+    getToolDimensions?: (tool: DroppedTool) => { toolWidth: number; toolHeight: number };
 }
-
-
 
 const TOOLS: Tool[] = [
     { id: '1', name: 'Pliers', icon: '🔧', brand: 'MILWAUKEE', image: '/images/workspace/pliers.png' },
@@ -50,15 +50,17 @@ const Sidebar: React.FC<SidebarProps> = ({
     droppedTools,
     selectedTool,
     activeTool,
-    setDroppedTools, // This is now the updateDroppedTools function
+    setDroppedTools,
     onUndo,
     onRedo,
     canUndo,
-    canRedo
+    canRedo,
+    canvasHeight = 0,
+    getToolDimensions = () => ({ toolWidth: 0, toolHeight: 0 })
 }) => {
     const [activeTab, setActiveTab] = useState<'inventory' | 'edit'>('inventory');
     const [searchTerm, setSearchTerm] = useState('');
-
+    console.log("canvasHeight", canvasHeight);
     const filteredTools = TOOLS.filter(tool =>
         tool.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -69,6 +71,14 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     const handleFlip = (toolId: string, direction: 'horizontal' | 'vertical') => {
         flipToolRelativeToRotation(toolId, droppedTools, activeTool, selectedTool, setDroppedTools, direction);
+    };
+
+    const handleAlignTop = (toolId: string) => {
+        alignToolTop(toolId, droppedTools, activeTool, selectedTool, setDroppedTools);
+    };
+
+    const handleAlignBottom = (toolId: string) => {
+        alignToolBottom(toolId, droppedTools, activeTool, selectedTool, setDroppedTools, canvasHeight, getToolDimensions);
     };
 
     const ToolInventoryView = () => (
@@ -197,7 +207,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Alignment</h3>
                 <div className="flex space-x-4">
                     <div className="flex flex-col items-center">
-                        <button className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center mb-1">
+                        <button 
+                            className={`w-10 h-10 rounded-md flex items-center justify-center mb-1 ${
+                                selectedTool && activeTool === 'cursor' 
+                                    ? 'bg-gray-100 hover:bg-gray-200' 
+                                    : 'bg-gray-50 cursor-not-allowed'
+                            }`}
+                            onClick={() => selectedTool && handleAlignTop(selectedTool)}
+                            disabled={!selectedTool || activeTool !== 'cursor'}
+                        >
                             <div className='w-6 h-6'>
                                 <Image src="/images/workspace/align_top.svg" alt="aligntop" width={4} height={4} className="w-full h-full object-cover" />
                             </div>
@@ -205,7 +223,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <span className="text-xs text-gray-500 text-center leading-tight">align top</span>
                     </div>
                     <div className="flex flex-col items-center">
-                        <button className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center mb-1">
+                        <button 
+                            className={`w-10 h-10 rounded-md flex items-center justify-center mb-1 ${
+                                selectedTool && activeTool === 'cursor' 
+                                    ? 'bg-gray-100 hover:bg-gray-200' 
+                                    : 'bg-gray-50 cursor-not-allowed'
+                            }`}
+                            onClick={() => selectedTool && handleAlignBottom(selectedTool)}
+                            disabled={!selectedTool || activeTool !== 'cursor'}
+                        >
                             <div className='w-6 h-6'>
                                 <Image src="/images/workspace/align_bottom.svg" alt="alignbottom" width={4} height={4} className="w-full h-full object-cover" />
                             </div>

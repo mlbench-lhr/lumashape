@@ -247,6 +247,7 @@ function DesignLayout() {
           onRedo={handleRedo}
           canUndo={canUndo}
           canRedo={canRedo}
+          canvasHeight={canvasConstraints.maxHeight}
         />
       </div>
     </div>

@@ -69,3 +69,43 @@ export const flipToolRelativeToRotation = (
     );
   }
 };
+
+export const alignToolTop = (
+  toolId: string,
+  droppedTools: DroppedTool[],
+  activeTool: string,
+  selectedTool: string | null,
+  updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void
+): void => {
+  if (activeTool === 'cursor' && selectedTool === toolId) {
+    updateDroppedTools(prev =>
+      prev.map(tool =>
+        tool.id === toolId
+          ? { ...tool, y: 0 }
+          : tool
+      )
+    );
+  }
+};
+
+export const alignToolBottom = (
+  toolId: string,
+  droppedTools: DroppedTool[],
+  activeTool: string,
+  selectedTool: string | null,
+  updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
+  canvasHeight: number,
+  getToolDimensions: (tool: DroppedTool) => { toolWidth: number; toolHeight: number }
+): void => {
+  if (activeTool === 'cursor' && selectedTool === toolId) {
+    updateDroppedTools(prev =>
+      prev.map(tool => {
+        if (tool.id === toolId) {
+          const { toolHeight } = getToolDimensions(tool);
+          return { ...tool, y: canvasHeight - toolHeight };
+        }
+        return tool;
+      })
+    );
+  }
+};
