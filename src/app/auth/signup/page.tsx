@@ -75,16 +75,21 @@ const Signup = () => {
       console.log("Response OK:", response.ok);
       console.log("Response Result:", result);
 
+      debugger
+
       if (response.ok) {
         localStorage.setItem("stelomic_signup_email", formData.email);
         toast.success("User created successfully!");
+
+        handleSendOtp();
+
         setFormData({
           username: "",
           email: "",
           password: "",
           confirmPassword: "",
         });
-        handleSendOtp();
+
         // Optionally redirect to login or dashboard
         window.location.href = "/auth/email-verification";
       } else {

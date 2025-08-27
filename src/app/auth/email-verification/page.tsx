@@ -73,6 +73,7 @@ export default function EmailVerificationScreen() {
   };
 
   const handleSendOtp = async () => {
+    const email = localStorage.getItem("stelomic_signup_email");
     if (!email) {
       setError("Please enter your email address");
       return;
