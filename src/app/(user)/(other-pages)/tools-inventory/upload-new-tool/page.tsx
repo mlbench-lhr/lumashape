@@ -54,6 +54,8 @@ const UploadNewTool = () => {
   const [modalTitle, setModalTitle] = useState("");
   const [modalDescription, setModalDescription] = useState("");
   const router = useRouter();
+  const [validation, setValidation] = useState({ isValid: true, message: "" });
+  const [touched, setTouched] = useState(false);
 
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -178,7 +180,19 @@ const UploadNewTool = () => {
       return;
     }
 
-    setShowModal(true);
+    const urlRegex =
+      /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
+
+    if (!urlRegex.test(toolData.purchase_link)) {
+      toast.error("Purchase link url is not correct", {
+        position: "top-center",
+        autoClose: 5000,
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!toolData.purchase_link) setShowModal(true);
     setModalTitle("Please hold on....");
     setModalDescription(
       "We’re analyzing the image and creating your DXF file. This may take up to 3 minutes."
@@ -191,6 +205,22 @@ const UploadNewTool = () => {
         `/tools-inventory/tool-detected?paper=${toolData.paper_type}&brand=${toolData.brand}&type=${toolData.tool_type}`
       );
     }, 2000);
+  };
+
+  const validateURLWithRegex = (url: string) => {
+    if (!url.trim()) return { isValid: true, message: "" }; // Optional field
+
+    const urlRegex =
+      /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
+
+    if (urlRegex.test(url)) {
+      return { isValid: true, message: "" };
+    } else {
+      return {
+        isValid: false,
+        message: "Please enter a valid URL (e.g., https://example.com)",
+      };
+    }
   };
 
   return (
@@ -550,9 +580,12 @@ const UploadNewTool = () => {
                 <div className="mt-[18px]">
                   <InputField
                     label=""
-                    name=""
-                    className="w-full"
+                    name="purchase_link"
+                    className={`w-full ${
+                      !validation.isValid && touched ? "border-red-500" : ""
+                    }`}
                     placeholder="Please add purchasing link"
+                    value={toolData.purchase_link}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       setToolData({
                         ...toolData,
