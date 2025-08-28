@@ -3,6 +3,7 @@ import { DroppedTool, Tool } from './types';
 import { RefreshCw, X } from 'lucide-react';
 import { useCanvas } from './useCanvas';
 
+// In Canvas.tsx - update the interface
 interface CanvasProps {
   droppedTools: DroppedTool[];
   setDroppedTools: React.Dispatch<React.SetStateAction<DroppedTool[]>>;
@@ -15,12 +16,16 @@ interface CanvasProps {
   unit: 'mm' | 'inches';
   onCanvasDimensionsChange?: (dimensions: { width: number; height: number; maxWidth: number; maxHeight: number; unit: 'mm' | 'inches' }) => void;
   activeTool: 'cursor' | 'hand' | 'box';
+  canvasWidth: number;    // Add these new props
+  canvasLength: number;   // Add these new props
+  availableSpace: { width: number; height: number };
 }
 
 const Canvas: React.FC<CanvasProps> = (props) => {
   const {
     droppedTools,
     selectedTool,
+    availableSpace,
   } = props;
 
   const {
@@ -38,12 +43,34 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     getToolCursor,
   } = useCanvas(props);
 
+  // Convert canvas dimensions to pixels for display with proper scaling
+  const getPixelSize = (value: number, unit: 'mm' | 'inches') => {
+    if (unit === 'mm') {
+      return value * 1.5; // 1mm = 1.5px for more reasonable display size
+    } else {
+      return value * 37.5; // 1 inch = 37.5px for more reasonable display size
+    }
+  };
+
+  const canvasWidthPx = getPixelSize(props.canvasWidth, props.unit);
+  const canvasHeightPx = getPixelSize(props.canvasLength, props.unit);
+
+  // Use the availableSpace prop instead of calculating window dimensions
+  const constrainedWidth = Math.min(canvasWidthPx, availableSpace.width - 20); // Small additional margin
+  const constrainedHeight = Math.min(canvasHeightPx, availableSpace.height - 40); // Extra margin
+
   return (
-    <div className="flex-1 p-6">
+    <div className="flex-1 p-6 overflow-auto">
       <div
         ref={canvasRef}
-        className="border-2 border-dashed border-gray-300 h-full relative bg-gray-50 rounded-lg"
-        style={{ cursor: getCanvasCursor() }}
+        className="border-2 border-dashed border-gray-300 relative bg-gray-50 rounded-lg mx-auto"
+        style={{
+          cursor: getCanvasCursor(),
+          width: `${constrainedWidth}px`,
+          height: `${constrainedHeight}px`,
+          minWidth: '200px',
+          minHeight: '200px',
+        }}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onMouseMove={handleMouseMove}
@@ -143,6 +170,13 @@ const Canvas: React.FC<CanvasProps> = (props) => {
         )}
 
         <div className="absolute inset-4 border-2 border-transparent rounded-lg transition-colors duration-200 pointer-events-none" />
+
+        {/* Debug info - shows actual canvas pixel dimensions vs available space */}
+        <div className="absolute top-2 right-2 text-xs bg-black bg-opacity-50 text-white px-2 py-1 rounded">
+          Canvas: {constrainedWidth}×{constrainedHeight}px<br/>
+          Available: {availableSpace.width}×{availableSpace.height}px<br/>
+          Requested: {canvasWidthPx.toFixed(0)}×{canvasHeightPx.toFixed(0)}px
+        </div>
       </div>
     </div>
   );

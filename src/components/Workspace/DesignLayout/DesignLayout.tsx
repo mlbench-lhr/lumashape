@@ -10,6 +10,8 @@ import { useUndoRedo } from './useUndoRedo';
 
 function DesignLayout() {
   const [droppedTools, setDroppedTools] = useState<DroppedTool[]>([]);
+  const [windowDimensions, setWindowDimensions] = useState({ width: 1200, height: 800 });
+
   const {
     pushState,
     undo,
@@ -18,53 +20,48 @@ function DesignLayout() {
     canRedo,
   } = useUndoRedo([]);
 
-  // Add this effect to sync the undo/redo state with droppedTools
-
-
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
 
-  // Global default values for new tools
-  const [defaultLength, setDefaultLength] = useState<number>(24);
-  const [defaultWidth, setDefaultWidth] = useState<number>(24);
-  const [defaultThickness, setDefaultThickness] = useState<number>(12.7);
+  // Canvas dimensions
+  const [canvasWidth, setCanvasWidth] = useState<number>(600); // Canvas width
+  const [canvasLength, setCanvasLength] = useState<number>(400); // Canvas length (height)
   const [unit, setUnit] = useState<'mm' | 'inches'>('mm');
+
+  // Default values for new tools when dropped
+  const [defaultToolWidth, setDefaultToolWidth] = useState<number>(50);
+  const [defaultToolLength, setDefaultToolLength] = useState<number>(100);
+  const [defaultToolThickness, setDefaultToolThickness] = useState<number>(5);
 
   // State for active tool (cursor, hand, box)
   const [activeTool, setActiveTool] = useState<'cursor' | 'hand' | 'box'>('cursor');
 
-  // State for canvas constraints
-  const [canvasConstraints, setCanvasConstraints] = useState({
-    maxWidth: Infinity,
-    maxHeight: Infinity,
-    unit: 'mm' as 'mm' | 'inches'
-  });
+  // Window dimensions management
+  useEffect(() => {
+    setWindowDimensions({
+      width: window.innerWidth,
+      height: window.innerHeight
+    });
 
-  // Get the currently selected tool's dimensions, or defaults if none selected
-  const getSelectedToolDimensions = () => {
-    if (!selectedTool) {
-      return {
-        width: defaultWidth,
-        length: defaultLength,
-        thickness: defaultThickness,
-        unit: unit
-      };
-    }
+    const handleResize = () => {
+      setWindowDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+    };
 
-    const tool = droppedTools.find(t => t.id === selectedTool);
-    if (tool) {
-      return {
-        width: tool.width,
-        length: tool.length,
-        thickness: tool.thickness,
-        unit: tool.unit
-      };
-    }
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Calculate available space for canvas
+  const getAvailableSpace = () => {
+    const SIDEBAR_WIDTH = 320;
+    const MAIN_PADDING = 48;
+    const BUFFER = 60;
 
     return {
-      width: defaultWidth,
-      length: defaultLength,
-      thickness: defaultThickness,
-      unit: unit
+      width: Math.max(200, windowDimensions.width - SIDEBAR_WIDTH - MAIN_PADDING - BUFFER),
+      height: Math.max(200, windowDimensions.height - 290)
     };
   };
 
@@ -80,28 +77,17 @@ function DesignLayout() {
       : value * 25.4;
   };
 
-  // Handle canvas dimension updates - memoized to prevent infinite loops
-  const handleCanvasDimensionsChange = useCallback((dimensions: {
-    width: number;
-    height: number;
-    maxWidth: number;
-    maxHeight: number;
-    unit: 'mm' | 'inches';
-  }) => {
-    setCanvasConstraints({
-      maxWidth: dimensions.maxWidth,
-      maxHeight: dimensions.maxHeight,
-      unit: dimensions.unit
-    });
-  }, []);
-
-  // Handle unit change - converts all tools and defaults
+  // Handle unit change - converts canvas dimensions and all tool dimensions
   const handleUnitChange = useCallback((newUnit: 'mm' | 'inches') => {
     if (newUnit !== unit) {
-      // Convert default values
-      const convertedDefaultLength = parseFloat(convertValue(defaultLength, unit, newUnit).toFixed(3));
-      const convertedDefaultWidth = parseFloat(convertValue(defaultWidth, unit, newUnit).toFixed(3));
-      const convertedDefaultThickness = parseFloat(convertValue(defaultThickness, unit, newUnit).toFixed(3));
+      // Convert canvas dimensions
+      const convertedCanvasWidth = parseFloat(convertValue(canvasWidth, unit, newUnit).toFixed(3));
+      const convertedCanvasLength = parseFloat(convertValue(canvasLength, unit, newUnit).toFixed(3));
+      
+      // Convert default tool values
+      const convertedDefaultToolWidth = parseFloat(convertValue(defaultToolWidth, unit, newUnit).toFixed(3));
+      const convertedDefaultToolLength = parseFloat(convertValue(defaultToolLength, unit, newUnit).toFixed(3));
+      const convertedDefaultToolThickness = parseFloat(convertValue(defaultToolThickness, unit, newUnit).toFixed(3));
 
       // Convert all existing tools
       const convertedTools = droppedTools.map(tool => ({
@@ -112,85 +98,25 @@ function DesignLayout() {
         unit: newUnit
       }));
 
-      // Convert canvas constraints to new unit
-      const convertedMaxWidth = canvasConstraints.maxWidth !== Infinity
-        ? parseFloat(convertValue(canvasConstraints.maxWidth, canvasConstraints.unit, newUnit).toFixed(3))
-        : Infinity;
-      const convertedMaxHeight = canvasConstraints.maxHeight !== Infinity
-        ? parseFloat(convertValue(canvasConstraints.maxHeight, canvasConstraints.unit, newUnit).toFixed(3))
-        : Infinity;
-
       // Update all values
-      setDefaultLength(convertedDefaultLength);
-      setDefaultWidth(convertedDefaultWidth);
-      setDefaultThickness(convertedDefaultThickness);
+      setCanvasWidth(convertedCanvasWidth);
+      setCanvasLength(convertedCanvasLength);
+      setDefaultToolWidth(convertedDefaultToolWidth);
+      setDefaultToolLength(convertedDefaultToolLength);
+      setDefaultToolThickness(convertedDefaultToolThickness);
       setUnit(newUnit);
       setDroppedTools(convertedTools);
-
-      // Update canvas constraints to new unit
-      setCanvasConstraints({
-        maxWidth: convertedMaxWidth,
-        maxHeight: convertedMaxHeight,
-        unit: newUnit
-      });
     }
-  }, [unit, defaultLength, defaultWidth, defaultThickness, droppedTools, canvasConstraints]);
+  }, [unit, canvasWidth, canvasLength, defaultToolWidth, defaultToolLength, defaultToolThickness, droppedTools]);
 
-  // Update dimensions for selected tool or defaults
+  // Update dropped tools with undo/redo support
   const updateDroppedTools = useCallback((updater: React.SetStateAction<DroppedTool[]>) => {
     setDroppedTools(prev => {
       const newState = typeof updater === 'function' ? updater(prev) : updater;
-      pushState(newState); // Add to history immediately
+      pushState(newState);
       return newState;
     });
   }, [pushState]);
-
-  // Update the dimension update functions to use the correct state:
-  const updateWidth = useCallback((newWidth: number) => {
-    const constrainedWidth = Math.min(newWidth, canvasConstraints.maxWidth);
-    const finalWidth = Math.max(0.1, constrainedWidth);
-
-    if (selectedTool) {
-      updateDroppedTools(prev => prev.map(tool =>
-        tool.id === selectedTool
-          ? { ...tool, width: finalWidth }
-          : tool
-      ));
-    } else {
-      setDefaultWidth(finalWidth);
-    }
-  }, [selectedTool, canvasConstraints.maxWidth, updateDroppedTools]);
-
-  const updateLength = useCallback((newLength: number) => {
-    const constrainedLength = Math.min(newLength, canvasConstraints.maxHeight);
-    const finalLength = Math.max(0.1, constrainedLength);
-
-    if (selectedTool) {
-      updateDroppedTools(prev => prev.map(tool =>
-        tool.id === selectedTool
-          ? { ...tool, length: finalLength }
-          : tool
-      ));
-    } else {
-      setDefaultLength(finalLength);
-    }
-  }, [selectedTool, canvasConstraints.maxHeight, updateDroppedTools]);
-
-  const updateThickness = useCallback((newThickness: number) => {
-    const finalThickness = Math.max(0.1, newThickness);
-
-    if (selectedTool) {
-      updateDroppedTools(prev => prev.map(tool =>
-        tool.id === selectedTool
-          ? { ...tool, thickness: finalThickness }
-          : tool
-      ));
-    } else {
-      setDefaultThickness(finalThickness);
-    }
-  }, [selectedTool, updateDroppedTools]);
-
-  const currentDimensions = getSelectedToolDimensions();
 
   const handleUndo = useCallback(() => {
     const undoneState = undo();
@@ -210,44 +136,42 @@ function DesignLayout() {
     <div className="h-screen flex flex-col bg-gray-100">
       <Header />
       <ControlBar
-        width={currentDimensions.width}
-        setWidth={updateWidth}
-        length={currentDimensions.length}
-        setLength={updateLength}
-        thickness={currentDimensions.thickness}
-        setThickness={updateThickness}
+        canvasWidth={canvasWidth}
+        setCanvasWidth={setCanvasWidth}
+        canvasLength={canvasLength}
+        setCanvasLength={setCanvasLength}
         unit={unit}
         setUnit={handleUnitChange}
-        maxWidth={canvasConstraints.maxWidth}
-        maxHeight={canvasConstraints.maxHeight}
         activeTool={activeTool}
         setActiveTool={setActiveTool}
-        selectedToolId={selectedTool} // Add this to show which tool is being edited
+        windowDimensions={windowDimensions}
       />
       <OptionsBar />
       <div className="flex flex-1 overflow-hidden">
         <Canvas
           droppedTools={droppedTools}
-          setDroppedTools={updateDroppedTools} // Changed from setDroppedTools to updateDroppedTools
+          setDroppedTools={updateDroppedTools}
           selectedTool={selectedTool}
           setSelectedTool={setSelectedTool}
-          defaultWidth={defaultWidth}
-          defaultLength={defaultLength}
-          defaultThickness={defaultThickness}
+          defaultWidth={defaultToolWidth}
+          defaultLength={defaultToolLength}
+          defaultThickness={defaultToolThickness}
           unit={unit}
-          onCanvasDimensionsChange={handleCanvasDimensionsChange}
           activeTool={activeTool}
+          canvasWidth={canvasWidth}
+          canvasLength={canvasLength}
+          availableSpace={getAvailableSpace()}
         />
         <Sidebar
           droppedTools={droppedTools}
           selectedTool={selectedTool}
           activeTool={activeTool}
-          setDroppedTools={updateDroppedTools} // Changed from setDroppedTools to updateDroppedTools
+          setDroppedTools={updateDroppedTools}
           onUndo={handleUndo}
           onRedo={handleRedo}
           canUndo={canUndo}
           canRedo={canRedo}
-          canvasHeight={canvasConstraints.maxHeight}
+          canvasHeight={canvasLength}
         />
       </div>
     </div>
