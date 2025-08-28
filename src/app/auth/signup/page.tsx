@@ -138,8 +138,6 @@ const Signup = () => {
         body: JSON.stringify({ email: formData.email }),
       });
 
-      debugger
-
       const data = await response.json();
 
       if (response.ok) {
@@ -158,17 +156,13 @@ const Signup = () => {
     <div className="h-screen flex overflow-hidden bg-gray-50">
       {/* Centered Sign-Up Form */}
       <div className="w-full flex flex-col justify-center items-center px-4 py-6 overflow-y-auto">
-        <div className="w-full max-w-md mx-auto bg-white rounded-lg shadow-lg p-6 lg:p-8">
+        <div
+          className="w-full max-w-md mx-auto bg-white p-6 lg:p-8"
+          style={{ border: "1px solid #e8e8e8" }}
+        >
           {/* Header with Back Button and Centered Logo */}
           <div className="mb-6 relative">
             {/* Go Back Button - positioned absolutely on the left */}
-            <div
-              className="absolute left-0 top-0 flex items-center cursor-pointer text-primary"
-              onClick={handleGoBack}
-            >
-              <ChevronLeft className="w-8 h-8 md:mt-4 mt-2" />
-              {/* <span className="ml-2 text-secondary font-semibold">Back</span> */}
-            </div>
 
             {/* Logo - centered */}
             <div className="flex items-center justify-center text-primary text-xl font-bold">
@@ -194,7 +188,7 @@ const Signup = () => {
             {/* Signup Form */}
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <label className="block text-secondary text-xs font-bold mb-1">
+                <label className="block text-secondary text-[14px] md:text-[16px] font-semibold mb-1">
                   Username
                 </label>
                 <input
@@ -204,12 +198,13 @@ const Signup = () => {
                   onChange={handleInputChange}
                   placeholder="Enter your name"
                   disabled={isLoading}
-                  className="text-secondary w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm disabled:opacity-50"
+                  className="text-secondary w-full px-3 py-2 border rounded-[7.2px] placeholder:text-[14px] placeholder:font-medium"
+                  style={{ borderColor: "#e8e8e8" }}
                 />
               </div>
 
               <div>
-                <label className="block text-secondary text-xs font-bold mb-1">
+                <label className="block text-secondary text-[14px] md:text-[16px] font-semibold mb-1">
                   Email Address
                 </label>
                 <input
@@ -219,12 +214,13 @@ const Signup = () => {
                   onChange={handleInputChange}
                   placeholder="Enter your email address"
                   disabled={isLoading}
-                  className="text-secondary w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm disabled:opacity-50"
+                  className="text-secondary w-full px-3 py-2 border rounded-[7.2px] placeholder:text-[14px] placeholder:font-medium"
+                  style={{ borderColor: "#e8e8e8" }}
                 />
               </div>
 
               <div>
-                <label className="block text-secondary text-xs font-bold mb-1">
+                <label className="block text-secondary text-[14px] md:text-[16px] font-semibold mb-1">
                   Password
                 </label>
                 <div className="relative">
@@ -235,7 +231,8 @@ const Signup = () => {
                     onChange={handleInputChange}
                     placeholder="Enter your Password"
                     disabled={isLoading}
-                    className="text-secondary w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 text-sm disabled:opacity-50"
+                    className="text-secondary w-full px-3 py-2 border pr-10 text-sm disabled:opacity-50 rounded-[7.2px] placeholder:text-[14px] placeholder:font-medium"
+                    style={{ borderColor: "#e8e8e8" }}
                   />
                   <button
                     type="button"
@@ -265,7 +262,7 @@ const Signup = () => {
               </div>
 
               <div>
-                <label className="block text-secondary text-xs font-bold mb-1">
+                <label className="block text-secondary text-[14px] md:text-[16px] font-semibold mb-1">
                   Confirm Password
                 </label>
                 <div className="relative">
@@ -276,7 +273,8 @@ const Signup = () => {
                     onChange={handleInputChange}
                     placeholder="Enter your Password"
                     disabled={isLoading}
-                    className="text-secondary w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10 text-sm disabled:opacity-50"
+                    className="text-secondary w-full px-3 py-2 border pr-10 text-sm disabled:opacity-50 rounded-[7.2px] placeholder:text-[14px] placeholder:font-medium"
+                    style={{ borderColor: "#e8e8e8" }}
                   />
                   <button
                     type="button"

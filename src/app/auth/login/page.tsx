@@ -135,36 +135,31 @@ const SignInPage: React.FC = () => {
       {/* Centered Sign-In Form with Go Back */}
       <div className="w-full flex flex-col justify-center items-center px-4 py-6 overflow-y-auto">
         {/* Sign-In Form Card */}
-        <div className="w-full max-w-md mx-auto bg-white rounded-lg shadow-lg p-6 lg:p-8">
-          <div className="mb-6 relative">
-            {/* Go Back Button - positioned absolutely on the left */}
-            <div
-              className="absolute left-0 top-0 flex items-center cursor-pointer text-primary"
-              onClick={handleGoBack}
-            >
-              <ChevronLeft className="w-8 h-8 md:mt-4 mt-2" />
-              {/* <span className="ml-2 text-secondary font-semibold">Back</span> */}
+        <div className="w-[323px] h-[461px] sm:w-[449px] sm:h-[533px] mx-auto bg-white border border-[#ededed] p-6 lg:p-8">
+          <div className="mx-auto flex flex-col items-center justify-center">
+            <div className="mb-6 relative">
+              {/* Go Back Button - positioned absolutely on the left */}
+
+              {/* Logo - centered */}
+              <div className="flex items-center justify-center text-primary text-xl font-bold">
+                {/* <img src="/images/Stelomic.svg" alt="" /> */}
+                <Image
+                  src="/images/logo/auth/LumaShape.svg"
+                  alt=""
+                  className="md:w-[304px] w-[200px]"
+                  width={304}
+                  height={69}
+                />
+                {/* <span className='ml-2 text-2xl'>Stelomic</span> */}
+              </div>
             </div>
 
-            {/* Logo - centered */}
-            <div className="flex items-center justify-center text-primary text-xl font-bold">
-              {/* <img src="/images/Stelomic.svg" alt="" /> */}
-              <Image
-                src="/images/logo/auth/LumaShape.svg"
-                alt=""
-                className="md:w-[304px] w-[200px]"
-                width={304}
-                height={69}
-              />
-              {/* <span className='ml-2 text-2xl'>Stelomic</span> */}
+            {/* Header */}
+            <div className="text-center mb-4">
+              <h1 className="text-[18px] sm:text-[24px] font-bold text-gray-900 mb-1">
+                Sign in to Lumashape
+              </h1>
             </div>
-          </div>
-
-          {/* Header */}
-          <div className="text-center mb-4">
-            <h1 className="text-xl font-bold text-gray-900 mb-1">
-              Sign in to Lumashape
-            </h1>
           </div>
 
           {/* Error/Success Messages */}

@@ -169,7 +169,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-lg border-2 border-gray-300 p-8">
+      <div className="w-full max-w-md bg-white border-2 border-[#ededed] p-8">
         {/* Header */}
         <div className="flex items-center mb-8" onClick={handleGoBack}>
           <ChevronLeft className="w-[30px] h-[30px] text-primary cursor-pointer" />
@@ -191,13 +191,13 @@ export default function ForgotPasswordScreen() {
 
         {/* Error/Success Messages */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div className="mb-4 p-3 bg-red-50 border border-[#ededed] rounded-md">
             <p className="text-red-600 text-sm font-medium">{error}</p>
           </div>
         )}
 
         {success && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+          <div className="mb-4 p-3 bg-green-50 border border-[#ededed] rounded-md">
             <p className="text-green-600 text-sm font-medium">{success}</p>
           </div>
         )}
@@ -212,7 +212,7 @@ export default function ForgotPasswordScreen() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Enter your email address"
-          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 placeholder-gray-400 disabled:opacity-50"
+          className="w-full px-4 py-3 border border-[#ededed] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-700 placeholder-gray-400 disabled:opacity-50 bg-[#fff]"
           disabled={isLoading}
         />
 
@@ -238,7 +238,7 @@ export default function ForgotPasswordScreen() {
                 onPaste={handlePaste}
                 onChange={(e) => handleOtpChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
-                className="w-12 h-12 text-secondary text-center border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg font-medium disabled:opacity-50"
+                className="w-12 h-12 bg-[#868795] text-secondary text-center border border-[#e7e7ea] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg font-medium disabled:opacity-50 bg-[#fff]"
                 maxLength={1}
                 disabled={isLoading || !isOtpSent}
                 placeholder="1"
@@ -251,7 +251,7 @@ export default function ForgotPasswordScreen() {
         <button
           onClick={handleVerify}
           disabled={isButtonDisabled()}
-          className="w-full bg-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+          className="w-full bg-[#266ca8] text-white py-3 px-4 font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center rounded-[8px]"
         >
           {isLoading && (
             <svg
