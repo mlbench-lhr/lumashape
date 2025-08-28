@@ -179,10 +179,8 @@
 // };
 
 // export default ToolsInventory;
-
 import React, { useEffect, useState } from "react";
-import { ChevronDown, Search, Bell, Plus, Menu } from "lucide-react";
-import HamburgerMenu from "@/components/ui/HamburgerMenu";
+import { Search, Plus } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -211,273 +209,195 @@ const BRANDS_MOBILE: Brand[] = [
 
 const MobileToolsInventory = () => {
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
 
   // Function to check if the device is mobile or desktop
   const checkDeviceType = () => {
     const width = window.innerWidth;
-    setIsMobile(width <= 768); // Adjust the breakpoint as needed
+    setIsMobile(width <= 768); // Adjust breakpoint if needed
   };
 
-  // Run checkDeviceType when component mounts and on window resize
+  // Rerender the component when the window is resized
   useEffect(() => {
-    checkDeviceType(); // Initial check
-    window.addEventListener("resize", checkDeviceType); // Update on window resize
+    const handleResize = () => {
+      checkDeviceType();
+    };
+    window.addEventListener("resize", handleResize);
 
-    // Cleanup event listener on component unmount
     return () => {
-      window.removeEventListener("resize", checkDeviceType);
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
+  // Initial check for device type
+  useEffect(() => {
+    checkDeviceType();
+  }, []);
+
   return (
-    <div className="min-h-screen">
-      {/* Mobile Header */}
-
-      {/* Status Bar Simulation */}
-      {/* <HamburgerMenu /> */}
-
+    <div className="flex flex-col min-h-screen">
       {/* Main Content */}
-      <div className="px-4 py-6">
+      <div className="px-0 md:px-4 py-6 flex-1">
         {/* Title and Notification */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Tool Inventory</h1>
-
-          <div className="flex sm:flex hidden">
-            <Button
-              onClick={() => router.push("/tools-inventory/upload-new-tool")}
-              variant="primary"
-              size="lg"
-            >
-              <Image
-                src="/images/icons/mdi_add.svg"
-                width={24}
-                height={24}
-                alt="add"
-              />
-              Upload New Tool
-            </Button>
-            <div className="flex text-[#bababa] rounded-[14px] border justify-center px-2 mx-2">
-              <Image
-                src="/images/icons/bell.svg"
-                width={36}
-                height={36}
-                alt="notifications"
-              />
+        <div className="mx-auto w-full max-w-[343px] sm:max-w-[1200px]">
+          {/* Top flex: header */}
+          <div className="flex items-center justify-between w-full h-full sm:h-[64px]">
+            <h1 className="text-2xl font-bold text-gray-900">Tool Inventory</h1>
+            <div className="flex sm:flex hidden">
+              <Button
+                onClick={() => router.push("/tools-inventory/upload-new-tool")}
+                variant="primary"
+                size="lg"
+              >
+                <Image
+                  src="/images/icons/mdi_add.svg"
+                  width={24}
+                  height={24}
+                  alt="add"
+                />
+                Upload New Tool
+              </Button>
+              <div className="flex text-[#bababa] rounded-[14px] border justify-center px-2 mx-2">
+                <Image
+                  src="/images/icons/bell.svg"
+                  width={36}
+                  height={36}
+                  alt="notifications"
+                />
+              </div>
+            </div>
+            <div className="relative w-[30px] h-[30px] rounded-[10px] border-[#c7c7c7] border flex items-center justify-center sm:hidden">
+              <Image src="/images/icons/bell.svg" fill alt="notifications" />
             </div>
           </div>
 
-          <div className="relative w-[30px] h-[30px] rounded-[10px] border-[#c7c7c7] border flex items-center justify-center sm:hidden">
-            {/* <Bell className="w-5 h-5 text-gray-600" /> */}
-            <Image src="/images/icons/bell.svg" fill alt="notifications" />
-          </div>
-        </div>
+          {/* Bottom flex: search/sort bar */}
+          <div className="flex flex-row sm:items-center sm:justify-between w-full gap-3 sm:gap-6 mt-4">
+            {/* Search Box */}
+            <div className="relative w-full sm:w-[382px]">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <InputField
+                label=""
+                name="Search Files"
+                placeholder="Search Files"
+                className="w-full h-[45px] pl-10 rounded-[10px]"
+              />
+            </div>
 
-        <div className="flex relative w-[350px] mx-auto sm:w-full sm:mx-0 justify-between mt-[20px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <InputField
-            label=""
-            name="Search Files"
-            placeholder="Search Files"
-            className="w-[193px] sm:w-[382px] pl-10 rounded-[10px]"
-          />
-
-          <div className="flex items-center w-[136px] sm:w-[300px]">
-            <Text as="p1" className="font-medium text-[12px] w-[100px]">
-              Sort By:
-            </Text>
-
-            <Listbox value={selectedBrand} onChange={setSelectedBrand}>
-              <div className="relative w-[192px]">
-                <Listbox.Button className="relative w-full h-[50px] p-2 border rounded-lg border-[#e6e6e6] text-left focus:outline-none">
-                  <span className="flex items-center gap-2">
-                    {selectedBrand ? (
-                      selectedBrand.brand_logo.endsWith(".svg") ? (
-                        <Image
-                          src={selectedBrand.brand_logo}
-                          width={24}
-                          height={24}
-                          alt="Selected brand"
-                        />
+            {/* Sort By */}
+            <div className="flex items-center gap-2 w-full sm:w-[288px]">
+              <Text as="p1" className="font-medium text-[14px] sm:text-[12px]">
+                Sort by:
+              </Text>
+              <Listbox value={selectedBrand} onChange={setSelectedBrand}>
+                <div className="relative w-full">
+                  <Listbox.Button className="relative w-full h-[45px] p-2 border rounded-lg border-[#e6e6e6] text-left focus:outline-none">
+                    <span className="flex items-center gap-2">
+                      {selectedBrand ? (
+                        selectedBrand.brand_logo.endsWith(".svg") ? (
+                          <Image
+                            src={selectedBrand.brand_logo}
+                            width={24}
+                            height={24}
+                            alt="Selected brand"
+                          />
+                        ) : (
+                          <span className="text-sm">
+                            {selectedBrand.brand_logo}
+                          </span>
+                        )
                       ) : (
-                        <span className="text-sm">
-                          {selectedBrand.brand_logo}
+                        <span className="text-gray-400 text-[12px]">
+                          All Brands
                         </span>
-                      )
-                    ) : (
-                      <span className="text-gray-400">All Brands</span>
-                    )}
-                  </span>
-                  <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                    <Image
-                      src="/images/icons/arrow_down.svg"
-                      width={20}
-                      height={20}
-                      alt="chevron down"
-                    />
-                  </span>
-                </Listbox.Button>
-
-                <Listbox.Options className="absolute mt-1 max-h-60 w-[150px] left-[-50px] z-10 sm:w-[245px] top-[65px] overflow-auto rounded-[10px] bg-white p-4 text-base shadow-lg focus:outline-none sm:text-sm">
-                  {(!isMobile ? BRANDS_DESKTOP : BRANDS_MOBILE).map(
-                    (brand: Brand) => (
-                      <Listbox.Option
-                        key={brand.id}
-                        value={brand}
-                        className={({ active }) =>
-                          `relative cursor-pointer select-none py-2 pl-3 pr-9 ${
-                            active ? "text-blue-900" : "text-gray-900"
-                          }`
-                        }
-                      >
-                        {({ selected }) => (
-                          <div className="flex items-center gap-2">
-                            <div className="w-[12px] h-[12px] sm:w-[24px] sm:h-[24px] flex items-center justify-center">
+                      )}
+                    </span>
+                    <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                      <Image
+                        src="/images/icons/arrow_down.svg"
+                        width={20}
+                        height={20}
+                        alt="chevron down"
+                      />
+                    </span>
+                  </Listbox.Button>
+                  <Listbox.Options className="absolute mt-1 max-h-60 w-full sm:w-[245px] z-10 overflow-auto rounded-[10px] bg-white p-4 text-base shadow-lg focus:outline-none sm:text-sm">
+                    {(!isMobile ? BRANDS_DESKTOP : BRANDS_MOBILE).map(
+                      (brand: Brand) => (
+                        <Listbox.Option
+                          key={brand.id}
+                          value={brand}
+                          className={({ active }) =>
+                            `relative cursor-pointer select-none py-2 pl-3 pr-9 ${
+                              active ? "text-blue-900" : "text-gray-900"
+                            }`
+                          }
+                        >
+                          {({ selected }) => (
+                            <div className="flex items-center gap-2">
                               <input
                                 type="radio"
                                 readOnly
                                 checked={selected}
-                                placeholder="All Brands"
-                                className="w-[7.61px] h-[7.61px] sm:w-[16px] sm:h-[16px]"
+                                className="w-[14px] h-[14px] sm:w-[16px] sm:h-[16px]"
                               />
+                              {brand.brand_logo.endsWith(".svg") ? (
+                                <div className="relative w-[50px] h-[20px] sm:w-[55px] sm:h-[24px] flex items-center justify-center">
+                                  <Image
+                                    src={brand.brand_logo}
+                                    fill
+                                    style={{ objectFit: "contain" }}
+                                    alt="Brand logo"
+                                  />
+                                </div>
+                              ) : (
+                                <span className="text-sm">
+                                  {brand.brand_logo}
+                                </span>
+                              )}
                             </div>
-                            {brand.brand_logo.endsWith(".svg") ? (
-                              <div
-                                className={`relative ${
-                                  brand.brand_logo
-                                    .toLowerCase()
-                                    .includes("milwaukee")
-                                    ? "w-[24px] h-[12px] sm:w-[48px] sm:h-[24px]"
-                                    : brand.brand_logo
-                                        .toLowerCase()
-                                        .includes("bosch")
-                                    ? "w-[24px] h-[12px] sm:w-[53px] sm:h-[19px]"
-                                    : brand.brand_logo
-                                        .toLowerCase()
-                                        .includes("makita")
-                                    ? "w-[24px] h-[12px] sm:w-[55px] sm:h-[41px]"
-                                    : "w-[50px] h-[30px]" // Default size if no brand matches
-                                } flex items-center justify-center`}
-                              >
-                                <Image
-                                  src={brand.brand_logo}
-                                  fill
-                                  style={{ objectFit: "contain" }}
-                                  alt="Brand logo"
-                                />
-                              </div>
-                            ) : (
-                              <span className="text-sm">
-                                {brand.brand_logo}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </Listbox.Option>
-                    )
-                  )}
-                </Listbox.Options>
-              </div>
-            </Listbox>
+                          )}
+                        </Listbox.Option>
+                      )
+                    )}
+                  </Listbox.Options>
+                </div>
+              </Listbox>
+            </div>
           </div>
         </div>
 
-        {/* <div className="space-y-4 mb-8">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search Files"
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border-0 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <span className="text-gray-700 font-medium whitespace-nowrap">
-              Sort by:
-            </span>
-            <div className="relative flex-1">
-              <button
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 rounded-lg text-left focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <span className="text-gray-600">
-                  {selectedBrand ? selectedBrand.brand_logo : "All Brands"}
-                </span>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-              </button>
-
-              {isDropdownOpen && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border z-10">
-                  {BRANDS.map((brand) => (
-                    <button
-                      key={brand.id}
-                      onClick={() => {
-                        setSelectedBrand(brand);
-                        setIsDropdownOpen(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg"
-                    >
-                      <div className="w-4 h-4 rounded-full border-2 border-gray-300 flex items-center justify-center">
-                        {selectedBrand?.id === brand.id && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        )}
-                      </div>
-                      <span className="text-gray-900">{brand.brand_logo}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div> */}
-
         {/* Empty State */}
-        <div className="flex flex-col items-center justify-center py-12">
-          {/* Blue dashed border container */}
-          <div className="relative border-2 border-dashed border-blue-400 rounded-lg p-8 mb-4">
-            {/* Corner squares */}
-            <div className="absolute -top-1 -left-1 w-3 h-3 bg-blue-400"></div>
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400"></div>
-            <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-blue-400"></div>
-            <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-400"></div>
-
-            {/* Tool Icon Circle */}
-            <div className="w-48 h-48 bg-gray-200 rounded-full flex items-center justify-center mb-6">
-              <div className="w-16 h-16 text-gray-400">
-                {/* Wrench Icon SVG */}
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="w-full h-full"
-                >
-                  <path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z" />
-                </svg>
+        <div className="flex-1 flex justify-center items-center">
+          <div className="flex flex-col items-center justify-center py-12">
+            {/* Blue dashed border container */}
+            <div className="flex flex-col justify-center items-center w-[204px] h-[204px] sm:w-[261px] sm:h-[261px] bg-[#e8e8e8] rounded-[150px] border-[#e8e8e8]">
+              {/* Corner squares */}
+              <div className="relative w-[90px] h-[90px] sm:w-[140px] sm:h-[140px]">
+                <Image
+                  src="/images/icons/wrench.svg"
+                  fill
+                  style={{ objectFit: "contain" }}
+                  alt="wrench"
+                />
               </div>
+              {/* Text */}
             </div>
-
-            {/* Text */}
-            <p className="text-gray-500 font-medium text-center">
+            <p className="text-gray-500 font-medium text-center mt-[19px]">
               Tool Inventory is empty
             </p>
-
-            {/* Dimensions label */}
-            <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-blue-500 text-white px-2 py-1 rounded text-sm">
-              262.57 × 240
-            </div>
           </div>
         </div>
       </div>
 
       {/* Floating Add Button */}
       <div className="fixed bottom-6 right-6 sm:hidden">
-        <button className="w-14 h-14 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center shadow-lg transition-colors">
-          <Plus
-            className="w-6 h-6 text-white"
-            onClick={() => router.push("/tools-inventory/upload-new-tool")}
-          />
+        <button
+          className="w-14 h-14 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center shadow-lg transition-colors"
+          onClick={() => router.push("/tools-inventory/upload-new-tool")}
+        >
+          <Plus className="w-6 h-6 text-white" />
         </button>
       </div>
     </div>
