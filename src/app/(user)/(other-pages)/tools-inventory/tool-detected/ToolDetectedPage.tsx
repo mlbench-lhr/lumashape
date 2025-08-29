@@ -9,9 +9,11 @@ const ToolDetectedPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  debugger
   const paper = searchParams.get("paper");
   const brand = searchParams.get("brand");
   const type = searchParams.get("type");
+  const imageUrl = searchParams.get("imageUrl");
 
   return (
     <div className="w-full mx-auto my-[20px] sm:my-[45px]">
@@ -38,7 +40,14 @@ const ToolDetectedPage = () => {
       </div>
 
       <div className="w-full sm:w-[897px] h-auto mt-[20px] sm:mt-[35px]">
-        <div className="relative w-full sm:w-[602px] h-[371px] border border-b-0 rounded-t-[21px] border-dotted border-gray-400"></div>
+        <div
+          className="relative w-full sm:w-[602px] h-[371px] border border-b-0 rounded-t-[21px] border-dotted border-gray-400"
+          style={{
+            backgroundImage: `url(${imageUrl})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        ></div>
         <div className="flex items-center justify-center w-full sm:w-[602px] h-[62px] border border-t-0 rounded-b-[21px] border-dotted border-gray-400 bg-[#ebebeb]">
           <div className="flex justify-center items-center gap-[8px] sm:gap-[11px] h-[30px] sm:h-[33px]">
             <div className="relative h-[20px] sm:h-[24px] w-[20px] sm:w-[24px]">

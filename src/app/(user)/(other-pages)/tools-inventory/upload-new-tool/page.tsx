@@ -182,7 +182,6 @@ const UploadNewTool = () => {
       setModalDescription("Sending your image to the server for processing...");
 
       // get the actual File from the input
-      debugger
       const file = fileInputRef.current?.files?.[0];
       if (!file) throw new Error("No file selected");
 
@@ -209,7 +208,7 @@ const UploadNewTool = () => {
       setShowModal(false);
 
       router.push(
-        `/tools-inventory/tool-detected?paper=${toolData.paper_type}&brand=${toolData.brand}&type=${toolData.tool_type}`
+        `/tools-inventory/tool-detected?paper=${toolData.paper_type}&brand=${toolData.brand}&type=${toolData.tool_type}&imageUrl=${encodeURIComponent(uploadedUrl)}`
       );
     } catch (err) {
       console.error(err);
