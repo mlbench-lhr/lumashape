@@ -188,7 +188,7 @@ const Signup = () => {
             {/* Signup Form */}
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <label className="block text-secondary text-[14px] md:text-[16px] font-semibold mb-1">
+                <label className="block text-secondary text-[16px] sm:text-[14px] font-semibold mb-1">
                   Username
                 </label>
                 <input
@@ -204,7 +204,7 @@ const Signup = () => {
               </div>
 
               <div>
-                <label className="block text-secondary text-[14px] md:text-[16px] font-semibold mb-1">
+                <label className="block text-secondary text-[16px] sm:text-[14px] font-semibold mb-1">
                   Email Address
                 </label>
                 <input
@@ -220,7 +220,7 @@ const Signup = () => {
               </div>
 
               <div>
-                <label className="block text-secondary text-[14px] md:text-[16px] font-semibold mb-1">
+                <label className="block text-secondary text-[16px] sm:text-[14px] font-semibold mb-1">
                   Password
                 </label>
                 <div className="relative">
@@ -262,7 +262,7 @@ const Signup = () => {
               </div>
 
               <div>
-                <label className="block text-secondary text-[14px] md:text-[16px] font-semibold mb-1">
+                <label className="block text-secondary text-[16px] sm:text-[14px] font-semibold mb-1">
                   Confirm Password
                 </label>
                 <div className="relative">
