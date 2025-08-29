@@ -242,7 +242,7 @@ const Header: React.FC = () => {
           {/* Mobile Action Buttons */}
           <div className="p-4 sm:p-6 border-t border-gray-200 space-y-3">
             <button
-              onClick={closeMobileMenu}
+              onClick={() => router.push('/auth/login')}
               className="block w-full text-center bg-primary hover:bg-blue-700 text-white px-4 py-3 sm:py-4 rounded-full text-base sm:text-lg font-medium transition-colors"
             >
               Login/Signup
