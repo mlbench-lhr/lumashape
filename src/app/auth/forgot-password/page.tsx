@@ -173,7 +173,7 @@ export default function ForgotPasswordScreen() {
         {/* Header */}
         <div className="flex items-center mb-8" onClick={handleGoBack}>
           <ChevronLeft className="w-[30px] h-[30px] text-primary cursor-pointer" />
-          <span className="ml-2 text-secondary cursor-pointer font-semibold">
+          <span className="ml-2 text-[#666666] text-[12px] sm:text-[16px] cursor-pointer font-semibold">
             Go Back
           </span>
         </div>
