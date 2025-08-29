@@ -134,48 +134,31 @@ const UploadNewTool = () => {
     event.preventDefault(); // necessary to allow drop
   };
 
-  const handleImageOutline = () => {
+  const handleImageOutline = async () => {
+    setIsLoading(true);
+
     if (!toolData.paper_type) {
-      toast.error("Paper type must be selected", {
-        position: "top-center",
-        autoClose: 5000,
-      });
+      toast.error("Paper type must be selected", { position: "top-center" });
       setIsLoading(false);
       return;
     }
-
     if (!backgroundUrl) {
-      toast.error("An image must be selected", {
-        position: "top-center",
-        autoClose: 5000,
-      });
+      toast.error("An image must be selected", { position: "top-center" });
       setIsLoading(false);
       return;
     }
-
     if (!toolData.brand) {
-      toast.error("Brand must be selected", {
-        position: "top-center",
-        autoClose: 5000,
-      });
+      toast.error("Brand must be selected", { position: "top-center" });
       setIsLoading(false);
       return;
     }
-
     if (!toolData.tool_type) {
-      toast.error("Tool type must be selected", {
-        position: "top-center",
-        autoClose: 5000,
-      });
+      toast.error("Tool type must be selected", { position: "top-center" });
       setIsLoading(false);
       return;
     }
-
     if (!toolData.description) {
-      toast.error("Description must be added", {
-        position: "top-center",
-        autoClose: 5000,
-      });
+      toast.error("Description must be added", { position: "top-center" });
       setIsLoading(false);
       return;
     }
@@ -185,28 +168,56 @@ const UploadNewTool = () => {
         /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
 
       if (!urlRegex.test(toolData.purchase_link)) {
-        toast.error(
-          "Purchase link must be a valid URL (e.g. https://example.com)",
-          { position: "top-center", autoClose: 5000 }
-        );
+        toast.error("Purchase link must be a valid URL", {
+          position: "top-center",
+        });
         setIsLoading(false);
         return;
       }
     }
 
-    if (!toolData.purchase_link) setShowModal(true);
-    setModalTitle("Please hold on....");
-    setModalDescription(
-      "We’re analyzing the image and creating your DXF file. This may take up to 3 minutes."
-    );
+    try {
+      setShowModal(true);
+      setModalTitle("Uploading...");
+      setModalDescription("Sending your image to the server for processing...");
 
-    setTimeout(() => {
+      // get the actual File from the input
+      debugger
+      const file = fileInputRef.current?.files?.[0];
+      if (!file) throw new Error("No file selected");
+
+      const formData = new FormData();
+      const fileName = `${Date.now()}_${file.name}`;
+      formData.append("file", file);
+      formData.append("fileName", fileName);
+
+      const res = await fetch("/api/user/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+
+      const { url: uploadedUrl } = await res.json();
+
+      // update toolData with uploaded image URL
+      setToolData((prev) => ({
+        ...prev,
+        background_img: uploadedUrl,
+      }));
+
       setShowModal(false);
-      setModalTitle("");
+
       router.push(
         `/tools-inventory/tool-detected?paper=${toolData.paper_type}&brand=${toolData.brand}&type=${toolData.tool_type}`
       );
-    }, 2000);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to upload image", { position: "top-center" });
+      setShowModal(false);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const validateURLWithRegex = (url: string) => {
