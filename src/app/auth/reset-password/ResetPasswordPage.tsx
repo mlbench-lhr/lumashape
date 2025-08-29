@@ -98,18 +98,21 @@ const ResetPasswordPage = () => {
       <div className="w-full flex flex-col justify-center items-center px-4 py-6 overflow-y-auto">
         <div className="w-full max-w-md mx-auto bg-white rounded-lg shadow-lg p-6 lg:p-8">
           <div className="flex gap-[3px] h-[30px] w-[96px] items-center justify-center">
-            <div className="flex w-[30px] h-full items-center justify-center">
-              <img
-                className="cursor-pointer"
+            <div className="relative w-[21.58px] h-[21.58px] sm:w-[30px] sm:h-[30px] flex items-center justify-center">
+              <Image
                 src="/images/icons/auth/BackTick.svg"
-                width={7.5}
-                height={15.5}
+                alt="Go Back"
+                fill
+                className="cursor-pointer"
                 onClick={() => {
                   router.push("/auth/forgot-password");
                 }}
+                priority
               />
             </div>
-            <span className="text-[#666666] font-semibold">Go Back</span>
+            <span className="text-[#666666] font-semibold text-[12px] sm:text-[16px]">
+              Go Back
+            </span>
           </div>
           <div className="mb-6 relative mt-[35px]">
             <div className="text-center mb-4">
@@ -124,7 +127,7 @@ const ResetPasswordPage = () => {
               <form onSubmit={handleSubmit} className="space-y-3">
                 <label
                   htmlFor="email"
-                  className="block text-xs font-bold text-secondary mb-1 mt-5 text-left"
+                  className="block text-[16px] sm:text-[14px] font-semibold text-secondary mb-1 mt-5 text-left"
                 >
                   Password
                 </label>
@@ -167,7 +170,7 @@ const ResetPasswordPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-secondary text-left text-xs font-bold mb-1">
+                  <label className="block text-secondary text-left text-[16px] sm:text-[14px] font-semibold mb-1">
                     Confirm Password
                   </label>
                   <div className="relative">

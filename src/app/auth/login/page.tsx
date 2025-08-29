@@ -182,7 +182,7 @@ const SignInPage: React.FC = () => {
             <div>
               <label
                 htmlFor="email"
-                className="block text-xs font-bold text-secondary mb-1"
+                className="block text-[16px] sm:text-[14px] font-semibold text-secondary mb-1"
               >
                 Email Address
               </label>
@@ -201,7 +201,7 @@ const SignInPage: React.FC = () => {
             <div>
               <label
                 htmlFor="password"
-                className="block text-xs font-bold text-secondary mb-1"
+                className="block text-[16px] sm:text-[14px] font-semibold text-secondary mb-1"
               >
                 Password
               </label>

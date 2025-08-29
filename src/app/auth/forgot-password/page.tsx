@@ -1,8 +1,7 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
-import { ChevronLeft } from "lucide-react";
+import React, { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import Image from "next/image";
 
 interface ForgotPasswordResponse {
   message: string;
@@ -15,11 +14,6 @@ interface VerifyOTPResponse {
   verified?: boolean;
 }
 
-interface ResetPasswordResponse {
-  message: string;
-  success?: boolean;
-}
-
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -29,8 +23,8 @@ export default function ForgotPasswordScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const inputRefs = useRef<HTMLInputElement[]>([]);
   const [hasSentOtp, setHasSentOtp] = useState(false);
+  const inputRefs = useRef<HTMLInputElement[]>([]);
 
   const handleGoBack = () => {
     router.push("/auth/login");
@@ -42,7 +36,6 @@ export default function ForgotPasswordScreen() {
       newOtp[index] = value;
       setOtp(newOtp);
 
-      // Auto-focus next input
       if (value && index < 4) {
         const nextInput = document.getElementById(`otp-${index + 1}`);
         nextInput?.focus();
@@ -63,7 +56,6 @@ export default function ForgotPasswordScreen() {
       return;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("Please enter a valid email address");
@@ -77,9 +69,7 @@ export default function ForgotPasswordScreen() {
     try {
       const response = await fetch("/api/user/auth/forgot-password", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
 
@@ -92,7 +82,7 @@ export default function ForgotPasswordScreen() {
       } else {
         setError(data.message || "Failed to send OTP");
       }
-    } catch (error) {
+    } catch {
       setError("Network error. Please try again.");
     } finally {
       setIsLoading(false);
@@ -100,13 +90,6 @@ export default function ForgotPasswordScreen() {
   };
 
   const handleVerify = async () => {
-    // If OTP hasn't been sent yet, send it first
-    if (!isOtpSent) {
-      await handleSendOtp();
-      return;
-    }
-
-    // If OTP has been sent, verify it
     const otpValue = otp.join("");
     if (otpValue.length !== 5) {
       setError("Please enter the complete 5-digit OTP");
@@ -120,9 +103,7 @@ export default function ForgotPasswordScreen() {
     try {
       const response = await fetch("/api/user/auth/verify-otp", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp: otpValue }),
       });
 
@@ -137,7 +118,7 @@ export default function ForgotPasswordScreen() {
       } else {
         setError(data.message || "Invalid OTP");
       }
-    } catch (error) {
+    } catch {
       setError("Network error. Please try again.");
     } finally {
       setIsLoading(false);
@@ -153,18 +134,11 @@ export default function ForgotPasswordScreen() {
     }
   };
 
-  const getButtonText = () => {
-    if (isLoading) {
-      return isOtpSent ? "Verifying..." : "Sending OTP...";
-    }
-    return isOtpSent ? "Verify" : "Send OTP";
-  };
-
+  // Disable button until OTP fully entered
   const isButtonDisabled = () => {
     if (isLoading) return true;
-    if (!email) return true;
-    if (isOtpSent && otp.join("").length !== 5) return true;
-    return false;
+    if (!isOtpSent) return true; // disabled until OTP is sent
+    return otp.join("").length !== 5; // require all 5 digits
   };
 
   return (
@@ -172,24 +146,30 @@ export default function ForgotPasswordScreen() {
       <div className="w-full max-w-md bg-white border-2 border-[#ededed] p-8">
         {/* Header */}
         <div className="flex items-center mb-8" onClick={handleGoBack}>
-          <ChevronLeft className="w-[30px] h-[30px] text-primary cursor-pointer" />
-          <span className="ml-2 text-[#666666] text-[12px] sm:text-[16px] cursor-pointer font-semibold">
+          <div className="relative w-[21.58px] h-[21.58px] sm:w-[30px] sm:h-[30px] flex items-center justify-center">
+            <Image
+              src="/images/icons/auth/BackTick.svg"
+              alt="Go Back"
+              fill
+              className="cursor-pointer"
+              onClick={() => router.push("/auth/forgot-password")}
+              priority
+            />
+          </div>
+          <span className="text-[#666666] font-semibold text-[12px] sm:text-[16px]">
             Go Back
           </span>
         </div>
 
-        {/* Title */}
         <h1 className="text-2xl font-bold text-center text-secondary mb-[10px]">
           Forgot Password?
         </h1>
 
-        {/* Description */}
         <p className="text-center text-[#666666] mb-8 leading-relaxed">
-          Enter the email address linked to your account, and we`&apos;`ll send you a
-          link to reset your password.
+          Enter the email address linked to your account, and we&apos;ll send
+          you a link to reset your password.
         </p>
 
-        {/* Error/Success Messages */}
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-[#ededed] rounded-md">
             <p className="text-red-600 text-sm font-medium">{error}</p>
@@ -202,8 +182,7 @@ export default function ForgotPasswordScreen() {
           </div>
         )}
 
-        {/* Email Input - Always visible */}
-
+        {/* Email Input */}
         <label className="block text-sm font-semibold text-gray-900 mb-[10px]">
           Email Address
         </label>
@@ -226,7 +205,7 @@ export default function ForgotPasswordScreen() {
           </button>
         </div>
 
-        {/* OTP Input Fields - Always visible */}
+        {/* OTP Inputs */}
         <div className="mb-6">
           <div className="flex justify-center space-x-3 mb-4">
             {otp.map((digit, index) => (
@@ -247,7 +226,7 @@ export default function ForgotPasswordScreen() {
           </div>
         </div>
 
-        {/* Single Action Button */}
+        {/* Verify Button */}
         <button
           onClick={handleVerify}
           disabled={isButtonDisabled()}
@@ -275,7 +254,6 @@ export default function ForgotPasswordScreen() {
               ></path>
             </svg>
           )}
-          {/* {getButtonText()} */}
           Verify
         </button>
       </div>
