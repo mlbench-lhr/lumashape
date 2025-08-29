@@ -9,8 +9,6 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 export async function GET(req: NextRequest) {
   const token = req.headers.get("Authorization")?.split(" ")[1];
 
-  console.log("token right now... ", token)
-
   if (!token) {
     return NextResponse.json(
       { error: "Unauthorized - No token" },

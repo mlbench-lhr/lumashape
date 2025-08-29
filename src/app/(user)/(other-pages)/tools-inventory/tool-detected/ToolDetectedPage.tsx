@@ -21,7 +21,7 @@ const ToolDetectedPage = () => {
 
     setIsSaving(true);
     try {
-      const res = await fetch("/api/user/saveTool", {
+      const res = await fetch("/api/user/tool/saveTool", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
