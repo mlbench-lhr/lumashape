@@ -4,16 +4,37 @@ import Button from "@/components/ui/Button";
 import Text from "@/components/ui/Text";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 const ToolDetectedPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isSaving, setIsSaving] = useState(false);
 
-  debugger
   const paper = searchParams.get("paper");
   const brand = searchParams.get("brand");
   const type = searchParams.get("type");
   const imageUrl = searchParams.get("imageUrl");
+
+  const handleSave = async () => {
+    const savedToken = localStorage.getItem("auth-token");
+
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/user/saveTool", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${savedToken}`,
+        },
+        body: JSON.stringify({ paper, brand, type, imageUrl }),
+      });
+    } catch (error) {
+      console.error("Error saving tool:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="w-full mx-auto my-[20px] sm:my-[45px]">
@@ -109,6 +130,7 @@ const ToolDetectedPage = () => {
 
       <div className="mt-[30px] sm:mt-[60px]">
         <Button
+          onClick={handleSave}
           className="px-[2rem] py-[0.75rem] text-[16px] sm:text-[18px] font-bold w-full sm:w-auto"
           variant="primary"
           size="lg"
