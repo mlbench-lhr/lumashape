@@ -7,8 +7,6 @@ import User from "@/lib/models/User";
 const JWT_SECRET = process.env.JWT_SECRET!;
 
 export async function GET(req: NextRequest) {
-
-  
   const token = req.headers.get("Authorization")?.split(" ")[1];
 
   console.log("token right now... ", token)
