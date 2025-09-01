@@ -96,6 +96,7 @@ const UploadNewTool = () => {
 
   const handlePreviewOpen = () => {
     if (!backgroundUrl) {
+      console.log("Hello")
       toast.error("background image must be selected", { position: "top-center" });
       setIsLoading(false);
       setIsPreviewOpen(false)
