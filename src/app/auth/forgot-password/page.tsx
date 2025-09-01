@@ -74,11 +74,14 @@ export default function ForgotPasswordScreen() {
       });
 
       const data: ForgotPasswordResponse = await response.json();
+      debugger
 
-      if (response.ok) {
+      if (response.ok && response.status === 200) {
         setSuccess("OTP sent successfully to your email!");
         setIsOtpSent(true);
         setHasSentOtp(true);
+      } else if (response.status === 350) {
+        setError("Email does not exist.");
       } else {
         setError(data.message || "Failed to send OTP");
       }
