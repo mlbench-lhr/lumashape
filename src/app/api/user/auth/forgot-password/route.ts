@@ -41,6 +41,9 @@ export async function POST(req: NextRequest) {
 
     // Check if user exists
     const user = await User.findOne({ email });
+
+    console.log("USER: ", user)
+
     if (!user) {
       // For security, don't reveal if email exists or not
       return NextResponse.json(
@@ -48,7 +51,7 @@ export async function POST(req: NextRequest) {
           message:
             "If the email exists, an OTP has been sent to your email address",
         },
-        { status: 200 }
+        { status: 350 }
       );
     }
 
