@@ -56,6 +56,7 @@ const UploadNewTool = () => {
   const router = useRouter();
   const [validation, setValidation] = useState({ isValid: true, message: "" });
   const [touched, setTouched] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -92,6 +93,22 @@ const UploadNewTool = () => {
       return () => clearTimeout(timer);
     }
   }, [pendingUrl]);
+
+  const handlePreviewOpen = () => {
+    if (!backgroundUrl) {
+      console.log("Hello")
+      toast.error("background image must be selected", { position: "top-center" });
+      setIsLoading(false);
+      setIsPreviewOpen(false)
+      return;
+    }
+
+    setIsPreviewOpen(true);
+  };
+
+  const handlePreviewClose = () => {
+    setIsPreviewOpen(false);
+  };
 
   const handleImageUpload = () => {
     fileInputRef.current?.click(); // trigger file picker
@@ -208,7 +225,11 @@ const UploadNewTool = () => {
       setShowModal(false);
 
       router.push(
-        `/tools-inventory/tool-detected?paper=${toolData.paper_type}&brand=${toolData.brand}&type=${toolData.tool_type}&imageUrl=${encodeURIComponent(uploadedUrl)}`
+        `/tools-inventory/tool-detected?paper=${toolData.paper_type}&brand=${
+          toolData.brand
+        }&type=${toolData.tool_type}&imageUrl=${encodeURIComponent(
+          uploadedUrl
+        )}`
       );
     } catch (err) {
       console.error(err);
@@ -335,6 +356,7 @@ const UploadNewTool = () => {
                   <div className="flex justify-center items-center gap-[12px]">
                     <div className="p-[7px]">
                       <Image
+                        onClick={handlePreviewOpen}
                         src="/images/icons/scan.svg"
                         width={45}
                         height={45}
@@ -394,6 +416,23 @@ const UploadNewTool = () => {
                     )}
                   </div>
                 </div>
+
+                {/* Fullscreen Preview */}
+                {isPreviewOpen && (
+                  <div
+                    className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center"
+                    onClick={handlePreviewClose}
+                  >
+                    <Image
+                      src={backgroundUrl as string}
+                      alt="Full Preview"
+                      width={800}
+                      height={800}
+                      className="object-contain max-h-full max-w-full"
+                    />
+                  </div>
+                )}
+
                 <div className="flex justify-center items-center h-[57px] border-b border-dotted bg-[#ebebeb] rounded-b-[21px]">
                   <div className="flex justify-center gap-[10px]">
                     <div className="p-[5px]">
