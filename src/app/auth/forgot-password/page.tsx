@@ -220,7 +220,6 @@ export default function ForgotPasswordScreen() {
                 className="w-12 h-12 bg-[#868795] text-secondary text-center border border-[#e7e7ea] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg font-medium disabled:opacity-50 bg-[#fff]"
                 maxLength={1}
                 disabled={isLoading || !isOtpSent}
-                placeholder="1"
               />
             ))}
           </div>
