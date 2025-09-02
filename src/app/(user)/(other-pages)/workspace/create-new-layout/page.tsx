@@ -61,7 +61,7 @@ const CreateNewLayout = () => {
             </p>
 
             {/* Brand Options */}
-            <div className="flex space-x-2 mb-3">
+            <div className="flex space-x-2 mb-3">  
               {brands.map((brand) => (
                 <div
                   key={brand.name}
