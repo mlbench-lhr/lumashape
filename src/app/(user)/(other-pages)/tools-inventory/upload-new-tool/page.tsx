@@ -445,15 +445,6 @@ const UploadNewTool = () => {
                         onClick={handleImageUpload}
                       />
                     </div>
-                    <div className="p-[5px]">
-                      <Image
-                        src="/images/icons/clipboard.svg"
-                        alt="clipboard"
-                        width={25}
-                        height={25}
-                        className="cursor-pointer"
-                      />
-                    </div>
                   </div>
                 </div>
 

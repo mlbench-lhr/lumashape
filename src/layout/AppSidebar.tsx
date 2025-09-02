@@ -392,8 +392,8 @@ const AppSidebar: React.FC = () => {
                   className="dark:hidden ml-3"
                   src="/images/logo/lumashape.svg"
                   alt="Lumashape Logo"
-                  width={30}
-                  height={40}
+                  width={175}
+                  height={47}
                 />
                 <Image
                   className="hidden dark:block ml-3"
