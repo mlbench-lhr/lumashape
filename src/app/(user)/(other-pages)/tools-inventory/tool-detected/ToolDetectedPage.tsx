@@ -29,6 +29,7 @@ const ToolDetectedPage = () => {
         },
         body: JSON.stringify({ paper, brand, type, imageUrl }),
       });
+      router.push("/tools-inventory");
     } catch (error) {
       console.error("Error saving tool:", error);
     } finally {
