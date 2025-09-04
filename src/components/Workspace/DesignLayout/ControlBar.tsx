@@ -129,18 +129,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
               className="w-full h-full object-cover"
             />
           </button>
-          {/* <button 
-            className={`p-1 rounded ${activeTool === 'box' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
-            onClick={() => setActiveTool('box')}
-          >
-            <Image
-              src={"/images/workspace/box.svg"}
-              alt="Box"
-              width={20}
-              height={20}
-              className="w-full h-full object-cover"
-            />
-          </button> */}
         </div>
 
         {/* Thickness */}

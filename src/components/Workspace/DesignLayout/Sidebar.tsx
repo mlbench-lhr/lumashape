@@ -1,45 +1,41 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     Search,
-    ChevronDown,
-    RotateCcw,
-    RotateCw,
-    FlipVertical,
-    Group,
-    Ungroup,
-    Undo,
-    Redo,
-    Copy,
-    Clipboard,
-    ZoomIn,
-    Trash2,
-    Layout,
-    CornerDownLeft,
-    Grip,
-    ArrowUp,
-    Circle,
-    Square,
-    ArrowUpDown,
-    ArrowDown,
-    Hash
+    ChevronDown
 } from 'lucide-react';
 import Image from 'next/image';
-import { DroppedTool, Tool } from './types';
+import { DroppedTool, Tool, ToolGroup } from './types';
 import DraggableTool from './DraggableTool';
-import { rotateTool, flipToolRelativeToRotation } from './toolUtils';
+import {
+    rotateTool,
+    flipToolRelativeToRotation,
+    groupSelectedTools,
+    ungroupSelectedTools,
+    copySelectedTools,
+    pasteTools,
+    deleteSelectedTools,
+    alignTools,
+    autoLayout,
+    createShape,
+    updateToolAppearance,
+    undo,
+    redo,
+    canUndo,
+    canRedo
+} from './toolUtils';
 
 interface SidebarProps {
-    droppedTools: DroppedTool[];
-    selectedTool: string | null;
-    activeTool: string;
-    setDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void; // Changed type
-    onUndo: () => void;
-    onRedo: () => void;
-    canUndo: boolean;
-    canRedo: boolean;
+    droppedTools?: DroppedTool[]; // optional
+    selectedTool?: string | null;
+    selectedTools?: string[]; // optional
+    activeTool?: string;
+    groups?: ToolGroup[];
+    setDroppedTools?: (updater: React.SetStateAction<DroppedTool[]>) => void;
+    setGroups?: (updater: React.SetStateAction<ToolGroup[]>) => void;
+    setSelectedTools?: (tools: string[]) => void;
+    onHistoryChange?: () => void;
 }
-
 
 
 const TOOLS: Tool[] = [
@@ -47,15 +43,17 @@ const TOOLS: Tool[] = [
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({
-    droppedTools,
-    selectedTool,
-    activeTool,
-    setDroppedTools, // This is now the updateDroppedTools function
-    onUndo,
-    onRedo,
-    canUndo,
-    canRedo
+    droppedTools = [],       // default empty array
+    selectedTool = null,     // default null
+    selectedTools = [],      // default empty array
+    activeTool = 'cursor',   // default cursor
+    groups = [],             // default empty array
+    setDroppedTools = () => { },
+    setGroups = () => { },
+    setSelectedTools = () => { },
+    onHistoryChange
 }) => {
+
     const [activeTab, setActiveTab] = useState<'inventory' | 'edit'>('inventory');
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -63,13 +61,99 @@ const Sidebar: React.FC<SidebarProps> = ({
         tool.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const handleRotate = (toolId: string, degrees: number) => {
-        rotateTool(toolId, droppedTools, activeTool, selectedTool, setDroppedTools, degrees);
-    };
+    // Get the selected tool object for appearance controls
+    const selectedToolObject = selectedTool ? droppedTools.find(tool => tool.id === selectedTool) : null;
 
-    const handleFlip = (toolId: string, direction: 'horizontal' | 'vertical') => {
-        flipToolRelativeToRotation(toolId, droppedTools, activeTool, selectedTool, setDroppedTools, direction);
-    };
+    // Determine effective selected tools - use selectedTool if selectedTools is empty
+    const effectiveSelectedTools = selectedTools.length > 0 ? selectedTools : (selectedTool ? [selectedTool] : []);
+
+    // History handlers
+    const handleUndo = useCallback(() => {
+        const previousState = undo();
+        if (previousState) {
+            setDroppedTools(previousState.tools);
+            setGroups(previousState.groups);
+            setSelectedTools([]); // Clear selection after undo
+            onHistoryChange?.();
+        }
+    }, [setDroppedTools, setGroups, setSelectedTools, onHistoryChange]);
+
+    const handleRedo = useCallback(() => {
+        const nextState = redo();
+        if (nextState) {
+            setDroppedTools(nextState.tools);
+            setGroups(nextState.groups);
+            setSelectedTools([]); // Clear selection after redo
+            onHistoryChange?.();
+        }
+    }, [setDroppedTools, setGroups, setSelectedTools, onHistoryChange]);
+
+    // Tool manipulation handlers
+    const handleRotate = useCallback((degrees: number) => {
+        if (selectedTool) {
+            rotateTool(selectedTool, droppedTools, activeTool, selectedTool, setDroppedTools, degrees);
+            onHistoryChange?.();
+        }
+    }, [selectedTool, droppedTools, activeTool, setDroppedTools, onHistoryChange]);
+
+    const handleFlip = useCallback((direction: 'horizontal' | 'vertical') => {
+        if (selectedTool) {
+            flipToolRelativeToRotation(selectedTool, droppedTools, activeTool, selectedTool, setDroppedTools, direction);
+            onHistoryChange?.();
+        }
+    }, [selectedTool, droppedTools, activeTool, setDroppedTools, onHistoryChange]);
+
+    const handleGroup = useCallback(() => {
+        groupSelectedTools(droppedTools, effectiveSelectedTools, setDroppedTools, setGroups);
+        onHistoryChange?.();
+    }, [droppedTools, effectiveSelectedTools, setDroppedTools, setGroups, onHistoryChange]);
+
+    const handleUngroup = useCallback(() => {
+        ungroupSelectedTools(droppedTools, effectiveSelectedTools, setDroppedTools, setGroups);
+        onHistoryChange?.();
+    }, [droppedTools, effectiveSelectedTools, setDroppedTools, setGroups, onHistoryChange]);
+
+    const handleCopy = useCallback(() => {
+        copySelectedTools(droppedTools, effectiveSelectedTools, groups);
+    }, [droppedTools, effectiveSelectedTools, groups]);
+
+    const handlePaste = useCallback(() => {
+        const newToolIds = pasteTools(droppedTools, setDroppedTools, setGroups);
+        if (newToolIds.length > 0) {
+            if (setSelectedTools) setSelectedTools(newToolIds);
+            onHistoryChange?.();
+        }
+    }, [droppedTools, setDroppedTools, setGroups, setSelectedTools, onHistoryChange]);
+
+    const handleDelete = useCallback(() => {
+        deleteSelectedTools(droppedTools, effectiveSelectedTools, setDroppedTools, setGroups);
+        if (setSelectedTools) setSelectedTools([]);
+        onHistoryChange?.();
+    }, [droppedTools, effectiveSelectedTools, setDroppedTools, setGroups, setSelectedTools, onHistoryChange]);
+
+    const handleAlign = useCallback((alignment: 'top' | 'bottom') => {
+        alignTools(droppedTools, effectiveSelectedTools, setDroppedTools, alignment);
+        onHistoryChange?.();
+    }, [droppedTools, effectiveSelectedTools, setDroppedTools, onHistoryChange]);
+
+    const handleAutoLayout = useCallback(() => {
+        autoLayout(droppedTools, effectiveSelectedTools, setDroppedTools);
+        onHistoryChange?.();
+    }, [droppedTools, effectiveSelectedTools, setDroppedTools, onHistoryChange]);
+
+    const handleCreateShape = useCallback((shapeType: 'circle' | 'square') => {
+        // Create shape at center of workspace (you might want to get this from props)
+        const position = { x: 400, y: 300 };
+        createShape(droppedTools, setDroppedTools, shapeType, position);
+        onHistoryChange?.();
+    }, [droppedTools, setDroppedTools, onHistoryChange]);
+
+    const handleAppearanceChange = useCallback((property: 'opacity' | 'smooth', value: number) => {
+        if (selectedTool) {
+            updateToolAppearance(selectedTool, droppedTools, setDroppedTools, property, value);
+            onHistoryChange?.();
+        }
+    }, [selectedTool, droppedTools, setDroppedTools, onHistoryChange]);
 
     const ToolInventoryView = () => (
         <>
@@ -107,25 +191,109 @@ const Sidebar: React.FC<SidebarProps> = ({
     );
 
     const editActions = [
-        { icon: "/images/workspace/rotate_left.svg", label: 'rotate', action: () => selectedTool && handleRotate(selectedTool, -90) },
-        { icon: "/images/workspace/rotate_right.svg", label: 'rotate', action: () => selectedTool && handleRotate(selectedTool, 90) },
-        { icon: "/images/workspace/flip-horizontal.svg", label: 'flip', action: () => selectedTool && handleFlip(selectedTool, 'horizontal') },
-        { icon: "/images/workspace/flip_vertical.svg", label: 'flip', action: () => selectedTool && handleFlip(selectedTool, 'vertical') },
-        { icon: "/images/workspace/group.svg", label: 'group' },
-        { icon: "/images/workspace/ungroup.svg", label: 'ungroup' },
-        { icon: "/images/workspace/undo.svg", label: 'undo', action: onUndo, disabled: !canUndo },
-        { icon: "/images/workspace/redo.svg", label: 'redo', action: onRedo, disabled: !canRedo },
-        { icon: "/images/workspace/copy.svg", label: 'copy' },
-        { icon: "/images/workspace/paste.svg", label: 'paste' },
-        { icon: "/images/workspace/zoom.svg", label: 'Zoom' },
-        { icon: "/images/workspace/delete.svg", label: 'delete' },
-        { icon: "/images/workspace/layout.svg", label: 'Auto Layout' },
-        { icon: "/images/workspace/finger.svg", label: 'finger grip' },
-        { icon: "/images/workspace/arrow.svg", label: 'arrow' },
+        {
+            icon: "/images/workspace/rotate_left.svg",
+            label: 'rotate left',
+            action: () => handleRotate(-90),
+            disabled: !selectedTool
+        },
+        {
+            icon: "/images/workspace/rotate_right.svg",
+            label: 'rotate right',
+            action: () => handleRotate(90),
+            disabled: !selectedTool
+        },
+        {
+            icon: "/images/workspace/flip-horizontal.svg",
+            label: 'flip horizontal',
+            action: () => handleFlip('horizontal'),
+            disabled: !selectedTool
+        },
+        {
+            icon: "/images/workspace/flip_vertical.svg",
+            label: 'flip vertical',
+            action: () => handleFlip('vertical'),
+            disabled: !selectedTool
+        },
+        {
+            icon: "/images/workspace/group.svg",
+            label: 'group',
+            action: handleGroup,
+            disabled: effectiveSelectedTools.length < 2
+        },
+        {
+            icon: "/images/workspace/ungroup.svg",
+            label: 'ungroup',
+            action: handleUngroup,
+            disabled: effectiveSelectedTools.length === 0 || !effectiveSelectedTools.some(id =>
+                droppedTools.find(tool => tool.id === id)?.groupId
+            )
+        },
+        {
+            icon: "/images/workspace/undo.svg",
+            label: 'undo',
+            action: handleUndo,
+            disabled: !canUndo()
+        },
+        {
+            icon: "/images/workspace/redo.svg",
+            label: 'redo',
+            action: handleRedo,
+            disabled: !canRedo()
+        },
+        {
+            icon: "/images/workspace/copy.svg",
+            label: 'copy',
+            action: handleCopy,
+            disabled: effectiveSelectedTools.length === 0
+        },
+        {
+            icon: "/images/workspace/paste.svg",
+            label: 'paste',
+            action: handlePaste,
+            disabled: false // Paste is always available if clipboard has data
+        },
+        {
+            icon: "/images/workspace/zoom.svg",
+            label: 'Zoom',
+            disabled: true // Not implemented yet
+        },
+        {
+            icon: "/images/workspace/delete.svg",
+            label: 'delete',
+            action: handleDelete,
+            disabled: effectiveSelectedTools.length === 0
+        },
+        {
+            icon: "/images/workspace/layout.svg",
+            label: 'Auto Layout',
+            action: handleAutoLayout,
+            disabled: effectiveSelectedTools.length < 2
+        },
+        {
+            icon: "/images/workspace/finger.svg",
+            label: 'finger grip',
+            disabled: true // Not implemented yet
+        },
+        {
+            icon: "/images/workspace/arrow.svg",
+            label: 'arrow',
+            disabled: true // Not implemented yet
+        },
     ];
 
     const EditLayoutView = () => (
         <div className="space-y-6">
+            {/* Selection Info */}
+            <div className="bg-gray-50 p-3 rounded-md">
+                <p className="text-sm text-gray-600">
+                    {effectiveSelectedTools.length === 0
+                        ? 'No tools selected'
+                        : `${effectiveSelectedTools.length} tool${effectiveSelectedTools.length > 1 ? 's' : ''} selected`
+                    }
+                </p>
+            </div>
+
             {/* Edit Section */}
             <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit</h3>
@@ -133,15 +301,21 @@ const Sidebar: React.FC<SidebarProps> = ({
                     {editActions.map((action, index) => (
                         <div key={index} className="flex flex-col items-center">
                             <button
-                                className={`w-10 h-10 rounded-md flex items-center justify-center mb-1 ${action.disabled
-                                    ? 'bg-gray-50 cursor-not-allowed'
-                                    : 'bg-gray-100 hover:bg-gray-200'
+                                className={`w-10 h-10 rounded-md flex items-center justify-center mb-1 transition-colors ${action.disabled
+                                        ? 'bg-gray-50 cursor-not-allowed opacity-50'
+                                        : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
                                     }`}
                                 onClick={action.action}
                                 disabled={action.disabled}
                             >
                                 <div className='w-6 h-6'>
-                                    <Image src={action.icon} alt={action.label} width={4} height={4} className="w-full h-full object-cover" />
+                                    <Image
+                                        src={action.icon}
+                                        alt={action.label}
+                                        width={24}
+                                        height={24}
+                                        className="w-full h-full object-contain"
+                                    />
                                 </div>
                             </button>
                             <span className="text-xs text-gray-500 text-center leading-tight">{action.label}</span>
@@ -156,36 +330,46 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div className="space-y-4">
                     {/* Opacity */}
                     <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-700">Opacity</span>
-                        <div className="flex justify-between items-center space-x-2 bg-[#F5F5F5] w-28 px-2 py-1">
+                        <span className="text-sm text-gray-700 w-16">Opacity</span>
+                        <div className="flex justify-between items-center space-x-2 bg-[#F5F5F5] w-28 px-2 py-1 rounded">
                             <input
                                 type="number"
-                                defaultValue={100}
-                                className="w-full bg-transparent text-sm text-gray-700 focus:outline-none"
+                                min="0"
+                                max="100"
+                                value={selectedToolObject?.opacity || 100}
+                                onChange={(e) => handleAppearanceChange('opacity', parseInt(e.target.value) || 0)}
+                                disabled={effectiveSelectedTools.length === 0}
+                                className="w-full bg-transparent text-sm text-gray-700 focus:outline-none disabled:opacity-50"
                             />
                             <Image
                                 src="/images/workspace/appearance.svg"
-                                alt="appearance"
-                                width={24}
-                                height={24}
+                                alt="opacity"
+                                width={16}
+                                height={16}
+                                className="opacity-60"
                             />
                         </div>
                     </div>
 
                     {/* Smooth */}
                     <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-700">Smooth</span>
-                        <div className="flex justify-between items-center space-x-2 bg-[#F5F5F5] w-28 px-2 py-1">
+                        <span className="text-sm text-gray-700 w-16">Smooth</span>
+                        <div className="flex justify-between items-center space-x-2 bg-[#F5F5F5] w-28 px-2 py-1 rounded">
                             <input
                                 type="number"
-                                defaultValue={100}
-                                className="w-full bg-transparent text-sm text-gray-700 focus:outline-none"
+                                min="0"
+                                max="100"
+                                value={selectedToolObject?.smooth || 100}
+                                onChange={(e) => handleAppearanceChange('smooth', parseInt(e.target.value) || 0)}
+                                disabled={!selectedTool}
+                                className="w-full bg-transparent text-sm text-gray-700 focus:outline-none disabled:opacity-50"
                             />
                             <Image
                                 src="/images/workspace/appearance.svg"
-                                alt="appearance"
-                                width={24}
-                                height={24}
+                                alt="smooth"
+                                width={16}
+                                height={16}
+                                className="opacity-60"
                             />
                         </div>
                     </div>
@@ -197,17 +381,43 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Alignment</h3>
                 <div className="flex space-x-4">
                     <div className="flex flex-col items-center">
-                        <button className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center mb-1">
+                        <button
+                            className={`w-10 h-10 rounded-md flex items-center justify-center mb-1 transition-colors ${effectiveSelectedTools.length < 2
+                                    ? 'bg-gray-50 cursor-not-allowed opacity-50'
+                                    : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
+                                }`}
+                            onClick={() => handleAlign('top')}
+                            disabled={effectiveSelectedTools.length < 2}
+                        >
                             <div className='w-6 h-6'>
-                                <Image src="/images/workspace/align_top.svg" alt="aligntop" width={4} height={4} className="w-full h-full object-cover" />
+                                <Image
+                                    src="/images/workspace/align_top.svg"
+                                    alt="align top"
+                                    width={24}
+                                    height={24}
+                                    className="w-full h-full object-contain"
+                                />
                             </div>
                         </button>
                         <span className="text-xs text-gray-500 text-center leading-tight">align top</span>
                     </div>
                     <div className="flex flex-col items-center">
-                        <button className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center mb-1">
+                        <button
+                            className={`w-10 h-10 rounded-md flex items-center justify-center mb-1 transition-colors ${effectiveSelectedTools.length < 2
+                                    ? 'bg-gray-50 cursor-not-allowed opacity-50'
+                                    : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
+                                }`}
+                            onClick={() => handleAlign('bottom')}
+                            disabled={effectiveSelectedTools.length < 2}
+                        >
                             <div className='w-6 h-6'>
-                                <Image src="/images/workspace/align_bottom.svg" alt="alignbottom" width={4} height={4} className="w-full h-full object-cover" />
+                                <Image
+                                    src="/images/workspace/align_bottom.svg"
+                                    alt="align bottom"
+                                    width={24}
+                                    height={24}
+                                    className="w-full h-full object-contain"
+                                />
                             </div>
                         </button>
                         <span className="text-xs text-gray-500 text-center leading-tight">align bottom</span>
@@ -220,23 +430,70 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Shapes</h3>
                 <div className="flex space-x-4">
                     <div className="flex flex-col items-center">
-                        <button className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center mb-1">
+                        <button
+                            className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center mb-1 transition-colors cursor-pointer"
+                            onClick={() => handleCreateShape('circle')}
+                        >
                             <div className='w-6 h-6'>
-                                <Image src="/images/workspace/circle.svg" alt="circle" width={4} height={4} className="w-full h-full object-cover" />
+                                <Image
+                                    src="/images/workspace/circle.svg"
+                                    alt="circle"
+                                    width={24}
+                                    height={24}
+                                    className="w-full h-full object-contain"
+                                />
                             </div>
                         </button>
                         <span className="text-xs text-gray-500 text-center leading-tight">circle</span>
                     </div>
                     <div className="flex flex-col items-center">
-                        <button className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center mb-1">
+                        <button
+                            className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center mb-1 transition-colors cursor-pointer"
+                            onClick={() => handleCreateShape('square')}
+                        >
                             <div className='w-6 h-6'>
-                                <Image src="/images/workspace/square.svg" alt="square" width={4} height={4} className="w-full h-full object-cover" />
+                                <Image
+                                    src="/images/workspace/square.svg"
+                                    alt="square"
+                                    width={24}
+                                    height={24}
+                                    className="w-full h-full object-contain"
+                                />
                             </div>
                         </button>
                         <span className="text-xs text-gray-500 text-center leading-tight">square</span>
                     </div>
                 </div>
             </div>
+
+            {/* Dimensions Section (if tool is selected) */}
+            {selectedToolObject && (
+                <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Dimensions</h3>
+                    <div className="space-y-3 text-sm">
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Width:</span>
+                            <span className="text-gray-900">{selectedToolObject.width} {selectedToolObject.unit}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Length:</span>
+                            <span className="text-gray-900">{selectedToolObject.length} {selectedToolObject.unit}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Thickness:</span>
+                            <span className="text-gray-900">{selectedToolObject.thickness} {selectedToolObject.unit}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Rotation:</span>
+                            <span className="text-gray-900">{selectedToolObject.rotation}°</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Position:</span>
+                            <span className="text-gray-900">({Math.round(selectedToolObject.x)}, {Math.round(selectedToolObject.y)})</span>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 
@@ -245,18 +502,18 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="p-4">
                 <div className="flex justify-between items-center space-x-2 mb-4 bg-gray-100 py-2 px-2 rounded-md">
                     <button
-                        className={`px-4 py-2 rounded-md text-sm font-medium w-1/2 ${activeTab === 'inventory'
-                            ? 'bg-primary text-white'
-                            : 'text-gray-600 hover:bg-gray-100'
+                        className={`px-4 py-2 rounded-md text-sm font-medium w-1/2 transition-colors ${activeTab === 'inventory'
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-600 hover:bg-gray-50'
                             }`}
                         onClick={() => setActiveTab('inventory')}
                     >
                         Tool Inventory
                     </button>
                     <button
-                        className={`px-4 py-2 rounded-md text-sm font-medium w-1/2 ${activeTab === 'edit'
-                            ? 'bg-primary text-white'
-                            : 'text-gray-600 hover:bg-gray-100'
+                        className={`px-4 py-2 rounded-md text-sm font-medium w-1/2 transition-colors ${activeTab === 'edit'
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-600 hover:bg-gray-50'
                             }`}
                         onClick={() => setActiveTab('edit')}
                     >
@@ -264,7 +521,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </button>
                 </div>
 
-                {activeTab === 'inventory' ? <ToolInventoryView /> : <EditLayoutView />}
+                <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+                    {activeTab === 'inventory' ? <ToolInventoryView /> : <EditLayoutView />}
+                </div>
             </div>
         </div>
     );
