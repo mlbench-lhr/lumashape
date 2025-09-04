@@ -268,7 +268,6 @@ function DesignLayout() {
         activeTool={activeTool}
         setActiveTool={setActiveTool}
         selectedToolId={selectedTool}
-        selectedToolsCount={selectedTools.length} // Add count for multi-select context
       />
       <OptionsBar />
       <div className="flex flex-1 overflow-hidden">

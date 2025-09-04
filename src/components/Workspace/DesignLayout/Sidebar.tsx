@@ -35,6 +35,10 @@ interface SidebarProps {
     setGroups?: (updater: React.SetStateAction<ToolGroup[]>) => void;
     setSelectedTools?: (tools: string[]) => void;
     onHistoryChange?: () => void;
+    onUndo: () => void;  // Add this line
+    onRedo: () => void;  // Add this line
+    canUndo: boolean;    // Add this line
+    canRedo: boolean;
 }
 
 
@@ -302,8 +306,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <div key={index} className="flex flex-col items-center">
                             <button
                                 className={`w-10 h-10 rounded-md flex items-center justify-center mb-1 transition-colors ${action.disabled
-                                        ? 'bg-gray-50 cursor-not-allowed opacity-50'
-                                        : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
+                                    ? 'bg-gray-50 cursor-not-allowed opacity-50'
+                                    : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
                                     }`}
                                 onClick={action.action}
                                 disabled={action.disabled}
@@ -383,8 +387,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <div className="flex flex-col items-center">
                         <button
                             className={`w-10 h-10 rounded-md flex items-center justify-center mb-1 transition-colors ${effectiveSelectedTools.length < 2
-                                    ? 'bg-gray-50 cursor-not-allowed opacity-50'
-                                    : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
+                                ? 'bg-gray-50 cursor-not-allowed opacity-50'
+                                : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
                                 }`}
                             onClick={() => handleAlign('top')}
                             disabled={effectiveSelectedTools.length < 2}
@@ -404,8 +408,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <div className="flex flex-col items-center">
                         <button
                             className={`w-10 h-10 rounded-md flex items-center justify-center mb-1 transition-colors ${effectiveSelectedTools.length < 2
-                                    ? 'bg-gray-50 cursor-not-allowed opacity-50'
-                                    : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
+                                ? 'bg-gray-50 cursor-not-allowed opacity-50'
+                                : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
                                 }`}
                             onClick={() => handleAlign('bottom')}
                             disabled={effectiveSelectedTools.length < 2}
@@ -503,8 +507,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div className="flex justify-between items-center space-x-2 mb-4 bg-gray-100 py-2 px-2 rounded-md">
                     <button
                         className={`px-4 py-2 rounded-md text-sm font-medium w-1/2 transition-colors ${activeTab === 'inventory'
-                                ? 'bg-blue-600 text-white'
-                                : 'text-gray-600 hover:bg-gray-50'
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-600 hover:bg-gray-50'
                             }`}
                         onClick={() => setActiveTab('inventory')}
                     >
@@ -512,8 +516,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </button>
                     <button
                         className={`px-4 py-2 rounded-md text-sm font-medium w-1/2 transition-colors ${activeTab === 'edit'
-                                ? 'bg-blue-600 text-white'
-                                : 'text-gray-600 hover:bg-gray-50'
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-600 hover:bg-gray-50'
                             }`}
                         onClick={() => setActiveTab('edit')}
                     >

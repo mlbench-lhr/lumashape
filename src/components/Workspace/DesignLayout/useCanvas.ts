@@ -269,69 +269,70 @@ export const useCanvas = ({
   }, [activeTool, setSelectedTools, setSelectedTool]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (canvasRef.current) {
-      const rect = canvasRef.current.getBoundingClientRect();
+  if (canvasRef.current) {
+    const rect = canvasRef.current.getBoundingClientRect();
 
-      // Handle selection box
-      if (selectionBox?.isSelecting) {
-        const currentX = e.clientX - rect.left;
-        const currentY = e.clientY - rect.top;
-        
-        setSelectionBox(prev => prev ? {
-          ...prev,
-          currentX,
-          currentY
-        } : null);
+    // Handle selection box
+    if (selectionBox?.isSelecting) {
+      const currentX = e.clientX - rect.left;
+      const currentY = e.clientY - rect.top;
+      
+      setSelectionBox(prev => prev ? {
+        ...prev,
+        currentX,
+        currentY
+      } : null);
 
-        // Update selection based on current selection box
-        const newSelectionBox = { ...selectionBox, currentX, currentY };
-        const toolsInBox = droppedTools.filter(tool => 
-          isToolInSelectionBox(tool, newSelectionBox)
-        ).map(tool => tool.id);
+      // Update selection based on current selection box
+      const newSelectionBox = { ...selectionBox, currentX, currentY };
+      const toolsInBox = droppedTools.filter(tool => 
+        isToolInSelectionBox(tool, newSelectionBox)
+      ).map(tool => tool.id);
 
-        if (e.ctrlKey || e.metaKey) {
-          // Add to existing selection
-          setSelectedTools(prev => {
-            const combined = [...new Set([...prev, ...toolsInBox])];
-            return combined;
-          });
-        } else {
-          // Replace selection
-          setSelectedTools(toolsInBox);
-          setSelectedTool(toolsInBox[toolsInBox.length - 1] || null);
-        }
-      }
-
-      // Handle dragging selected tools
-      if (dragOffset && isDraggingSelection && activeTool === 'hand') {
-        const newX = e.clientX - rect.left - dragOffset.x;
-        const newY = e.clientY - rect.top - dragOffset.y;
-        
-        // Calculate delta from initial position
-        const primaryTool = droppedTools.find(t => t.id === selectedTool);
-        if (primaryTool && initialPositions[selectedTool]) {
-          const deltaX = newX - initialPositions[selectedTool].x;
-          const deltaY = newY - initialPositions[selectedTool].y;
-
-          setDroppedTools(prev =>
-            prev.map(tool => {
-              if (selectedTools.includes(tool.id) && initialPositions[tool.id]) {
-                const { toolWidth, toolHeight } = getToolDimensions(tool);
-                const newToolX = initialPositions[tool.id].x + deltaX;
-                const newToolY = initialPositions[tool.id].y + deltaY;
-                
-                const constrainedX = Math.max(0, Math.min(newToolX, rect.width - toolWidth));
-                const constrainedY = Math.max(0, Math.min(newToolY, rect.height - toolHeight));
-                
-                return { ...tool, x: constrainedX, y: constrainedY };
-              }
-              return tool;
-            })
-          );
-        }
+      if (e.ctrlKey || e.metaKey) {
+        // Add to existing selection
+        setSelectedTools(prev => {
+          const combined = [...new Set([...prev, ...toolsInBox])];
+          return combined;
+        });
+      } else {
+        // Replace selection
+        setSelectedTools(toolsInBox);
+        setSelectedTool(toolsInBox[toolsInBox.length - 1] || null);
       }
     }
-  }, [selectionBox, dragOffset, isDraggingSelection, activeTool, selectedTool, selectedTools, droppedTools, initialPositions, isToolInSelectionBox, getToolDimensions, setDroppedTools, setSelectedTools, setSelectedTool]);
+
+    // Handle dragging selected tools
+    if (dragOffset && isDraggingSelection && activeTool === 'hand' && selectedTool) {
+      const newX = e.clientX - rect.left - dragOffset.x;
+      const newY = e.clientY - rect.top - dragOffset.y;
+      
+      // Calculate delta from initial position - safely check for selectedTool
+      const primaryTool = droppedTools.find(t => t.id === selectedTool);
+      if (primaryTool && selectedTool && initialPositions[selectedTool]) {
+        const deltaX = newX - initialPositions[selectedTool].x;
+        const deltaY = newY - initialPositions[selectedTool].y;
+
+        setDroppedTools(prev =>
+          prev.map(tool => {
+            if (selectedTools.includes(tool.id) && initialPositions[tool.id]) {
+              const { toolWidth, toolHeight } = getToolDimensions(tool);
+              const newToolX = initialPositions[tool.id].x + deltaX;
+              const newToolY = initialPositions[tool.id].y + deltaY;
+              
+              const constrainedX = Math.max(0, Math.min(newToolX, rect.width - toolWidth));
+              const constrainedY = Math.max(0, Math.min(newToolY, rect.height - toolHeight));
+              
+              return { ...tool, x: constrainedX, y: constrainedY };
+            }
+            return tool;
+          })
+        );
+      }
+    }
+  }
+}, [selectionBox, dragOffset, isDraggingSelection, activeTool, selectedTool, selectedTools, droppedTools, initialPositions, isToolInSelectionBox, getToolDimensions, setDroppedTools, setSelectedTools, setSelectedTool]);
+
 
   const handleMouseUp = useCallback(() => {
     setDragOffset(null);
