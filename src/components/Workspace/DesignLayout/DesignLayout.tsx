@@ -6,7 +6,7 @@ import OptionsBar from "./OptionsBar";
 import Canvas from "./Canvas";
 import Sidebar from "./Sidebar";
 import { DroppedTool, Tool } from "./types";
-import { useUndoRedo } from './useUndoRedo';
+import { useUndoRedo } from './toolUtils';
 
 function DesignLayout() {
   const [droppedTools, setDroppedTools] = useState<DroppedTool[]>([]);

@@ -18,11 +18,7 @@ import {
     alignTools,
     autoLayout,
     createShape,
-    updateToolAppearance,
-    undo,
-    redo,
-    canUndo,
-    canRedo
+    updateToolAppearance
 } from './toolUtils';
 
 interface SidebarProps {
@@ -35,10 +31,11 @@ interface SidebarProps {
     setGroups?: (updater: React.SetStateAction<ToolGroup[]>) => void;
     setSelectedTools?: (tools: string[]) => void;
     onHistoryChange?: () => void;
-    onUndo: () => void;  // Add this line
-    onRedo: () => void;  // Add this line
-    canUndo: boolean;    // Add this line
-    canRedo: boolean;
+    // New props for undo/redo functionality
+    canUndo?: boolean;
+    canRedo?: boolean;
+    onUndo?: () => void;
+    onRedo?: () => void;
 }
 
 
@@ -55,7 +52,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     setDroppedTools = () => { },
     setGroups = () => { },
     setSelectedTools = () => { },
-    onHistoryChange
+    onHistoryChange,
+    // New props with defaults
+    canUndo = false,
+    canRedo = false,
+    onUndo = () => { },
+    onRedo = () => { }
 }) => {
 
     const [activeTab, setActiveTab] = useState<'inventory' | 'edit'>('inventory');
@@ -71,26 +73,18 @@ const Sidebar: React.FC<SidebarProps> = ({
     // Determine effective selected tools - use selectedTool if selectedTools is empty
     const effectiveSelectedTools = selectedTools.length > 0 ? selectedTools : (selectedTool ? [selectedTool] : []);
 
-    // History handlers
+    // History handlers - now use the passed-in functions
     const handleUndo = useCallback(() => {
-        const previousState = undo();
-        if (previousState) {
-            setDroppedTools(previousState.tools);
-            setGroups(previousState.groups);
-            setSelectedTools([]); // Clear selection after undo
-            onHistoryChange?.();
-        }
-    }, [setDroppedTools, setGroups, setSelectedTools, onHistoryChange]);
+        onUndo();
+        setSelectedTools([]); // Clear selection after undo
+        onHistoryChange?.();
+    }, [onUndo, setSelectedTools, onHistoryChange]);
 
     const handleRedo = useCallback(() => {
-        const nextState = redo();
-        if (nextState) {
-            setDroppedTools(nextState.tools);
-            setGroups(nextState.groups);
-            setSelectedTools([]); // Clear selection after redo
-            onHistoryChange?.();
-        }
-    }, [setDroppedTools, setGroups, setSelectedTools, onHistoryChange]);
+        onRedo();
+        setSelectedTools([]); // Clear selection after redo
+        onHistoryChange?.();
+    }, [onRedo, setSelectedTools, onHistoryChange]);
 
     // Tool manipulation handlers
     const handleRotate = useCallback((degrees: number) => {
@@ -237,13 +231,13 @@ const Sidebar: React.FC<SidebarProps> = ({
             icon: "/images/workspace/undo.svg",
             label: 'undo',
             action: handleUndo,
-            disabled: !canUndo()
+            disabled: !canUndo // Now uses the passed-in prop
         },
         {
             icon: "/images/workspace/redo.svg",
             label: 'redo',
             action: handleRedo,
-            disabled: !canRedo()
+            disabled: !canRedo // Now uses the passed-in prop
         },
         {
             icon: "/images/workspace/copy.svg",
@@ -306,8 +300,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <div key={index} className="flex flex-col items-center">
                             <button
                                 className={`w-10 h-10 rounded-md flex items-center justify-center mb-1 transition-colors ${action.disabled
-                                    ? 'bg-gray-50 cursor-not-allowed opacity-50'
-                                    : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
+                                        ? 'bg-gray-50 cursor-not-allowed opacity-50'
+                                        : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
                                     }`}
                                 onClick={action.action}
                                 disabled={action.disabled}
@@ -387,8 +381,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <div className="flex flex-col items-center">
                         <button
                             className={`w-10 h-10 rounded-md flex items-center justify-center mb-1 transition-colors ${effectiveSelectedTools.length < 2
-                                ? 'bg-gray-50 cursor-not-allowed opacity-50'
-                                : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
+                                    ? 'bg-gray-50 cursor-not-allowed opacity-50'
+                                    : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
                                 }`}
                             onClick={() => handleAlign('top')}
                             disabled={effectiveSelectedTools.length < 2}
@@ -408,8 +402,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <div className="flex flex-col items-center">
                         <button
                             className={`w-10 h-10 rounded-md flex items-center justify-center mb-1 transition-colors ${effectiveSelectedTools.length < 2
-                                ? 'bg-gray-50 cursor-not-allowed opacity-50'
-                                : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
+                                    ? 'bg-gray-50 cursor-not-allowed opacity-50'
+                                    : 'bg-gray-100 hover:bg-gray-200 cursor-pointer'
                                 }`}
                             onClick={() => handleAlign('bottom')}
                             disabled={effectiveSelectedTools.length < 2}
@@ -507,8 +501,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div className="flex justify-between items-center space-x-2 mb-4 bg-gray-100 py-2 px-2 rounded-md">
                     <button
                         className={`px-4 py-2 rounded-md text-sm font-medium w-1/2 transition-colors ${activeTab === 'inventory'
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-600 hover:bg-gray-50'
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-600 hover:bg-gray-50'
                             }`}
                         onClick={() => setActiveTab('inventory')}
                     >
@@ -516,8 +510,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </button>
                     <button
                         className={`px-4 py-2 rounded-md text-sm font-medium w-1/2 transition-colors ${activeTab === 'edit'
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-600 hover:bg-gray-50'
+                                ? 'bg-blue-600 text-white'
+                                : 'text-gray-600 hover:bg-gray-50'
                             }`}
                         onClick={() => setActiveTab('edit')}
                     >

@@ -1,59 +1,90 @@
 import { DroppedTool, ToolGroup, ClipboardData } from './types';
+import { useState, useCallback, useRef } from 'react';
 
-// State management for history
-interface HistoryState {
-  tools: DroppedTool[];
-  groups: ToolGroup[];
-}
-
-let historyStack: HistoryState[] = [];
-let currentHistoryIndex = -1;
+// Clipboard data (can remain global as it's shared across sessions)
 let clipboardData: ClipboardData | null = null;
 
-// History management
-export const saveToHistory = (
-  droppedTools: DroppedTool[],
-  groups: ToolGroup[] = []
-): void => {
-  const newState: HistoryState = {
-    tools: JSON.parse(JSON.stringify(droppedTools)),
-    groups: JSON.parse(JSON.stringify(groups))
+// React hook for undo/redo functionality with fixed implementation
+export const useUndoRedo = (initialState: DroppedTool[] = []) => {
+  const [state, setState] = useState({
+    history: [JSON.parse(JSON.stringify(initialState))],
+    currentIndex: 0,
+  });
+
+  // Use refs to avoid stale closures
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  const canUndoHook = state.currentIndex > 0;
+  const canRedoHook = state.currentIndex < state.history.length - 1;
+
+  const pushState = useCallback((newState: DroppedTool[]) => {
+    setState(prevState => {
+      // Don't add if it's the same as current state
+      const currentState = prevState.history[prevState.currentIndex];
+      if (JSON.stringify(currentState) === JSON.stringify(newState)) {
+        return prevState;
+      }
+
+      // Create new history array up to current index
+      const newHistory = prevState.history.slice(0, prevState.currentIndex + 1);
+      // Add the new state
+      newHistory.push(JSON.parse(JSON.stringify(newState)));
+      
+      // Keep history limited to 50 states
+      const limitedHistory = newHistory.slice(-50);
+      
+      const newStateObj = {
+        history: limitedHistory,
+        currentIndex: limitedHistory.length - 1,
+      };
+
+      return newStateObj;
+    });
+  }, []);
+
+  const undoHook = useCallback(() => {
+    const currentState = stateRef.current;
+    if (currentState.currentIndex > 0) {
+      const newIndex = currentState.currentIndex - 1;
+      setState(prevState => ({
+        ...prevState,
+        currentIndex: newIndex,
+      }));
+      return JSON.parse(JSON.stringify(currentState.history[newIndex]));
+    }
+    return null;
+  }, []);
+
+  const redoHook = useCallback(() => {
+    const currentState = stateRef.current;
+    if (currentState.currentIndex < currentState.history.length - 1) {
+      const newIndex = currentState.currentIndex + 1;
+      setState(prevState => ({
+        ...prevState,
+        currentIndex: newIndex,
+      }));
+      return JSON.parse(JSON.stringify(currentState.history[newIndex]));
+    }
+    return null;
+  }, []);
+
+  // Get current state
+  const getCurrentState = useCallback(() => {
+    return JSON.parse(JSON.stringify(state.history[state.currentIndex]));
+  }, [state.history, state.currentIndex]);
+
+  return {
+    pushState,
+    undo: undoHook,
+    redo: redoHook,
+    canUndo: canUndoHook,
+    canRedo: canRedoHook,
+    getCurrentState,
   };
-  
-  // Remove any future history if we're not at the end
-  historyStack = historyStack.slice(0, currentHistoryIndex + 1);
-  
-  // Add new state
-  historyStack.push(newState);
-  currentHistoryIndex = historyStack.length - 1;
-  
-  // Keep history limited to 50 states
-  if (historyStack.length > 50) {
-    historyStack = historyStack.slice(-50);
-    currentHistoryIndex = historyStack.length - 1;
-  }
 };
 
-export const undo = (): HistoryState | null => {
-  if (currentHistoryIndex > 0) {
-    currentHistoryIndex--;
-    return JSON.parse(JSON.stringify(historyStack[currentHistoryIndex]));
-  }
-  return null;
-};
-
-export const redo = (): HistoryState | null => {
-  if (currentHistoryIndex < historyStack.length - 1) {
-    currentHistoryIndex++;
-    return JSON.parse(JSON.stringify(historyStack[currentHistoryIndex]));
-  }
-  return null;
-};
-
-export const canUndo = (): boolean => currentHistoryIndex > 0;
-export const canRedo = (): boolean => currentHistoryIndex < historyStack.length - 1;
-
-// Rotation functionality
+// Rotation functionality - no longer saves to global history
 export const rotateTool = (
   toolId: string,
   droppedTools: DroppedTool[],
@@ -63,19 +94,17 @@ export const rotateTool = (
   degrees: number
 ): void => {
   if (activeTool === 'cursor' && selectedTool === toolId) {
-    updateDroppedTools(prev => {
-      const newTools = prev.map(tool =>
+    updateDroppedTools(prev => 
+      prev.map(tool =>
         tool.id === toolId
           ? { ...tool, rotation: (tool.rotation + degrees) % 360 }
           : tool
-      );
-      saveToHistory(newTools);
-      return newTools;
-    });
+      )
+    );
   }
 };
 
-// Flip functionality
+// Flip functionality - no longer saves to global history
 export const flipToolRelativeToRotation = (
   toolId: string,
   droppedTools: DroppedTool[],
@@ -85,8 +114,8 @@ export const flipToolRelativeToRotation = (
   direction: 'horizontal' | 'vertical'
 ): void => {
   if (activeTool === 'cursor' && selectedTool === toolId) {
-    updateDroppedTools(prev => {
-      const newTools = prev.map(tool => {
+    updateDroppedTools(prev => 
+      prev.map(tool => {
         if (tool.id === toolId) {
           const normalizedRotation = ((tool.rotation % 360) + 360) % 360;
           
@@ -122,14 +151,12 @@ export const flipToolRelativeToRotation = (
           };
         }
         return tool;
-      });
-      saveToHistory(newTools);
-      return newTools;
-    });
+      })
+    );
   }
 };
 
-// Group functionality
+// Group functionality - no longer saves to global history
 export const groupSelectedTools = (
   droppedTools: DroppedTool[],
   selectedTools: string[],
@@ -154,15 +181,13 @@ export const groupSelectedTools = (
     rotation: 0
   };
 
-  updateDroppedTools(prev => {
-    const newTools = prev.map(tool =>
+  updateDroppedTools(prev =>
+    prev.map(tool =>
       selectedTools.includes(tool.id)
         ? { ...tool, groupId }
         : tool
-    );
-    saveToHistory(newTools);
-    return newTools;
-  });
+    )
+  );
 
   if (setGroups) {
     setGroups(prev => [...prev, newGroup]);
@@ -183,15 +208,13 @@ export const ungroupSelectedTools = (
 
   if (groupIds.size === 0) return;
 
-  updateDroppedTools(prev => {
-    const newTools = prev.map(tool =>
+  updateDroppedTools(prev =>
+    prev.map(tool =>
       groupIds.has(tool.groupId || '')
         ? { ...tool, groupId: undefined }
         : tool
-    );
-    saveToHistory(newTools);
-    return newTools;
-  });
+    )
+  );
 
   if (setGroups) {
     setGroups(prev => prev.filter(group => !groupIds.has(group.id)));
@@ -215,7 +238,7 @@ export const copySelectedTools = (
   };
 };
 
-// Paste functionality
+// Paste functionality - no longer saves to global history
 export const pasteTools = (
   droppedTools: DroppedTool[],
   updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
@@ -248,7 +271,6 @@ export const pasteTools = (
       newTools.push(newTool);
     });
 
-    saveToHistory(newTools);
     return newTools;
   });
 
@@ -288,7 +310,7 @@ export const pasteTools = (
   return newToolIds;
 };
 
-// Delete functionality
+// Delete functionality - no longer saves to global history
 export const deleteSelectedTools = (
   droppedTools: DroppedTool[],
   selectedTools: string[],
@@ -303,18 +325,14 @@ export const deleteSelectedTools = (
       .map(tool => tool.groupId!)
   );
 
-  updateDroppedTools(prev => {
-    const newTools = prev.filter(tool => !selectedTools.includes(tool.id));
-    saveToHistory(newTools);
-    return newTools;
-  });
+  updateDroppedTools(prev => prev.filter(tool => !selectedTools.includes(tool.id)));
 
   if (setGroups && groupIds.size > 0) {
     setGroups(prev => prev.filter(group => !groupIds.has(group.id)));
   }
 };
 
-// Alignment functionality
+// Alignment functionality - no longer saves to global history
 export const alignTools = (
   droppedTools: DroppedTool[],
   selectedTools: string[],
@@ -351,8 +369,8 @@ export const alignTools = (
       return;
   }
 
-  updateDroppedTools(prev => {
-    const newTools = prev.map(tool => {
+  updateDroppedTools(prev =>
+    prev.map(tool => {
       if (selectedTools.includes(tool.id)) {
         switch (alignment) {
           case 'top':
@@ -368,13 +386,11 @@ export const alignTools = (
         }
       }
       return tool;
-    });
-    saveToHistory(newTools);
-    return newTools;
-  });
+    })
+  );
 };
 
-// Auto layout functionality
+// Auto layout functionality - no longer saves to global history
 export const autoLayout = (
   droppedTools: DroppedTool[],
   selectedTools: string[],
@@ -412,12 +428,11 @@ export const autoLayout = (
       }
     });
 
-    saveToHistory(newTools);
     return newTools;
   });
 };
 
-// Shape creation functionality
+// Shape creation functionality - no longer saves to global history
 export const createShape = (
   droppedTools: DroppedTool[],
   updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
@@ -443,14 +458,10 @@ export const createShape = (
     smooth: 100
   };
 
-  updateDroppedTools(prev => {
-    const newTools = [...prev, newShape];
-    saveToHistory(newTools);
-    return newTools;
-  });
+  updateDroppedTools(prev => [...prev, newShape]);
 };
 
-// Update tool appearance
+// Update tool appearance - no longer saves to global history
 export const updateToolAppearance = (
   toolId: string,
   droppedTools: DroppedTool[],
@@ -458,13 +469,11 @@ export const updateToolAppearance = (
   property: 'opacity' | 'smooth',
   value: number
 ): void => {
-  updateDroppedTools(prev => {
-    const newTools = prev.map(tool =>
+  updateDroppedTools(prev =>
+    prev.map(tool =>
       tool.id === toolId
         ? { ...tool, [property]: Math.max(0, Math.min(100, value)) }
         : tool
-    );
-    saveToHistory(newTools);
-    return newTools;
-  });
+    )
+  );
 };
