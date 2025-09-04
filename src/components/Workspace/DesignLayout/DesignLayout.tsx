@@ -18,10 +18,8 @@ function DesignLayout() {
     canRedo,
   } = useUndoRedo([]);
 
-  // Add this effect to sync the undo/redo state with droppedTools
-
-
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
+  const [selectedTools, setSelectedTools] = useState<string[]>([]);
 
   // Global default values for new tools
   const [defaultLength, setDefaultLength] = useState<number>(24);
@@ -150,45 +148,86 @@ function DesignLayout() {
     const constrainedWidth = Math.min(newWidth, canvasConstraints.maxWidth);
     const finalWidth = Math.max(0.1, constrainedWidth);
 
-    if (selectedTool) {
+    if (selectedTool && selectedTools.length === 1) {
+      // Update single selected tool
       updateDroppedTools(prev => prev.map(tool =>
         tool.id === selectedTool
           ? { ...tool, width: finalWidth }
           : tool
       ));
+    } else if (selectedTools.length > 1) {
+      // Update all selected tools
+      updateDroppedTools(prev => prev.map(tool =>
+        selectedTools.includes(tool.id)
+          ? { ...tool, width: finalWidth }
+          : tool
+      ));
     } else {
+      // Update default width
       setDefaultWidth(finalWidth);
     }
-  }, [selectedTool, canvasConstraints.maxWidth, updateDroppedTools]);
+  }, [selectedTool, selectedTools, canvasConstraints.maxWidth, updateDroppedTools]);
 
   const updateLength = useCallback((newLength: number) => {
     const constrainedLength = Math.min(newLength, canvasConstraints.maxHeight);
     const finalLength = Math.max(0.1, constrainedLength);
 
-    if (selectedTool) {
+    if (selectedTool && selectedTools.length === 1) {
+      // Update single selected tool
       updateDroppedTools(prev => prev.map(tool =>
         tool.id === selectedTool
           ? { ...tool, length: finalLength }
           : tool
       ));
+    } else if (selectedTools.length > 1) {
+      // Update all selected tools
+      updateDroppedTools(prev => prev.map(tool =>
+        selectedTools.includes(tool.id)
+          ? { ...tool, length: finalLength }
+          : tool
+      ));
     } else {
+      // Update default length
       setDefaultLength(finalLength);
     }
-  }, [selectedTool, canvasConstraints.maxHeight, updateDroppedTools]);
+  }, [selectedTool, selectedTools, canvasConstraints.maxHeight, updateDroppedTools]);
 
   const updateThickness = useCallback((newThickness: number) => {
     const finalThickness = Math.max(0.1, newThickness);
 
-    if (selectedTool) {
+    if (selectedTool && selectedTools.length === 1) {
+      // Update single selected tool
       updateDroppedTools(prev => prev.map(tool =>
         tool.id === selectedTool
           ? { ...tool, thickness: finalThickness }
           : tool
       ));
+    } else if (selectedTools.length > 1) {
+      // Update all selected tools
+      updateDroppedTools(prev => prev.map(tool =>
+        selectedTools.includes(tool.id)
+          ? { ...tool, thickness: finalThickness }
+          : tool
+      ));
     } else {
+      // Update default thickness
       setDefaultThickness(finalThickness);
     }
-  }, [selectedTool, updateDroppedTools]);
+  }, [selectedTool, selectedTools, updateDroppedTools]);
+
+  // Clear selection when selectedTool is cleared
+  useEffect(() => {
+    if (!selectedTool && selectedTools.length > 0) {
+      setSelectedTools([]);
+    }
+  }, [selectedTool, selectedTools.length]);
+
+  // Keep selectedTool in sync with selectedTools
+  useEffect(() => {
+    if (selectedTool && !selectedTools.includes(selectedTool)) {
+      setSelectedTool(selectedTools[0] || null);
+    }
+  }, [selectedTool, selectedTools]);
 
   const currentDimensions = getSelectedToolDimensions();
 
@@ -196,6 +235,9 @@ function DesignLayout() {
     const undoneState = undo();
     if (undoneState) {
       setDroppedTools(undoneState);
+      // Clear selections since the state has changed
+      setSelectedTools([]);
+      setSelectedTool(null);
     }
   }, [undo]);
 
@@ -203,6 +245,9 @@ function DesignLayout() {
     const redoneState = redo();
     if (redoneState) {
       setDroppedTools(redoneState);
+      // Clear selections since the state has changed
+      setSelectedTools([]);
+      setSelectedTool(null);
     }
   }, [redo]);
 
@@ -222,15 +267,17 @@ function DesignLayout() {
         maxHeight={canvasConstraints.maxHeight}
         activeTool={activeTool}
         setActiveTool={setActiveTool}
-        selectedToolId={selectedTool} // Add this to show which tool is being edited
+        selectedToolId={selectedTool}
       />
       <OptionsBar />
       <div className="flex flex-1 overflow-hidden">
         <Canvas
           droppedTools={droppedTools}
-          setDroppedTools={updateDroppedTools} // Changed from setDroppedTools to updateDroppedTools
+          setDroppedTools={updateDroppedTools}
           selectedTool={selectedTool}
           setSelectedTool={setSelectedTool}
+          selectedTools={selectedTools}
+          setSelectedTools={setSelectedTools}
           defaultWidth={defaultWidth}
           defaultLength={defaultLength}
           defaultThickness={defaultThickness}
@@ -241,8 +288,9 @@ function DesignLayout() {
         <Sidebar
           droppedTools={droppedTools}
           selectedTool={selectedTool}
+          selectedTools={selectedTools}
           activeTool={activeTool}
-          setDroppedTools={updateDroppedTools} // Changed from setDroppedTools to updateDroppedTools
+          setDroppedTools={updateDroppedTools}
           onUndo={handleUndo}
           onRedo={handleRedo}
           canUndo={canUndo}
