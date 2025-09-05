@@ -2,7 +2,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import Header from "./Header";
 import ControlBar from "./ControlBar";
-import OptionsBar from "./OptionsBar";
 import Canvas from "./Canvas";
 import Sidebar from "./Sidebar";
 import { DroppedTool, Tool } from "./types";
@@ -269,7 +268,6 @@ function DesignLayout() {
         setActiveTool={setActiveTool}
         selectedToolId={selectedTool}
       />
-      <OptionsBar />
       <div className="flex flex-1 overflow-hidden">
         <Canvas
           droppedTools={droppedTools}

@@ -1,12 +1,12 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
-import Button from '@/components/ui/Button';
 import Image from 'next/image';
 import Link from 'next/link';
 
 const CreateNewLayout = () => {
-  const [layoutName, setLayoutName] = useState('Layout_3Tools');
+  const [layoutName, setLayoutName] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState<string>('');
   const [containerType, setContainerType] = useState('Drawer');
   const [width, setWidth] = useState('10');
@@ -14,11 +14,77 @@ const CreateNewLayout = () => {
   const [units, setUnits] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
   const brands = [
     { name: 'BOSCH', logo: '/images/icons/workspace/Bosch.svg', bgColor: 'bg-gray-100' },
     { name: 'Milwaukee', logo: '/images/icons/workspace/Milwakee.svg', bgColor: 'bg-red-600' },
     { name: 'DEWALT', logo: '/images/icons/workspace/Dewalt.svg', bgColor: 'bg-yellow-400' }
   ];
+
+  // Load from sessionStorage
+  useEffect(() => {
+    const savedData = sessionStorage.getItem('layoutForm');
+    if (savedData) {
+      const parsed = JSON.parse(savedData);
+      setLayoutName(parsed.layoutName || '');
+      setSelectedBrand(parsed.selectedBrand || '');
+      setContainerType(parsed.containerType || 'Drawer');
+      setWidth(parsed.width || '10');
+      setLength(parsed.length || '24');
+      setUnits(parsed.units || '');
+    }
+  }, []);
+
+  // Save to sessionStorage whenever state changes
+  useEffect(() => {
+    const data = { layoutName, selectedBrand, containerType, width, length, units };
+    sessionStorage.setItem('layoutForm', JSON.stringify(data));
+  }, [layoutName, selectedBrand, containerType, width, length, units]);
+
+  // Validation
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (!layoutName) {
+      newErrors.layoutName = 'Layout name is required.';
+    } else if (/\s/.test(layoutName)) {
+      newErrors.layoutName = 'Layout name must not contain spaces.';
+    }
+
+    if (!selectedBrand) {
+      newErrors.selectedBrand = 'Brand selection is required.';
+    }
+
+    if (!containerType) {
+      newErrors.containerType = 'Container type is required.';
+    }
+
+    if (!units) {
+      newErrors.units = 'Units selection is required.';
+    }
+
+    if (!width) {
+      newErrors.width = 'Width is required.';
+    } else if (isNaN(Number(width))) {
+      newErrors.width = 'Width must be a number.';
+    }
+
+    if (!length) {
+      newErrors.length = 'Length is required.';
+    } else if (isNaN(Number(length))) {
+      newErrors.length = 'Length must be a number.';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleContinue = (e: React.MouseEvent) => {
+    if (!validateForm()) {
+      e.preventDefault(); // stop navigation
+    }
+  };
 
   return (
     <div className="border border-gray-200 rounded-lg m-4">
@@ -46,9 +112,15 @@ const CreateNewLayout = () => {
             <input
               type="text"
               value={layoutName}
+              placeholder="Layout_3Tools"
+              readOnly={!isEditingName}
+              onClick={() => setIsEditingName(true)}
               onChange={(e) => setLayoutName(e.target.value)}
-              className="px-6 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+              className={`px-6 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 
+                ${errors.layoutName ? 'border-red-500' : 'border-gray-300'} 
+                ${!isEditingName ? 'cursor-pointer bg-gray-50' : ''}`}
             />
+            {errors.layoutName && <p className="text-sm text-red-600 mt-1">{errors.layoutName}</p>}
           </div>
 
           {/* Brand */}
@@ -57,17 +129,15 @@ const CreateNewLayout = () => {
               Brand
             </label>
             <p className="text-sm text-gray-600 mb-3">
-              Choose a brand to use standard container dimensions, or select &apos;Custom&apos; to enter your own.
+              Choose a brand to use standard container dimensions.
             </p>
 
-            {/* Brand Options */}
-            <div className="flex space-x-2 mb-3">  
+            <div className="flex space-x-2 mb-3">
               {brands.map((brand) => (
                 <div
                   key={brand.name}
-                  className={`w-16 h-12 rounded border-2 cursor-pointer flex items-center justify-center ${
-                    selectedBrand === brand.name ? 'border-blue-500' : 'border-gray-300'
-                  } ${brand.bgColor}`}
+                  className={`w-16 h-12 rounded border-2 cursor-pointer flex items-center justify-center ${selectedBrand === brand.name ? 'border-blue-500' : 'border-gray-300'
+                    } ${brand.bgColor}`}
                   onClick={() => setSelectedBrand(brand.name)}
                 >
                   <img
@@ -78,114 +148,110 @@ const CreateNewLayout = () => {
                 </div>
               ))}
             </div>
+            {errors.selectedBrand && <p className="text-sm text-red-600">{errors.selectedBrand}</p>}
 
-            {/* Custom Option */}
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="custom"
-                checked={selectedBrand === "Custom"}
-                onChange={(e) => setSelectedBrand(e.target.checked ? "Custom" : "")}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label
-                htmlFor="custom"
-                className="ml-2 text-sm font-medium text-gray-900"
-              >
-                Custom
-              </label>
-            </div>
+            {/* Container Details */}
+            <div className="mt-4">
+              <h3 className="text-sm font-medium text-gray-900 mb-4">
+                Container Details
+              </h3>
 
-            {/* Container Details (Only visible if Custom is checked) */}
-            {selectedBrand === "Custom" && (
-              <div className="mt-4">
-                <h3 className="text-sm font-medium text-gray-900 mb-4">
-                  Container Details
-                </h3>
-
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  {/* Container Type */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Container Type
-                    </label>
-                    <div className="relative">
-                      <button
-                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className="w-full px-3 py-2 text-left border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between text-gray-900"
-                      >
-                        {containerType}
-                        <ChevronDown className="w-4 h-4 text-gray-400" />
-                      </button>
-                      {isDropdownOpen && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
-                          <div className="py-1">
-                            {["Drawer", "Box", "Case"].map((type) => (
-                              <button
-                                key={type}
-                                onClick={() => {
-                                  setContainerType(type);
-                                  setIsDropdownOpen(false);
-                                }}
-                                className="w-full px-3 py-2 text-left hover:bg-gray-100 text-gray-900"
-                              >
-                                {type}
-                              </button>
-                            ))}
-                          </div>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                {/* Container Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Container Type
+                  </label>
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className={`w-full px-3 py-2 text-left border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between text-gray-900
+                        ${errors.containerType ? 'border-red-500' : 'border-gray-300'}`}
+                    >
+                      {containerType}
+                      <ChevronDown className="w-4 h-4 text-gray-400" />
+                    </button>
+                    {isDropdownOpen && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                        <div className="py-1">
+                          {["Drawer", "Box", "Case"].map((type) => (
+                            <button
+                              key={type}
+                              onClick={() => {
+                                setContainerType(type);
+                                setIsDropdownOpen(false);
+                              }}
+                              className="w-full px-3 py-2 text-left hover:bg-gray-100 text-gray-900"
+                            >
+                              {type}
+                            </button>
+                          ))}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
-
-                  {/* Units */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Units
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Select"
-                      value={units}
-                      onChange={(e) => setUnits(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400"
-                    />
-                  </div>
+                  {errors.containerType && <p className="text-sm text-red-600">{errors.containerType}</p>}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Width */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Width
-                    </label>
-                    <input
-                      type="text"
-                      value={width}
-                      onChange={(e) => setWidth(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                    />
-                  </div>
-
-                  {/* Length */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Length
-                    </label>
-                    <input
-                      type="text"
-                      value={length}
-                      onChange={(e) => setLength(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                    />
-                  </div>
+                {/* Units */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Units
+                  </label>
+                  <select
+                    value={units}
+                    onChange={(e) => setUnits(e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white
+                      ${errors.units ? 'border-red-500' : 'border-gray-300'}`}
+                  >
+                    <option value="">Select</option>
+                    <option value="mm">mm</option>
+                    <option value="inches">inches</option>
+                  </select>
+                  {errors.units && <p className="text-sm text-red-600">{errors.units}</p>}
                 </div>
               </div>
-            )}
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Width */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Width
+                  </label>
+                  <input
+                    type="text"
+                    value={width}
+                    onChange={(e) => setWidth(e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900
+                      ${errors.width ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  {errors.width && <p className="text-sm text-red-600">{errors.width}</p>}
+                </div>
+
+                {/* Length */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Length
+                  </label>
+                  <input
+                    type="text"
+                    value={length}
+                    onChange={(e) => setLength(e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900
+                      ${errors.length ? 'border-red-500' : 'border-gray-300'}`}
+                  />
+                  {errors.length && <p className="text-sm text-red-600">{errors.length}</p>}
+                </div>
+              </div>
+            </div>
 
             {/* Bottom Button */}
             <div className="mt-6">
-              <Link href="/workspace/create-new-layout/design-layout" className="ml-4 mb-4 text-white py-3 px-4 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-primary">
+              <Link
+                href="/workspace/create-new-layout/design-layout"
+                onClick={handleContinue}
+                className="ml-4 mb-4 text-white py-3 px-4 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-primary"
+              >
                 Continue To Canvas
               </Link>
             </div>
