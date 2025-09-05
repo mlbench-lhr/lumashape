@@ -278,7 +278,7 @@ const UploadNewTool = () => {
             />
           </div>
           <Text as="h3" className="grow">
-            Enter Tool Info
+            Upload New Tool
           </Text>
         </div>
         <div className="mt-[15px]">
