@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import Image from 'next/image';
 
 interface ControlBarProps {
@@ -15,7 +15,7 @@ interface ControlBarProps {
   maxHeight?: number;
   activeTool: 'cursor' | 'hand' | 'box';
   setActiveTool: (tool: 'cursor' | 'hand' | 'box') => void;
-  selectedToolId?: string | null; // Add this to show which tool is being edited
+  selectedToolId?: string | null;
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({
@@ -34,7 +34,25 @@ const ControlBar: React.FC<ControlBarProps> = ({
   selectedToolId
 }) => {
 
-  // Helper function to handle constrained input changes
+  // ✅ Load only once on first mount
+  useEffect(() => {
+    const savedLength = sessionStorage.getItem('length');
+    const savedWidth = sessionStorage.getItem('width');
+    const savedUnits = sessionStorage.getItem('units');
+
+    if (savedLength) setLength(Number(savedLength));
+    if (savedWidth) setWidth(Number(savedWidth));
+    if (savedUnits) setUnit(savedUnits as 'mm' | 'inches');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // <-- empty dependency means run only once
+
+  // ✅ Save to sessionStorage whenever values change
+  useEffect(() => {
+    sessionStorage.setItem('length', String(length));
+    sessionStorage.setItem('width', String(width));
+    sessionStorage.setItem('units', unit);
+  }, [length, width, unit]);
+
   const handleLengthChange = (value: number) => {
     setLength(value);
   };
@@ -47,8 +65,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
   return (
     <div className="bg-primary text-white px-4 py-3 flex items-center justify-between">
       <div className="flex items-center space-x-6">
-        {/* Editing Indicator */}
-
         {/* Unit Selector */}
         <div className="flex items-center space-x-2">
           <label className="text-sm font-medium">Unit</label>
@@ -72,13 +88,10 @@ const ControlBar: React.FC<ControlBarProps> = ({
             min="0.1"
             step="0.1"
             className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400"
-            disabled={!selectedToolId}
           />
           <span className="text-sm">{unit}</span>
           {maxHeight !== Infinity && (
-            <span className="text-xs text-gray-400">
-              (max: {maxHeight.toFixed(1)})
-            </span>
+            <span className="text-xs text-gray-400">(max: {maxHeight.toFixed(1)})</span>
           )}
         </div>
 
@@ -93,52 +106,36 @@ const ControlBar: React.FC<ControlBarProps> = ({
             max={maxWidth !== Infinity ? maxWidth : undefined}
             step="0.1"
             className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400"
-            disabled={!selectedToolId}
           />
           <span className="text-sm">{unit}</span>
           {maxWidth !== Infinity && (
-            <span className="text-xs text-gray-400">
-              (max: {maxWidth.toFixed(1)})
-            </span>
+            <span className="text-xs text-gray-400">(max: {maxWidth.toFixed(1)})</span>
           )}
         </div>
 
         {/* Tools */}
         <div className="flex items-center space-x-1">
-          <button 
+          <button
             className={`p-1 rounded ${activeTool === 'cursor' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
             onClick={() => setActiveTool('cursor')}
           >
-            <Image
-              src={"/images/workspace/cursor.svg"}
-              alt="Cursor"
-              width={20}
-              height={20}
-              className="w-full h-full object-cover"
-            />
+            <Image src={"/images/workspace/cursor.svg"} alt="Cursor" width={20} height={20} />
           </button>
-          <button 
+          <button
             className={`p-1 rounded ${activeTool === 'hand' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
             onClick={() => setActiveTool('hand')}
           >
-            <Image
-              src={"/images/workspace/hand.svg"}
-              alt="Hand"
-              width={20}
-              height={20}
-              className="w-full h-full object-cover"
-            />
+            <Image src={"/images/workspace/hand.svg"} alt="Hand" width={20} height={20} />
           </button>
         </div>
 
-        {/* Thickness */}
+        {/* Thickness (always selectable) */}
         <div className="flex items-center space-x-2">
           <label className="text-sm font-medium">Thickness</label>
           <select
             value={thickness}
             onChange={(e) => setThickness(Number(e.target.value))}
             className="bg-white text-gray-900 px-2 py-1 w-32 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400"
-            disabled={!selectedToolId}
           >
             {unit === 'inches' ? (
               <>
