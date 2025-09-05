@@ -190,7 +190,7 @@ const MobileToolsInventory = () => {
             <h1 className="text-2xl font-bold text-gray-900">Tool Inventory</h1>
             <div className="flex sm:flex hidden">
               <Button
-                onClick={() => router.push("/tools-inventory/upload-new-tool")}
+                onClick={() => router.push("/tools-inventory/upload-new-tool/upload-new-tool-page1")}
                 variant="primary"
                 size="lg"
               >
