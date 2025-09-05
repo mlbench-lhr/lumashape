@@ -21,6 +21,17 @@ const PAPERS: Paper[] = [
   { id: 2, type: "US Letter" },
 ];
 
+// ✅ Extend window type properly
+declare global {
+  interface Window {
+    toolUploadData?: {
+      paperType: string;
+      imageUrl: string;
+      file: File;
+    };
+  }
+}
+
 const UploadNewToolPage1 = () => {
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
@@ -123,17 +134,9 @@ const UploadNewToolPage1 = () => {
       return;
     }
 
-    // Store data in sessionStorage to pass to next page
-    const pageData = {
-      paperType: selectedPaper.type,
-      imageUrl: backgroundUrl,
-      file: file // Note: We'll need to handle this differently since File objects can't be serialized
-    };
-
-    // Since we can't store File objects in sessionStorage, we'll use a different approach
-    // We'll store the data in a temporary object that the next page can access
-    if (typeof window !== 'undefined') {
-      (window as any).toolUploadData = {
+    // ✅ No any — now strongly typed
+    if (typeof window !== "undefined") {
+      window.toolUploadData = {
         paperType: selectedPaper.type,
         imageUrl: backgroundUrl,
         file: file
@@ -141,7 +144,7 @@ const UploadNewToolPage1 = () => {
     }
 
     // Navigate to page 2
-    router.push('/tools-inventory/upload-new-tool/upload-new-tool-page2');
+    router.push("/tools-inventory/upload-new-tool/upload-new-tool-page2");
   };
 
   return (
