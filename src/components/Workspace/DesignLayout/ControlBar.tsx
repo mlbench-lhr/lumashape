@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 interface ControlBarProps {
@@ -27,39 +27,52 @@ const ControlBar: React.FC<ControlBarProps> = ({
   setThickness,
   unit,
   setUnit,
-  maxWidth = Infinity,
-  maxHeight = Infinity,
   activeTool,
   setActiveTool,
-  selectedToolId
 }) => {
+  const [hasLoadedFromSession, setHasLoadedFromSession] = useState(false);
 
-  // ✅ Load only once on first mount
+  // Load initial values from sessionStorage only once on first load
+  // Load initial values from sessionStorage only once on first load
   useEffect(() => {
-    const savedLength = sessionStorage.getItem('length');
-    const savedWidth = sessionStorage.getItem('width');
-    const savedUnits = sessionStorage.getItem('units');
+    if (!hasLoadedFromSession) {
+      const savedData = sessionStorage.getItem('layoutForm');
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
 
-    if (savedLength) setLength(Number(savedLength));
-    if (savedWidth) setWidth(Number(savedWidth));
-    if (savedUnits) setUnit(savedUnits as 'mm' | 'inches');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // <-- empty dependency means run only once
+          // ✅ load exactly what was saved
+          if (parsed.units && (parsed.units === 'mm' || parsed.units === 'inches')) {
+            setUnit(parsed.units);
+          }
 
-  // ✅ Save to sessionStorage whenever values change
-  useEffect(() => {
-    sessionStorage.setItem('length', String(length));
-    sessionStorage.setItem('width', String(width));
-    sessionStorage.setItem('units', unit);
-  }, [length, width, unit]);
+          if (parsed.width !== undefined && !isNaN(Number(parsed.width))) {
+            setWidth(Number(parsed.width));
+          }
 
+          if (parsed.length !== undefined && !isNaN(Number(parsed.length))) {
+            setLength(Number(parsed.length));
+          }
+
+          if (parsed.thickness !== undefined && !isNaN(Number(parsed.thickness))) {
+            setThickness(Number(parsed.thickness));
+          }
+        } catch (error) {
+          console.error('Error parsing sessionStorage data:', error);
+        }
+      }
+      setHasLoadedFromSession(true);
+    }
+  }, [hasLoadedFromSession, setWidth, setLength, setThickness, setUnit]);
+
+
+  // ✅ No constraints anymore
   const handleLengthChange = (value: number) => {
     setLength(value);
   };
 
   const handleWidthChange = (value: number) => {
-    const constrainedValue = Math.max(0.1, Math.min(value, maxWidth));
-    setWidth(constrainedValue);
+    setWidth(value);
   };
 
   return (
@@ -85,14 +98,9 @@ const ControlBar: React.FC<ControlBarProps> = ({
             type="number"
             value={length}
             onChange={(e) => handleLengthChange(Number(e.target.value))}
-            min="0.1"
-            step="0.1"
             className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400"
           />
-          <span className="text-sm">{unit}</span>
-          {maxHeight !== Infinity && (
-            <span className="text-xs text-gray-400">(max: {maxHeight.toFixed(1)})</span>
-          )}
+          <span className="text-sm inline-block w-12">{unit}</span>
         </div>
 
         {/* Width */}
@@ -102,16 +110,11 @@ const ControlBar: React.FC<ControlBarProps> = ({
             type="number"
             value={width}
             onChange={(e) => handleWidthChange(Number(e.target.value))}
-            min="0.1"
-            max={maxWidth !== Infinity ? maxWidth : undefined}
-            step="0.1"
             className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400"
           />
-          <span className="text-sm">{unit}</span>
-          {maxWidth !== Infinity && (
-            <span className="text-xs text-gray-400">(max: {maxWidth.toFixed(1)})</span>
-          )}
+          <span className="text-sm inline-block w-12">{unit}</span>
         </div>
+
 
         {/* Tools */}
         <div className="flex items-center space-x-1">
@@ -119,17 +122,29 @@ const ControlBar: React.FC<ControlBarProps> = ({
             className={`p-1 rounded ${activeTool === 'cursor' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
             onClick={() => setActiveTool('cursor')}
           >
-            <Image src={"/images/workspace/cursor.svg"} alt="Cursor" width={20} height={20} />
+            <Image
+              src={"/images/workspace/cursor.svg"}
+              alt="Cursor"
+              width={20}
+              height={20}
+              className="w-full h-full object-cover"
+            />
           </button>
           <button
             className={`p-1 rounded ${activeTool === 'hand' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
             onClick={() => setActiveTool('hand')}
           >
-            <Image src={"/images/workspace/hand.svg"} alt="Hand" width={20} height={20} />
+            <Image
+              src={"/images/workspace/hand.svg"}
+              alt="Hand"
+              width={20}
+              height={20}
+              className="w-full h-full object-cover"
+            />
           </button>
         </div>
 
-        {/* Thickness (always selectable) */}
+        {/* Thickness */}
         <div className="flex items-center space-x-2">
           <label className="text-sm font-medium">Thickness</label>
           <select

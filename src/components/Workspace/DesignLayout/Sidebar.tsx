@@ -268,16 +268,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             action: handleAutoLayout,
             disabled: effectiveSelectedTools.length < 2
         },
-        {
-            icon: "/images/workspace/finger.svg",
-            label: 'finger grip',
-            disabled: true // Not implemented yet
-        },
-        {
-            icon: "/images/workspace/arrow.svg",
-            label: 'arrow',
-            disabled: true // Not implemented yet
-        },
     ];
 
     const EditLayoutView = () => (
