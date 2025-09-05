@@ -22,38 +22,40 @@ import {
 } from './toolUtils';
 
 interface SidebarProps {
-    droppedTools?: DroppedTool[]; // optional
+    droppedTools?: DroppedTool[];
     selectedTool?: string | null;
-    selectedTools?: string[]; // optional
+    selectedTools?: string[];
     activeTool?: string;
     groups?: ToolGroup[];
     setDroppedTools?: (updater: React.SetStateAction<DroppedTool[]>) => void;
     setGroups?: (updater: React.SetStateAction<ToolGroup[]>) => void;
     setSelectedTools?: (tools: string[]) => void;
     onHistoryChange?: () => void;
-    // New props for undo/redo functionality
     canUndo?: boolean;
     canRedo?: boolean;
     onUndo?: () => void;
     onRedo?: () => void;
 }
 
-
 const TOOLS: Tool[] = [
     { id: '1', name: 'Pliers', icon: '🔧', brand: 'MILWAUKEE', image: '/images/workspace/pliers.png' },
+    { id: '2', name: 'Hammer', icon: '🔨', brand: 'DEWALT', image: '/images/workspace/pliers.png' },
+    { id: '3', name: 'Screwdriver', icon: '🪛', brand: 'MILWAUKEE', image: '/images/workspace/pliers.png' },
+    { id: '4', name: 'Wrench', icon: '🔧', brand: 'CRAFTSMAN', image: '/images/workspace/pliers.png' },
+    { id: '5', name: 'Drill', icon: '🪚', brand: 'DEWALT', image: '/images/workspace/pliers.png' },
+    { id: '6', name: 'Saw', icon: '🪚', brand: 'MILWAUKEE', image: '/images/workspace/pliers.png' },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({
-    droppedTools = [],       // default empty array
-    selectedTool = null,     // default null
-    selectedTools = [],      // default empty array
-    activeTool = 'cursor',   // default cursor
-    groups = [],             // default empty array
+    droppedTools = [],
+    selectedTool = null,
+    selectedTools = [],
+    activeTool = 'cursor',
+    groups = [],
     setDroppedTools = () => { },
     setGroups = () => { },
     setSelectedTools = () => { },
     onHistoryChange,
-    // New props with defaults
     canUndo = false,
     canRedo = false,
     onUndo = () => { },
@@ -73,16 +75,16 @@ const Sidebar: React.FC<SidebarProps> = ({
     // Determine effective selected tools - use selectedTool if selectedTools is empty
     const effectiveSelectedTools = selectedTools.length > 0 ? selectedTools : (selectedTool ? [selectedTool] : []);
 
-    // History handlers - now use the passed-in functions
+    // History handlers
     const handleUndo = useCallback(() => {
         onUndo();
-        setSelectedTools([]); // Clear selection after undo
+        setSelectedTools([]);
         onHistoryChange?.();
     }, [onUndo, setSelectedTools, onHistoryChange]);
 
     const handleRedo = useCallback(() => {
         onRedo();
-        setSelectedTools([]); // Clear selection after redo
+        setSelectedTools([]);
         onHistoryChange?.();
     }, [onRedo, setSelectedTools, onHistoryChange]);
 
@@ -140,8 +142,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     }, [droppedTools, effectiveSelectedTools, setDroppedTools, onHistoryChange]);
 
     const handleCreateShape = useCallback((shapeType: 'circle' | 'square') => {
-        // Create shape at center of workspace (you might want to get this from props)
-        const position = { x: 400, y: 300 };
+        const position = { x: 200, y: 150 };
         createShape(droppedTools, setDroppedTools, shapeType, position);
         onHistoryChange?.();
     }, [droppedTools, setDroppedTools, onHistoryChange]);
@@ -231,13 +232,13 @@ const Sidebar: React.FC<SidebarProps> = ({
             icon: "/images/workspace/undo.svg",
             label: 'undo',
             action: handleUndo,
-            disabled: !canUndo // Now uses the passed-in prop
+            disabled: !canUndo
         },
         {
             icon: "/images/workspace/redo.svg",
             label: 'redo',
             action: handleRedo,
-            disabled: !canRedo // Now uses the passed-in prop
+            disabled: !canRedo
         },
         {
             icon: "/images/workspace/copy.svg",
@@ -249,12 +250,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             icon: "/images/workspace/paste.svg",
             label: 'paste',
             action: handlePaste,
-            disabled: false // Paste is always available if clipboard has data
+            disabled: false
         },
         {
             icon: "/images/workspace/zoom.svg",
             label: 'Zoom',
-            disabled: true // Not implemented yet
+            disabled: true
         },
         {
             icon: "/images/workspace/delete.svg",
@@ -280,6 +281,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                         : `${effectiveSelectedTools.length} tool${effectiveSelectedTools.length > 1 ? 's' : ''} selected`
                     }
                 </p>
+                {selectedToolObject && (
+                    <p className="text-xs text-gray-500 mt-1">
+                        Fixed size tools on canvas
+                    </p>
+                )}
             </div>
 
             {/* Edit Section */}
@@ -454,18 +460,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
             </div>
 
-            {/* Dimensions Section (if tool is selected) */}
+            {/* Tool Properties Section (if tool is selected) */}
             {selectedToolObject && (
                 <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Dimensions</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Tool Properties</h3>
                     <div className="space-y-3 text-sm">
                         <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Width:</span>
-                            <span className="text-gray-900">{selectedToolObject.width} {selectedToolObject.unit}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Length:</span>
-                            <span className="text-gray-900">{selectedToolObject.length} {selectedToolObject.unit}</span>
+                            <span className="text-gray-600">Name:</span>
+                            <span className="text-gray-900">{selectedToolObject.name}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-gray-600">Thickness:</span>
@@ -479,9 +481,26 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <span className="text-gray-600">Position:</span>
                             <span className="text-gray-900">({Math.round(selectedToolObject.x)}, {Math.round(selectedToolObject.y)})</span>
                         </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Size:</span>
+                            <span className="text-gray-900">Fixed (80×80px)</span>
+                        </div>
                     </div>
                 </div>
             )}
+
+            {/* Canvas Info */}
+            <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Canvas Info</h3>
+                <div className="bg-blue-50 p-3 rounded-md">
+                    <p className="text-sm text-blue-800">
+                        Canvas dimensions are controlled by the Control Bar above.
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                        Tools maintain fixed visual size regardless of canvas dimensions.
+                    </p>
+                </div>
+            </div>
         </div>
     );
 

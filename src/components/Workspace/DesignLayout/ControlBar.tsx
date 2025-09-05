@@ -3,26 +3,24 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 interface ControlBarProps {
-  width: number;
-  setWidth: (width: number) => void;
-  length: number;
-  setLength: (length: number) => void;
+  canvasWidth: number;
+  setCanvasWidth: (width: number) => void;
+  canvasHeight: number;
+  setCanvasHeight: (height: number) => void;
   thickness: number;
   setThickness: (thickness: number) => void;
   unit: 'mm' | 'inches';
   setUnit: (unit: 'mm' | 'inches') => void;
-  maxWidth?: number;
-  maxHeight?: number;
   activeTool: 'cursor' | 'hand' | 'box';
   setActiveTool: (tool: 'cursor' | 'hand' | 'box') => void;
   selectedToolId?: string | null;
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({
-  width,
-  setWidth,
-  length,
-  setLength,
+  canvasWidth,
+  setCanvasWidth,
+  canvasHeight,
+  setCanvasHeight,
   thickness,
   setThickness,
   unit,
@@ -33,7 +31,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
   const [hasLoadedFromSession, setHasLoadedFromSession] = useState(false);
 
   // Load initial values from sessionStorage only once on first load
-  // Load initial values from sessionStorage only once on first load
   useEffect(() => {
     if (!hasLoadedFromSession) {
       const savedData = sessionStorage.getItem('layoutForm');
@@ -41,17 +38,17 @@ const ControlBar: React.FC<ControlBarProps> = ({
         try {
           const parsed = JSON.parse(savedData);
 
-          // ✅ load exactly what was saved
+          // Load exactly what was saved
           if (parsed.units && (parsed.units === 'mm' || parsed.units === 'inches')) {
             setUnit(parsed.units);
           }
 
-          if (parsed.width !== undefined && !isNaN(Number(parsed.width))) {
-            setWidth(Number(parsed.width));
+          if (parsed.canvasWidth !== undefined && !isNaN(Number(parsed.canvasWidth))) {
+            setCanvasWidth(Number(parsed.canvasWidth));
           }
 
-          if (parsed.length !== undefined && !isNaN(Number(parsed.length))) {
-            setLength(Number(parsed.length));
+          if (parsed.canvasHeight !== undefined && !isNaN(Number(parsed.canvasHeight))) {
+            setCanvasHeight(Number(parsed.canvasHeight));
           }
 
           if (parsed.thickness !== undefined && !isNaN(Number(parsed.thickness))) {
@@ -63,16 +60,31 @@ const ControlBar: React.FC<ControlBarProps> = ({
       }
       setHasLoadedFromSession(true);
     }
-  }, [hasLoadedFromSession, setWidth, setLength, setThickness, setUnit]);
+  }, [hasLoadedFromSession, setCanvasWidth, setCanvasHeight, setThickness, setUnit]);
 
+  // Save to sessionStorage whenever values change
+  useEffect(() => {
+    if (hasLoadedFromSession) {
+      const dataToSave = {
+        units: unit,
+        canvasWidth: canvasWidth,
+        canvasHeight: canvasHeight,
+        thickness: thickness
+      };
+      sessionStorage.setItem('layoutForm', JSON.stringify(dataToSave));
+    }
+  }, [hasLoadedFromSession, unit, canvasWidth, canvasHeight, thickness]);
 
-  // ✅ No constraints anymore
-  const handleLengthChange = (value: number) => {
-    setLength(value);
+  const handleHeightChange = (value: number) => {
+    if (value > 0) {
+      setCanvasHeight(value);
+    }
   };
 
   const handleWidthChange = (value: number) => {
-    setWidth(value);
+    if (value > 0) {
+      setCanvasWidth(value);
+    }
   };
 
   return (
@@ -91,30 +103,29 @@ const ControlBar: React.FC<ControlBarProps> = ({
           </select>
         </div>
 
-        {/* Length */}
+        {/* Canvas Height */}
         <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium">Length:</label>
+          <label className="text-sm font-medium">Canvas Height:</label>
           <input
             type="number"
-            value={length}
-            onChange={(e) => handleLengthChange(Number(e.target.value))}
+            value={canvasHeight}
+            onChange={(e) => handleHeightChange(Number(e.target.value))}
             className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400"
           />
           <span className="text-sm inline-block w-12">{unit}</span>
         </div>
 
-        {/* Width */}
+        {/* Canvas Width */}
         <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium">Width:</label>
+          <label className="text-sm font-medium">Canvas Width:</label>
           <input
             type="number"
-            value={width}
+            value={canvasWidth}
             onChange={(e) => handleWidthChange(Number(e.target.value))}
             className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400"
           />
           <span className="text-sm inline-block w-12">{unit}</span>
         </div>
-
 
         {/* Tools */}
         <div className="flex items-center space-x-1">

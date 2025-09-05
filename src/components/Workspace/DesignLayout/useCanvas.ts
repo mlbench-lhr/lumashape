@@ -9,11 +9,9 @@ interface UseCanvasProps {
   selectedTools: string[];
   setSelectedTools: React.Dispatch<React.SetStateAction<string[]>>;
   onSave?: (tools: DroppedTool[]) => void;
-  defaultWidth: number;
-  defaultLength: number;
-  defaultThickness: number;
+  canvasWidth: number;
+  canvasHeight: number;
   unit: 'mm' | 'inches';
-  onCanvasDimensionsChange?: (dimensions: { width: number; height: number; maxWidth: number; maxHeight: number; unit: 'mm' | 'inches' }) => void;
   activeTool: 'cursor' | 'hand' | 'box';
 }
 
@@ -25,16 +23,14 @@ export const useCanvas = ({
   selectedTools,
   setSelectedTools,
   onSave,
-  defaultWidth,
-  defaultLength,
-  defaultThickness,
+  canvasWidth,
+  canvasHeight,
   unit,
-  onCanvasDimensionsChange,
   activeTool,
 }: UseCanvasProps) => {
   const canvasRef = useRef<HTMLDivElement>(null);
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
-  const [canvasDimensions, setCanvasDimensions] = useState({ width: 0, height: 0 });
   const [selectionBox, setSelectionBox] = useState<{
     startX: number;
     startY: number;
@@ -45,79 +41,52 @@ export const useCanvas = ({
   const [isDraggingSelection, setIsDraggingSelection] = useState(false);
   const [initialPositions, setInitialPositions] = useState<Record<string, { x: number; y: number }>>({});
   
+  // Canvas panning state
+  const [canvasPosition, setCanvasPosition] = useState({ x: 100, y: 100 });
+  const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
+  const [canvasDragStart, setCanvasDragStart] = useState({ x: 0, y: 0 });
+  
   const DPI = 96;
 
   // Unit conversion functions
-  const toPx = useCallback((value: number, toolUnit: 'mm' | 'inches') => {
-    if (toolUnit === "inches") return value * DPI;
+  const toPx = useCallback((value: number, fromUnit: 'mm' | 'inches') => {
+    if (fromUnit === "inches") return value * DPI;
     return (value / 25.4) * DPI;
   }, [DPI]);
 
-  const fromPx = useCallback((pixels: number) => {
-    if (unit === "inches") return pixels / DPI;
-    return (pixels * 25.4) / DPI;
-  }, [unit, DPI]);
-
-  // Calculate maximum allowed dimensions based on specific canvas dimensions
-  const getMaxDimensions = useCallback((canvasWidth: number, canvasHeight: number) => {
-    const maxWidthPx = Math.max(canvasWidth - 40, 50);
-    const maxHeightPx = Math.max(canvasHeight - 40, 50);
-
+  // Convert canvas dimensions to pixels for styling
+  const getCanvasStyle = useCallback(() => {
+    const widthPx = Math.max(100, toPx(canvasWidth, unit));
+    const heightPx = Math.max(100, toPx(canvasHeight, unit));
+    
     return {
-      maxWidth: Math.floor(fromPx(maxWidthPx) * 10) / 10,
-      maxHeight: Math.floor(fromPx(maxHeightPx) * 10) / 10
+      width: `${widthPx}px`,
+      height: `${heightPx}px`,
     };
-  }, [fromPx]);
+  }, [canvasWidth, canvasHeight, unit, toPx]);
 
-  // Update canvas dimensions when canvas size changes
-  useEffect(() => {
-    const updateCanvasDimensions = () => {
-      if (canvasRef.current) {
-        const rect = canvasRef.current.getBoundingClientRect();
-        const newDimensions = { width: rect.width, height: rect.height };
-        setCanvasDimensions(newDimensions);
-      }
+  // Tool-specific dimensions based on tool type
+  const getToolDimensions = useCallback((tool: DroppedTool) => {
+    // Define tool-specific sizes (in pixels)
+    const toolSizes: Record<string, { width: number; height: number }> = {
+      'Pliers': { width: 120, height: 60 },
+      'Hammer': { width: 80, height: 100 },
+      'Screwdriver': { width: 20, height: 140 },
+      'Wrench': { width: 100, height: 30 },
+      'Drill': { width: 90, height: 90 },
+      'Saw': { width: 150, height: 40 },
+      // Default size for unknown tools
+      'default': { width: 80, height: 80 }
     };
 
-    updateCanvasDimensions();
-
-    const resizeObserver = new ResizeObserver(updateCanvasDimensions);
-    if (canvasRef.current) {
-      resizeObserver.observe(canvasRef.current);
-    }
-
-    return () => {
-      resizeObserver.disconnect();
+    const size = toolSizes[tool.name] || toolSizes['default'];
+    return { 
+      toolWidth: size.width, 
+      toolHeight: size.height 
     };
   }, []);
 
-  // Separate useEffect to handle onCanvasDimensionsChange callback
-  useEffect(() => {
-    if (onCanvasDimensionsChange && canvasDimensions.width > 0 && canvasDimensions.height > 0) {
-      const { maxWidth, maxHeight } = getMaxDimensions(canvasDimensions.width, canvasDimensions.height);
-      onCanvasDimensionsChange({
-        ...canvasDimensions,
-        maxWidth,
-        maxHeight,
-        unit
-      });
-    }
-  }, [canvasDimensions.width, canvasDimensions.height, unit, onCanvasDimensionsChange, getMaxDimensions]);
-
-  useEffect(() => {
-    if (onSave) {
-      onSave(droppedTools);
-    }
-  }, [droppedTools, onSave]);
-
-  // Get tool dimensions for rendering
-  const getToolDimensions = useCallback((tool: DroppedTool) => {
-    const toolWidth = Math.min(toPx(tool.width, tool.unit), canvasDimensions.width - 40);
-    const toolHeight = Math.min(toPx(tool.length, tool.unit), canvasDimensions.height - 40);
-    return { toolWidth, toolHeight };
-  }, [toPx, canvasDimensions]);
-
-  // Enhanced thickness calculation - better scaling for specific values
+  // Enhanced thickness calculation for 3D effect
   const getShadowOffset = useCallback((tool: DroppedTool) => {
     const { thickness, unit: toolUnit } = tool;
 
@@ -150,6 +119,46 @@ export const useCanvas = ({
              tool.y > maxY);
   }, [getToolDimensions]);
 
+  useEffect(() => {
+    if (onSave) {
+      onSave(droppedTools);
+    }
+  }, [droppedTools, onSave]);
+
+  // Canvas panning handlers
+  const handleCanvasDragStart = useCallback((e: React.MouseEvent) => {
+    // Only allow canvas panning when clicking on empty container area
+    if (e.target === canvasContainerRef.current && !isDraggingSelection) {
+      setIsDraggingCanvas(true);
+      setCanvasDragStart({ x: e.clientX - canvasPosition.x, y: e.clientY - canvasPosition.y });
+      e.preventDefault();
+    }
+  }, [canvasPosition, isDraggingSelection]);
+
+  const handleCanvasDrag = useCallback((e: React.MouseEvent) => {
+    if (isDraggingCanvas && canvasContainerRef.current) {
+      const containerRect = canvasContainerRef.current.getBoundingClientRect();
+      const canvasStyle = getCanvasStyle();
+      const canvasWidth = parseInt(canvasStyle.width);
+      const canvasHeight = parseInt(canvasStyle.height);
+      
+      const newX = Math.min(
+        containerRect.width - 50, // Keep some canvas visible on right
+        Math.max(-canvasWidth + 50, e.clientX - canvasDragStart.x) // Keep some canvas visible on left
+      );
+      const newY = Math.min(
+        containerRect.height - 50, // Keep some canvas visible on bottom
+        Math.max(-canvasHeight + 50, e.clientY - canvasDragStart.y) // Keep some canvas visible on top
+      );
+      
+      setCanvasPosition({ x: newX, y: newY });
+    }
+  }, [isDraggingCanvas, canvasDragStart, getCanvasStyle]);
+
+  const handleCanvasDragEnd = useCallback(() => {
+    setIsDraggingCanvas(false);
+  }, []);
+
   // Event handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -162,11 +171,18 @@ export const useCanvas = ({
       const tool: Tool = JSON.parse(toolData);
       const rect = canvasRef.current.getBoundingClientRect();
 
-      const defaultToolWidth = Math.min(toPx(defaultWidth, unit), canvasDimensions.width - 40);
-      const defaultToolHeight = Math.min(toPx(defaultLength, unit), canvasDimensions.height - 40);
+      // Get tool-specific dimensions
+      const mockTool = { ...tool, name: tool.name } as DroppedTool;
+      const { toolWidth, toolHeight } = getToolDimensions(mockTool);
 
-      const x = e.clientX - rect.left - (defaultToolWidth / 2);
-      const y = e.clientY - rect.top - (defaultToolHeight / 2);
+      const x = Math.max(0, Math.min(
+        e.clientX - rect.left - (toolWidth / 2),
+        rect.width - toolWidth
+      ));
+      const y = Math.max(0, Math.min(
+        e.clientY - rect.top - (toolHeight / 2),
+        rect.height - toolHeight
+      ));
 
       const newTool: DroppedTool = {
         ...tool,
@@ -176,9 +192,9 @@ export const useCanvas = ({
         rotation: 0,
         flipHorizontal: false,
         flipVertical: false,
-        width: defaultWidth,
-        length: defaultLength,
-        thickness: defaultThickness,
+        width: 50, // Logical width (not used for rendering)
+        length: 50, // Logical length (not used for rendering)
+        thickness: unit === 'mm' ? 12.7 : 0.5, // Default thickness
         unit,
         opacity: 100,
         smooth: 0,
@@ -186,7 +202,7 @@ export const useCanvas = ({
 
       setDroppedTools(prev => [...prev, newTool]);
     }
-  }, [defaultWidth, defaultLength, defaultThickness, unit, toPx, canvasDimensions, setDroppedTools]);
+  }, [getToolDimensions, unit, setDroppedTools]);
 
   const handleToolMouseDown = useCallback((e: React.MouseEvent, toolId: string) => {
     e.preventDefault();
@@ -269,70 +285,69 @@ export const useCanvas = ({
   }, [activeTool, setSelectedTools, setSelectedTool]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-  if (canvasRef.current) {
-    const rect = canvasRef.current.getBoundingClientRect();
+    if (canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
 
-    // Handle selection box
-    if (selectionBox?.isSelecting) {
-      const currentX = e.clientX - rect.left;
-      const currentY = e.clientY - rect.top;
-      
-      setSelectionBox(prev => prev ? {
-        ...prev,
-        currentX,
-        currentY
-      } : null);
+      // Handle selection box
+      if (selectionBox?.isSelecting) {
+        const currentX = e.clientX - rect.left;
+        const currentY = e.clientY - rect.top;
+        
+        setSelectionBox(prev => prev ? {
+          ...prev,
+          currentX,
+          currentY
+        } : null);
 
-      // Update selection based on current selection box
-      const newSelectionBox = { ...selectionBox, currentX, currentY };
-      const toolsInBox = droppedTools.filter(tool => 
-        isToolInSelectionBox(tool, newSelectionBox)
-      ).map(tool => tool.id);
+        // Update selection based on current selection box
+        const newSelectionBox = { ...selectionBox, currentX, currentY };
+        const toolsInBox = droppedTools.filter(tool => 
+          isToolInSelectionBox(tool, newSelectionBox)
+        ).map(tool => tool.id);
 
-      if (e.ctrlKey || e.metaKey) {
-        // Add to existing selection
-        setSelectedTools(prev => {
-          const combined = [...new Set([...prev, ...toolsInBox])];
-          return combined;
-        });
-      } else {
-        // Replace selection
-        setSelectedTools(toolsInBox);
-        setSelectedTool(toolsInBox[toolsInBox.length - 1] || null);
+        if (e.ctrlKey || e.metaKey) {
+          // Add to existing selection
+          setSelectedTools(prev => {
+            const combined = [...new Set([...prev, ...toolsInBox])];
+            return combined;
+          });
+        } else {
+          // Replace selection
+          setSelectedTools(toolsInBox);
+          setSelectedTool(toolsInBox[toolsInBox.length - 1] || null);
+        }
+      }
+
+      // Handle dragging selected tools
+      if (dragOffset && isDraggingSelection && activeTool === 'hand' && selectedTool) {
+        const newX = e.clientX - rect.left - dragOffset.x;
+        const newY = e.clientY - rect.top - dragOffset.y;
+        
+        // Calculate delta from initial position
+        const primaryTool = droppedTools.find(t => t.id === selectedTool);
+        if (primaryTool && selectedTool && initialPositions[selectedTool]) {
+          const deltaX = newX - initialPositions[selectedTool].x;
+          const deltaY = newY - initialPositions[selectedTool].y;
+
+          setDroppedTools(prev =>
+            prev.map(tool => {
+              if (selectedTools.includes(tool.id) && initialPositions[tool.id]) {
+                const { toolWidth, toolHeight } = getToolDimensions(tool);
+                const newToolX = initialPositions[tool.id].x + deltaX;
+                const newToolY = initialPositions[tool.id].y + deltaY;
+                
+                const constrainedX = Math.max(0, Math.min(newToolX, rect.width - toolWidth));
+                const constrainedY = Math.max(0, Math.min(newToolY, rect.height - toolHeight));
+                
+                return { ...tool, x: constrainedX, y: constrainedY };
+              }
+              return tool;
+            })
+          );
+        }
       }
     }
-
-    // Handle dragging selected tools
-    if (dragOffset && isDraggingSelection && activeTool === 'hand' && selectedTool) {
-      const newX = e.clientX - rect.left - dragOffset.x;
-      const newY = e.clientY - rect.top - dragOffset.y;
-      
-      // Calculate delta from initial position - safely check for selectedTool
-      const primaryTool = droppedTools.find(t => t.id === selectedTool);
-      if (primaryTool && selectedTool && initialPositions[selectedTool]) {
-        const deltaX = newX - initialPositions[selectedTool].x;
-        const deltaY = newY - initialPositions[selectedTool].y;
-
-        setDroppedTools(prev =>
-          prev.map(tool => {
-            if (selectedTools.includes(tool.id) && initialPositions[tool.id]) {
-              const { toolWidth, toolHeight } = getToolDimensions(tool);
-              const newToolX = initialPositions[tool.id].x + deltaX;
-              const newToolY = initialPositions[tool.id].y + deltaY;
-              
-              const constrainedX = Math.max(0, Math.min(newToolX, rect.width - toolWidth));
-              const constrainedY = Math.max(0, Math.min(newToolY, rect.height - toolHeight));
-              
-              return { ...tool, x: constrainedX, y: constrainedY };
-            }
-            return tool;
-          })
-        );
-      }
-    }
-  }
-}, [selectionBox, dragOffset, isDraggingSelection, activeTool, selectedTool, selectedTools, droppedTools, initialPositions, isToolInSelectionBox, getToolDimensions, setDroppedTools, setSelectedTools, setSelectedTool]);
-
+  }, [selectionBox, dragOffset, isDraggingSelection, activeTool, selectedTool, selectedTools, droppedTools, initialPositions, isToolInSelectionBox, getToolDimensions, setDroppedTools, setSelectedTools, setSelectedTool]);
 
   const handleMouseUp = useCallback(() => {
     setDragOffset(null);
@@ -371,6 +386,9 @@ export const useCanvas = ({
   const handleSaveCanvas = useCallback(() => {
     const canvasData = {
       tools: droppedTools,
+      canvasWidth,
+      canvasHeight,
+      unit,
       timestamp: new Date().toISOString(),
     };
 
@@ -382,7 +400,7 @@ export const useCanvas = ({
     link.download = 'canvas-design.json';
     link.click();
     URL.revokeObjectURL(url);
-  }, [droppedTools]);
+  }, [droppedTools, canvasWidth, canvasHeight, unit]);
 
   const handleLoadCanvas = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -426,15 +444,17 @@ export const useCanvas = ({
   return {
     // Refs
     canvasRef,
+    canvasContainerRef,
 
     // State
-    canvasDimensions,
     dragOffset,
     selectionBox,
+    canvasPosition,
 
     // Utility functions
     getToolDimensions,
     getShadowOffset,
+    getCanvasStyle,
 
     // Event handlers
     handleDragOver,
@@ -442,12 +462,17 @@ export const useCanvas = ({
     handleToolMouseDown,
     handleMouseMove,
     handleMouseUp,
-    handleCanvasClick: handleCanvasClick,
+    handleCanvasClick,
     handleCanvasMouseDown,
     handleDeleteTool,
     handleDeleteSelectedTools,
     handleSaveCanvas,
     handleLoadCanvas,
+
+    // Canvas panning
+    handleCanvasDragStart,
+    handleCanvasDrag,
+    handleCanvasDragEnd,
 
     // Style helpers
     getCanvasCursor,
