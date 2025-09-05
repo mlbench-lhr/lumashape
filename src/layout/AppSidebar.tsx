@@ -240,29 +240,26 @@ const AppSidebar: React.FC = () => {
           {nav.subItems ? (
             <button
               onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`group w-full flex items-center gap-4 p-3 transition-colors cursor-pointer hover:bg-gray-50 rounded-lg ${
-                !isExpanded && !isHovered && !isMobileOpen
+              className={`group w-full flex items-center gap-4 p-3 transition-colors cursor-pointer hover:bg-gray-50 rounded-lg ${!isExpanded && !isHovered && !isMobileOpen
                   ? "lg:justify-center"
                   : "lg:justify-start"
-              }`}
+                }`}
             >
               <span
-                className={`transition-all duration-200 ${
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
+                className={`transition-all duration-200 ${openSubmenu?.type === menuType && openSubmenu?.index === index
                     ? "text-primary"
                     : "text-gray-600"
-                }`}
+                  }`}
               >
                 {nav.icon}
               </span>
               {(isExpanded || isHovered || isMobileOpen) && (
                 <span
-                  className={`font-medium transition-colors ${
-                    openSubmenu?.type === menuType &&
-                    openSubmenu?.index === index
+                  className={`font-medium transition-colors ${openSubmenu?.type === menuType &&
+                      openSubmenu?.index === index
                       ? "text-primary"
                       : "text-gray-700"
-                  }`}
+                    }`}
                 >
                   {nav.name}
                 </span>
@@ -273,20 +270,18 @@ const AppSidebar: React.FC = () => {
               <Link
                 href={nav.path}
                 onClick={handleLinkClick}
-                className={`group flex items-center gap-4 w-full p-3 transition-colors rounded-lg ${
-                  !isExpanded && !isHovered && !isMobileOpen
+                className={`group flex items-center gap-4 w-full p-3 transition-colors rounded-lg ${!isExpanded && !isHovered && !isMobileOpen
                     ? "lg:justify-center"
                     : "lg:justify-start"
-                } hover:bg-gray-50 ${isActive(nav.path) ? "bg-primary/5" : ""}`}
+                  } hover:bg-gray-50 ${isActive(nav.path) ? "bg-primary/5" : ""}`}
               >
                 <span className="transition-all duration-200">
                   {isActive(nav.path) ? nav.iconActive : nav.icon}
                 </span>
                 {(isExpanded || isHovered || isMobileOpen) && (
                   <span
-                    className={`font-medium transition-colors ${
-                      isActive(nav.path) ? "text-primary" : "text-gray-700"
-                    }`}
+                    className={`font-medium transition-colors ${isActive(nav.path) ? "text-primary" : "text-gray-700"
+                      }`}
                   >
                     {nav.name}
                   </span>
@@ -313,38 +308,34 @@ const AppSidebar: React.FC = () => {
                     <Link
                       href={subItem.path}
                       onClick={handleLinkClick}
-                      className={`flex items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-gray-50 rounded-md ${
-                        isActive(subItem.path) ? "bg-gray-50" : ""
-                      }`}
+                      className={`flex items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-gray-50 rounded-md ${isActive(subItem.path) ? "bg-gray-50" : ""
+                        }`}
                     >
                       <span
-                        className={`${
-                          isActive(subItem.path)
+                        className={`${isActive(subItem.path)
                             ? "text-primary font-medium"
                             : "text-gray-600"
-                        }`}
+                          }`}
                       >
                         {subItem.name}
                       </span>
                       <span className="flex items-center gap-1 ml-auto">
                         {subItem.new && (
                           <span
-                            className={`px-2 py-1 text-xs rounded-full ${
-                              isActive(subItem.path)
+                            className={`px-2 py-1 text-xs rounded-full ${isActive(subItem.path)
                                 ? "bg-primary/10 text-primary"
                                 : "bg-gray-100 text-gray-600"
-                            }`}
+                              }`}
                           >
                             new
                           </span>
                         )}
                         {subItem.pro && (
                           <span
-                            className={`px-2 py-1 text-xs rounded-full ${
-                              isActive(subItem.path)
+                            className={`px-2 py-1 text-xs rounded-full ${isActive(subItem.path)
                                 ? "bg-primary/10 text-primary"
                                 : "bg-gray-100 text-gray-600"
-                            }`}
+                              }`}
                           >
                             pro
                           </span>
@@ -364,10 +355,9 @@ const AppSidebar: React.FC = () => {
   return (
     <aside
       className={`fixed flex flex-col top-0 left-0 bg-white text-gray-900 h-full transition-all duration-300 ease-in-out z-40 border-r border-gray-200 
-        ${
-          isMobileOpen
-            ? "w-[290px] translate-x-0"
-            : isExpanded || isHovered
+        ${isMobileOpen
+          ? "w-[290px] translate-x-0"
+          : isExpanded || isHovered
             ? "w-[290px] lg:translate-x-0"
             : "w-[90px] lg:translate-x-0"
         }
@@ -379,39 +369,21 @@ const AppSidebar: React.FC = () => {
       {/* Header with Logo and Close Button */}
       <div className="py-8 flex items-center justify-between">
         <div
-          className={`flex ${
-            !isExpanded && !isHovered && !isMobileOpen
+          className={`flex ${!isExpanded && !isHovered && !isMobileOpen
               ? "lg:justify-center"
               : "justify-start"
-          }`}
+            }`}
         >
           <Link href="/" onClick={handleLinkClick}>
-            {isExpanded || isHovered || isMobileOpen ? (
-              <>
-                <Image
-                  className="dark:hidden ml-3"
-                  src="/images/logo/lumashape.svg"
-                  alt="Lumashape Logo"
-                  width={175}
-                  height={47}
-                />
-                <Image
-                  className="hidden dark:block ml-3"
-                  src="/images/logo/lumashape.svg"
-                  alt="Lumashape Logo"
-                  width={175}
-                  height={47}
-                />
-              </>
-            ) : (
-              <Image
-                className="ml-2"
-                src="/images/logo/lumashape.svg"
-                alt="Stelomic Logo"
-                width={32}
-                height={32}
-              />
-            )}
+            <Image
+              src="/images/logo/lumashape.svg"
+              alt="Lumashape Logo"
+              width={175}
+              height={47}
+              className={`transition-all duration-300 ${isExpanded || isHovered || isMobileOpen ? "w-[175px]" : "w-[32px]"
+                } h-auto ml-2`}
+            />
+
           </Link>
         </div>
 
@@ -431,11 +403,10 @@ const AppSidebar: React.FC = () => {
             {/* User Profile Section */}
             <div className="mt-auto pb-4">
               <div
-                className={`flex items-center gap-3 p-3 transition-colors hover:bg-gray-50 rounded-lg ${
-                  !isExpanded && !isHovered && !isMobileOpen
+                className={`flex items-center gap-3 p-3 transition-colors hover:bg-gray-50 rounded-lg ${!isExpanded && !isHovered && !isMobileOpen
                     ? "lg:justify-center"
                     : "lg:justify-start"
-                }`}
+                  }`}
               >
                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-white font-semibold text-lg">

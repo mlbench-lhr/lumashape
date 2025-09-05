@@ -51,7 +51,7 @@ const ToolDetectedPage = () => {
           />
         </div>
         <Text as="h3" className="grow text-[18px] sm:text-[20px] font-semibold">
-          Enter Tool Info
+          Upload New Tool
         </Text>
       </div>
 

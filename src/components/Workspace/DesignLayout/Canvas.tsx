@@ -1,6 +1,6 @@
 import React from 'react';
 import { DroppedTool, Tool } from './types';
-import { RefreshCw, X, Move } from 'lucide-react';
+import { RefreshCw, X, Move, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { useCanvas } from './useCanvas';
 
 interface CanvasProps {
@@ -25,16 +25,18 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     canvasWidth,
     canvasHeight,
     unit,
+    activeTool,
   } = props;
 
   const {
     canvasRef,
     canvasContainerRef,
     selectionBox,
-    canvasPosition,
+    viewport,
     getToolDimensions,
     getShadowOffset,
     getCanvasStyle,
+    getViewportTransform,
     handleDragOver,
     handleDrop,
     handleToolMouseDown,
@@ -46,9 +48,8 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     handleDeleteSelectedTools,
     getCanvasCursor,
     getToolCursor,
-    handleCanvasDragStart,
-    handleCanvasDrag,
-    handleCanvasDragEnd,
+    fitToView,
+    centerCanvas,
   } = useCanvas(props);
 
   // Render selection box
@@ -82,7 +83,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           handleDeleteSelectedTools();
         }
       }
-      // Space key for canvas pan mode
+      // Space key for hand tool toggle
       if (e.code === 'Space' && e.target === document.body) {
         e.preventDefault();
       }
@@ -94,41 +95,69 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 
   return (
     <div className="flex-1 relative bg-gray-100 overflow-hidden">
-      {/* Fixed container for canvas scrolling */}
+      {/* Viewport Controls */}
+      <div className="absolute top-4 right-4 z-40 flex flex-col gap-2 bg-white rounded-lg shadow-lg p-2">
+        <button
+          onClick={fitToView}
+          className="p-2 rounded hover:bg-gray-100 transition-colors"
+          title="Fit to view"
+        >
+          <Maximize className="w-4 h-4" />
+        </button>
+        <button
+          onClick={centerCanvas}
+          className="p-2 rounded hover:bg-gray-100 transition-colors"
+          title="Center canvas"
+        >
+          <Move className="w-4 h-4" />
+        </button>
+        <div className="text-xs text-center text-gray-500 px-2">
+          {Math.round(viewport.zoom * 100)}%
+        </div>
+      </div>
+
+      {/* Canvas Container - handles viewport and zoom */}
       <div 
         ref={canvasContainerRef}
-        className="absolute inset-0 overflow-hidden cursor-grab active:cursor-grabbing"
-        onMouseDown={handleCanvasDragStart}
-        onMouseMove={handleCanvasDrag}
-        onMouseUp={handleCanvasDragEnd}
-        onMouseLeave={handleCanvasDragEnd}
+        className="absolute inset-0 overflow-hidden"
+        style={{
+          cursor: getCanvasCursor()
+        }}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseDown={handleCanvasMouseDown}
+        onMouseLeave={handleMouseUp}
       >
-        {/* Canvas positioned within the scrollable container */}
+        {/* Canvas with viewport transform */}
         <div
           ref={canvasRef}
           className="absolute border-2 border-dashed border-gray-300 bg-white rounded-lg shadow-lg"
           style={{
             ...getCanvasStyle(),
-            left: `${canvasPosition.x}px`,
-            top: `${canvasPosition.y}px`,
-            cursor: getCanvasCursor()
+            ...getViewportTransform(),
           }}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
           onClick={handleCanvasClick}
-          onMouseDown={handleCanvasMouseDown}
         >
           {/* Canvas dimensions indicator */}
           <div className="absolute -top-8 left-0 text-sm text-gray-600 font-medium bg-white px-2 py-1 rounded shadow-sm">
             Canvas: {canvasWidth} × {canvasHeight} {unit}
           </div>
 
-          {/* Canvas pan indicator */}
+          {/* Tool instructions */}
           <div className="absolute -top-8 right-0 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded flex items-center">
-            <Move className="w-3 h-3 mr-1" />
-            Drag to pan
+            {activeTool === 'hand' ? (
+              <>
+                <Move className="w-3 h-3 mr-1" />
+                Drag to pan • Scroll to zoom
+              </>
+            ) : (
+              <>
+                <Move className="w-3 h-3 mr-1" />
+                Click to select • Drag to select multiple
+              </>
+            )}
           </div>
 
           {/* Dropped Tools */}
@@ -248,12 +277,10 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 Canvas Size: {canvasWidth} × {canvasHeight} {unit}
               </p>
               <p className="text-gray-400 text-xs mt-1">
-                Use <span className="font-semibold">Cursor</span> tool to select,
-                <span className="font-semibold"> Hand</span> tool to move
+                Use <span className="font-semibold">Cursor</span> to select • <span className="font-semibold">Hand</span> to pan
               </p>
               <p className="text-gray-400 text-xs mt-1">
-                Hold <span className="font-semibold">Ctrl/Cmd</span> to multi-select,
-                drag to create selection box
+                Hold <span className="font-semibold">Ctrl/Cmd</span> to multi-select • <span className="font-semibold">Scroll</span> to zoom
               </p>
             </div>
           )}
@@ -269,6 +296,16 @@ const Canvas: React.FC<CanvasProps> = (props) => {
               >
                 <X className="w-4 h-4 inline" />
               </button>
+            </div>
+          )}
+        </div>
+
+        {/* Zoom indicator */}
+        <div className="absolute bottom-4 left-4 bg-white bg-opacity-90 rounded-lg px-3 py-2 text-sm text-gray-600 shadow-lg">
+          Zoom: {Math.round(viewport.zoom * 100)}%
+          {activeTool === 'hand' && (
+            <div className="text-xs text-gray-500 mt-1">
+              Drag to pan • Scroll to zoom
             </div>
           )}
         </div>
