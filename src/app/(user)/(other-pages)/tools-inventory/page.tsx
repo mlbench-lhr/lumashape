@@ -121,7 +121,7 @@ const MobileToolsInventory = () => {
     try {
       // Close dropdown immediately
       setOpenDropdown(null);
-      
+
       const token = localStorage.getItem("auth-token");
       if (!token) return;
 
@@ -134,7 +134,7 @@ const MobileToolsInventory = () => {
 
       // Update tools state
       setTools(prev => prev.filter(tool => tool._id !== toolId));
-      
+
     } catch (error) {
       console.error("Error deleting tool:", error);
     }
@@ -243,18 +243,20 @@ const MobileToolsInventory = () => {
               </Text>
               <Listbox value={selectedBrand} onChange={setSelectedBrand}>
                 <div className="relative w-full">
-                  <Listbox.Button className="relative w-full h-[45px] p-2 border rounded-lg border-[#e6e6e6] text-left focus:outline-none">
+                  {/* Selected Option (Button) */}
+                  <Listbox.Button className="relative w-full h-[45px] px-3 border rounded-lg border-[#e6e6e6] text-left focus:outline-none">
                     <span className="flex items-center gap-2">
                       {selectedBrand ? (
                         selectedBrand.brand_logo.endsWith(".svg") ? (
                           <Image
                             src={selectedBrand.brand_logo}
-                            width={24}
-                            height={24}
+                            width={32}
+                            height={32}
                             alt="Selected brand"
+                            className="object-contain"
                           />
                         ) : (
-                          <span className="text-sm">
+                          <span className="text-[14px] sm:text-[16px] font-medium">
                             {selectedBrand.brand_logo}
                           </span>
                         )
@@ -273,48 +275,64 @@ const MobileToolsInventory = () => {
                       />
                     </span>
                   </Listbox.Button>
-                  <Listbox.Options className="absolute left-[-50px] mt-4 max-h-60 sm:w-[245px] z-10 overflow-auto rounded-[10px] bg-white p-4 text-base shadow-lg focus:outline-none sm:text-sm">
-                    {(!isMobile ? BRANDS_DESKTOP : BRANDS_MOBILE).map(
-                      (brand: Brand) => (
-                        <Listbox.Option
-                          key={brand.id}
-                          value={brand}
-                          className={({ active }) =>
-                            `relative cursor-pointer select-none py-2 pl-3 pr-9 ${active ? "text-blue-900" : "text-gray-900"
-                            }`
-                          }
-                        >
-                          {({ selected }) => (
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="radio"
-                                readOnly
-                                checked={selected}
-                                className="w-[14px] h-[14px] sm:w-[16px] sm:h-[16px]"
-                              />
-                              {brand.brand_logo.endsWith(".svg") ? (
-                                <div className="relative w-[50px] h-[20px] sm:w-[55px] sm:h-[24px] flex items-center justify-center">
-                                  <Image
-                                    src={brand.brand_logo}
-                                    fill
-                                    style={{ objectFit: "contain" }}
-                                    alt="Brand logo"
-                                  />
-                                </div>
-                              ) : (
-                                <span className="text-sm">
-                                  {brand.brand_logo}
-                                </span>
-                              )}
+
+                  {/* Dropdown Options */}
+                  <Listbox.Options className="absolute left-[-50px] mt-4 max-h-60 sm:w-[245px] z-10 overflow-auto rounded-[10px] bg-white p-2 text-base shadow-lg focus:outline-none sm:text-sm">
+                    {(!isMobile ? BRANDS_DESKTOP : BRANDS_MOBILE).map((brand: Brand) => (
+                      <Listbox.Option
+                        key={brand.id}
+                        value={brand}
+                        className={({ active }) =>
+                          `relative cursor-pointer select-none py-2 pl-3 pr-9 ${active ? "text-blue-900" : "text-gray-900"
+                          }`
+                        }
+                      >
+                        {({ selected }) => (
+                          <div className="flex items-center gap-3">
+                            {/* Custom Radio Button */}
+                            <div className="relative">
+                              <div
+                                className={`
+                      w-[18px] h-[18px] sm:w-[20px] sm:h-[20px] 
+                      rounded-full border-2 transition-colors duration-200
+                      ${selected
+                                    ? "border-blue-600 bg-white"
+                                    : "border-blue-400 bg-white hover:border-blue-500"
+                                  }
+                    `}
+                              >
+                                {selected && (
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-[8px] h-[8px] sm:w-[10px] sm:h-[10px] rounded-full bg-blue-500"></div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          )}
-                        </Listbox.Option>
-                      )
-                    )}
+
+                            {/* Brand Logo or Text */}
+                            {brand.brand_logo.endsWith(".svg") ? (
+                              <div className="relative w-[70px] h-[32px] flex items-center justify-start">
+                                <Image
+                                  src={brand.brand_logo}
+                                  fill
+                                  style={{ objectFit: "contain", objectPosition: "left" }}
+                                  alt="Brand logo"
+                                />
+                              </div>
+                            ) : (
+                              <span className="text-[14px] sm:text-[16px] font-medium">
+                                {brand.brand_logo}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </Listbox.Option>
+                    ))}
                   </Listbox.Options>
                 </div>
               </Listbox>
             </div>
+
           </div>
         </div>
 

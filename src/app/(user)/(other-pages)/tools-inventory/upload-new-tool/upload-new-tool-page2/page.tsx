@@ -188,13 +188,17 @@ const UploadNewToolPage2 = () => {
 
       setShowModal(false);
 
-      router.push(
-        `/tools-inventory/tool-detected?paper=${toolData.paper_type}&brand=${
-          toolData.brand
-        }&type=${toolData.tool_type}&imageUrl=${encodeURIComponent(
-          uploadedUrl
-        )}`
-      );
+      // Build URL with all parameters including description and purchase_link
+      const params = new URLSearchParams({
+        paper: toolData.paper_type,
+        brand: toolData.brand,
+        type: toolData.tool_type,
+        imageUrl: uploadedUrl,
+        description: toolData.description,
+        ...(toolData.purchase_link.trim() && { purchaseLink: toolData.purchase_link })
+      });
+
+      router.push(`/tools-inventory/tool-detected?${params.toString()}`);
     } catch (err) {
       console.error(err);
       toast.error("Failed to upload image", { position: "top-center" });
