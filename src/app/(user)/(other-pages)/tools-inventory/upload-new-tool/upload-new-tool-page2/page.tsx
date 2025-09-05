@@ -12,6 +12,8 @@ import { useEffect, useRef, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+
+
 type Paper = {
   id: number;
   type: string;
@@ -31,6 +33,17 @@ type ToolData = {
   description: string;
   purchase_link: string;
 };
+
+declare global {
+  interface Window {
+    toolUploadData?: {
+      paperType: string;
+      imageUrl: string;
+      file: File;
+    };
+  }
+}
+
 
 const Tools: Tool[] = [
   { id: 0, type: "Custom" },
@@ -74,31 +87,31 @@ const UploadNewToolPage2 = () => {
 
   // Load data from previous page
   useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).toolUploadData) {
-      const data = (window as any).toolUploadData;
-      
-      // Set the paper type
-      const paper = PAPERS.find(p => p.type === data.paperType);
-      if (paper) {
-        setSelectedPaper(paper);
-        setToolData(prev => ({ ...prev, paper_type: data.paperType }));
-      }
-      
-      // Set the image
-      setBackgroundUrl(data.imageUrl);
-      setUploadFile(data.file);
-      
-      // Create a fake file input to maintain the file reference
-      if (fileInputRef.current && data.file) {
-        const dt = new DataTransfer();
-        dt.items.add(data.file);
-        fileInputRef.current.files = dt.files;
-      }
-    } else {
-      // If no data found, redirect back to page 1
-      router.push('/tools-inventory/upload-new-tool-page1');
+  if (typeof window !== "undefined" && window.toolUploadData) {
+    const data = window.toolUploadData;
+
+    // Set the paper type
+    const paper = PAPERS.find((p) => p.type === data.paperType);
+    if (paper) {
+      setSelectedPaper(paper);
+      setToolData((prev) => ({ ...prev, paper_type: data.paperType }));
     }
-  }, [router]);
+
+    // Set the image
+    setBackgroundUrl(data.imageUrl);
+    setUploadFile(data.file);
+
+    // Create a fake file input to maintain the file reference
+    if (fileInputRef.current && data.file) {
+      const dt = new DataTransfer();
+      dt.items.add(data.file);
+      fileInputRef.current.files = dt.files;
+    }
+  } else {
+    router.push("/tools-inventory/upload-new-tool-page1");
+  }
+}, [router]);
+
 
   const handlePreviewOpen = () => {
     if (!backgroundUrl) {
