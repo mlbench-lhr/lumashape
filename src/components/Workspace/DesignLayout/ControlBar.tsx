@@ -105,7 +105,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
         {/* Canvas Height */}
         <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium">Canvas Height:</label>
+          <label className="text-sm font-medium">Height:</label>
           <input
             type="number"
             value={canvasHeight}
@@ -117,7 +117,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
         {/* Canvas Width */}
         <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium">Canvas Width:</label>
+          <label className="text-sm font-medium">Width:</label>
           <input
             type="number"
             value={canvasWidth}
