@@ -40,6 +40,8 @@ const UploadNewToolPage1 = () => {
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const router = useRouter();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,17 +68,8 @@ const UploadNewToolPage1 = () => {
     if (!file) return;
 
     const url = URL.createObjectURL(file);
-    setBackgroundUrl(url); // Set the image immediately without processing modal
-
-    console.log("Selected file:", file);
-  };
-
-  const handleRemoveImage = () => {
-    setBackgroundUrl("");
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    setBackgroundUrl(url);
+    setSelectedFile(file); // ✅ store file
   };
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -84,10 +77,30 @@ const UploadNewToolPage1 = () => {
     const file = event.dataTransfer.files?.[0];
     if (!file) return;
 
-    const url = URL.createObjectURL(file);
-    setBackgroundUrl(url); // Set the image immediately without processing modal
+    // ✅ Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select a valid image file", { position: "top-center" });
+      return;
+    }
 
-    console.log("Dropped file:", file);
+    const url = URL.createObjectURL(file);
+    setBackgroundUrl(url);
+    setSelectedFile(file); // ✅ This line is already correct
+
+    // ✅ Optional: Clear the file input to avoid conflicts
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+
+  const handleRemoveImage = () => {
+    setBackgroundUrl(null); // ✅ Set to null instead of empty string
+    setSelectedFile(null); // ✅ Also reset selectedFile
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
@@ -95,7 +108,6 @@ const UploadNewToolPage1 = () => {
   };
 
   const handleNext = () => {
-    // Validation
     if (!selectedPaper) {
       toast.error("Paper type must be selected", { position: "top-center" });
       return;
@@ -105,33 +117,25 @@ const UploadNewToolPage1 = () => {
       return;
     }
 
-    // Get the actual file from the input
-    const file = fileInputRef.current?.files?.[0];
-    if (!file) {
+    if (!selectedFile) {
       toast.error("No file selected", { position: "top-center" });
       return;
     }
 
-    // Show processing modal when Continue is clicked
     setIsProcessing(true);
     setShowModal(true);
     setModalTitle("Processing...");
-    setModalDescription(
-      "Detecting tool contours… this usually takes just a few seconds."
-    );
+    setModalDescription("Detecting tool contours… this usually takes just a few seconds.");
 
-    // Simulate processing time
     const timer = setTimeout(() => {
-      // ✅ No any — now strongly typed
       if (typeof window !== "undefined") {
         window.toolUploadData = {
           paperType: selectedPaper.type,
           imageUrl: backgroundUrl,
-          file: file
+          file: selectedFile, // ✅ works for both manual upload + drag/drop
         };
       }
 
-      // Hide modal and navigate to page 2
       setShowModal(false);
       setIsProcessing(false);
       setModalTitle("");
@@ -141,6 +145,7 @@ const UploadNewToolPage1 = () => {
 
     return () => clearTimeout(timer);
   };
+
 
   return (
     <>
@@ -213,8 +218,7 @@ const UploadNewToolPage1 = () => {
                         key={paper.id}
                         value={paper}
                         className={({ active }) =>
-                          `relative cursor-pointer select-none py-2 pl-3 pr-9 ${
-                            active ? "text-blue-900" : "text-gray-900"
+                          `relative cursor-pointer select-none py-2 pl-3 pr-9 ${active ? "text-blue-900" : "text-gray-900"
                           }`
                         }
                       >
