@@ -444,7 +444,7 @@ const MobileToolsInventory = () => {
       <div className="fixed bottom-6 right-6 sm:hidden">
         <button
           className="w-14 h-14 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center shadow-lg transition-colors"
-          onClick={() => router.push("/tools-inventory/upload-new-tool")}
+          onClick={() => router.push("/tools-inventory/upload-new-tool/upload-new-tool-page1")}
         >
           <Plus className="w-6 h-6 text-white" />
         </button>
