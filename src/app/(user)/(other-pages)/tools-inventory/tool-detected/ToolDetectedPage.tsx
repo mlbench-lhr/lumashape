@@ -29,16 +29,16 @@ const ToolDetectedPage = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${savedToken}`,
         },
-        body: JSON.stringify({ 
-          paper, 
-          brand, 
-          type, 
-          imageUrl, 
-          description, 
-          purchase_link: purchaseLink 
+        body: JSON.stringify({
+          paper,
+          brand,
+          type,
+          imageUrl,
+          description,
+          purchase_link: purchaseLink,
         }),
       });
-      
+
       if (res.ok) {
         router.push("/tools-inventory");
       } else {
@@ -60,43 +60,51 @@ const ToolDetectedPage = () => {
     if (imageUrl) params.set("imageUrl", imageUrl);
     if (description) params.set("description", description);
     if (purchaseLink) params.set("purchaseLink", purchaseLink);
-    
+
     router.push(`/tools-inventory/upload-new-tool-page2?${params.toString()}`);
   };
 
   return (
     <div className="w-full mx-auto my-[20px] sm:my-[45px]">
-      <div className="flex gap-[10px] sm:gap-[13px]">
-        <div className="py-[10px] sm:py-[13px] px-[8px] sm:px-[11px]">
-          <Image
-            className="cursor-pointer"
-            src="/images/icons/back.svg"
-            width={24}
-            height={22}
-            alt="back"
-            onClick={handleBack}
-          />
-        </div>
+      {/* Header */}
+      <div className="flex items-center gap-[13px] sm:gap-[13px]">
+        <Image
+          className="cursor-pointer"
+          src="/images/icons/back.svg"
+          width={24}
+          height={22}
+          alt="back"
+          onClick={handleBack}
+        />
         <Text as="h3" className="grow text-[18px] sm:text-[20px] font-semibold">
-          Upload New Tool - Review
+          Tool Detected
         </Text>
       </div>
 
+
+      {/* Subtitle */}
       <div className="mt-[10px] sm:mt-[15px]">
         <Text as="p1" className="text-[#808080] text-[14px] sm:text-[16px]">
           Review your detected tool details and add to tool inventory
         </Text>
       </div>
 
+      {/* Image Preview */}
       <div className="w-full sm:w-[897px] h-auto mt-[20px] sm:mt-[35px]">
-        <div
-          className="relative w-full sm:w-[602px] h-[371px] border border-b-0 rounded-t-[21px] border-dotted border-gray-400"
-          style={{
-            backgroundImage: `url(${imageUrl})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        ></div>
+        <div className="relative w-full sm:w-[602px] h-[371px] border border-b-0 rounded-t-[21px] border-dotted border-gray-400 overflow-hidden">
+          {imageUrl ? (
+            <Image
+              src={imageUrl}
+              alt="tool-preview"
+              fill
+              className="object-cover rounded-t-[21px]"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-400">
+              No image available
+            </div>
+          )}
+        </div>
         <div className="flex items-center justify-center w-full sm:w-[602px] h-[62px] border border-t-0 rounded-b-[21px] border-dotted border-gray-400 bg-[#ebebeb]">
           <div className="flex justify-center items-center gap-[8px] sm:gap-[11px] h-[30px] sm:h-[33px]">
             <div className="relative h-[20px] sm:h-[24px] w-[20px] sm:w-[24px]">
@@ -112,13 +120,14 @@ const ToolDetectedPage = () => {
                 src="/images/icons/clipboard.svg"
                 fill
                 style={{ objectFit: "contain" }}
-                alt="upload"
+                alt="clipboard"
               />
             </div>
           </div>
         </div>
       </div>
 
+      {/* Details */}
       <div className="flex flex-col justify-start w-full sm:w-[581px] h-auto my-[20px] sm:my-[45px]">
         <Text
           as="h5"
@@ -157,9 +166,12 @@ const ToolDetectedPage = () => {
             </div>
           </div>
 
-          {/* Description as full-width section */}
+          {/* Description */}
           <div className="border-t border-[#e7e7ea] px-4 py-3">
-            <Text as="p1" className="text-[#808080] font-medium text-[14px] sm:text-[16px] mb-2 block">
+            <Text
+              as="p1"
+              className="text-[#808080] font-medium text-[14px] sm:text-[16px] mb-2 block"
+            >
               Description
             </Text>
             <Text as="h5" className="text-[14px] sm:text-[16px] leading-relaxed">
@@ -167,15 +179,18 @@ const ToolDetectedPage = () => {
             </Text>
           </div>
 
-          {/* Purchase Link as full-width section if exists */}
+          {/* Purchase Link */}
           {purchaseLink && (
             <div className="border-t border-[#e7e7ea] px-4 py-3">
-              <Text as="p1" className="text-[#808080] font-medium text-[14px] sm:text-[16px] mb-2 block">
+              <Text
+                as="p1"
+                className="text-[#808080] font-medium text-[14px] sm:text-[16px] mb-2 block"
+              >
                 Purchase Link
               </Text>
-              <a 
-                href={purchaseLink} 
-                target="_blank" 
+              <a
+                href={purchaseLink}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-500 underline hover:text-blue-700 text-[14px] sm:text-[16px] break-all"
               >
@@ -186,6 +201,7 @@ const ToolDetectedPage = () => {
         </div>
       </div>
 
+      {/* Save Button */}
       <div className="mt-[30px] sm:mt-[60px]">
         <Button
           onClick={handleSave}

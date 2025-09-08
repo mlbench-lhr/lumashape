@@ -12,8 +12,6 @@ import { useEffect, useRef, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-
-
 type Paper = {
   id: number;
   type: string;
@@ -43,7 +41,6 @@ declare global {
     };
   }
 }
-
 
 const Tools: Tool[] = [
   { id: 0, type: "Custom" },
@@ -85,6 +82,30 @@ const UploadNewToolPage2 = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const handleRemoveImage = () => {
+    // Clear the current image and file data
+    setBackgroundUrl(null);
+    setUploadFile(null);
+
+    // Clear the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+
+    // Clear localStorage data
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("toolUploadData");
+    }
+
+    // Clear window data
+    if (typeof window !== "undefined" && window.toolUploadData) {
+      delete window.toolUploadData;
+    }
+
+    // Navigate back to the previous page
+    router.push('/tools-inventory/upload-new-tool/upload-new-tool-page1');
+  };
+
   // Load data from previous page
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -94,11 +115,15 @@ const UploadNewToolPage2 = () => {
       if (!data) {
         const savedData = localStorage.getItem("toolUploadData");
         if (savedData) {
-          data = JSON.parse(savedData);
+          try {
+            data = JSON.parse(savedData);
+          } catch (error) {
+            console.error("Error parsing localStorage data:", error);
+          }
         }
       }
 
-      if (data) {
+      if (data && data.paperType && data.imageUrl) {
         // Set the paper type
         const paper = PAPERS.find((p) => p.type === data.paperType);
         if (paper) {
@@ -108,36 +133,28 @@ const UploadNewToolPage2 = () => {
 
         // Set the image
         setBackgroundUrl(data.imageUrl);
+        setUploadFile(data.file || null);
 
-        // Restore the file (not storable in localStorage, so skip if missing)
-        if (fileInputRef.current && data.file) {
-          const dt = new DataTransfer();
-          dt.items.add(data.file);
-          fileInputRef.current.files = dt.files;
-          setUploadFile(data.file);
-        }
-
-        // Save to localStorage for reload persistence
+        // Save to localStorage for reload persistence (without file as it's not serializable)
         localStorage.setItem("toolUploadData", JSON.stringify({
           paperType: data.paperType,
           imageUrl: data.imageUrl,
         }));
       } else {
-        router.push("/tools-inventory/upload-new-tool/upload-new-tool-page2");
+        // If no data found, redirect back to page 1
+        console.log("No upload data found, redirecting to page 1");
+        router.push("/tools-inventory/upload-new-tool/upload-new-tool-page1");
       }
     }
   }, [router]);
 
-
-
   const handlePreviewOpen = () => {
     if (!backgroundUrl) {
-      toast.error("background image must be selected", { position: "top-center" });
+      toast.error("Background image must be selected", { position: "top-center" });
       setIsLoading(false);
-      setIsPreviewOpen(false)
+      setIsPreviewOpen(false);
       return;
     }
-
     setIsPreviewOpen(true);
   };
 
@@ -148,6 +165,7 @@ const UploadNewToolPage2 = () => {
   const handleImageOutline = async () => {
     setIsLoading(true);
 
+    // Validation
     if (!toolData.paper_type) {
       toast.error("Paper type must be selected", { position: "top-center" });
       setIsLoading(false);
@@ -192,9 +210,25 @@ const UploadNewToolPage2 = () => {
       setModalTitle("Uploading...");
       setModalDescription("Sending your image to the server for processing...");
 
-      // get the actual File from the stored file or input
-      const file = uploadFile || fileInputRef.current?.files?.[0];
-      if (!file) throw new Error("No file selected");
+      // Get the actual File from the stored file or recreate it from the blob URL
+      let file = uploadFile;
+      
+      if (!file && backgroundUrl) {
+        // If we don't have the original file but have a blob URL, 
+        // we need to fetch it and convert back to a file
+        try {
+          const response = await fetch(backgroundUrl);
+          const blob = await response.blob();
+          file = new File([blob], `uploaded_image_${Date.now()}.jpg`, { type: blob.type });
+        } catch (error) {
+          console.error("Error converting blob URL to file:", error);
+          throw new Error("Could not process the image file");
+        }
+      }
+
+      if (!file) {
+        throw new Error("No file available for upload");
+      }
 
       const formData = new FormData();
       const fileName = `${Date.now()}_${file.name}`;
@@ -206,11 +240,14 @@ const UploadNewToolPage2 = () => {
         body: formData,
       });
 
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Upload failed: ${errorText}`);
+      }
 
       const { url: uploadedUrl } = await res.json();
 
-      // update toolData with uploaded image URL
+      // Update toolData with uploaded image URL
       setToolData((prev) => ({
         ...prev,
         background_img: uploadedUrl,
@@ -228,10 +265,20 @@ const UploadNewToolPage2 = () => {
         ...(toolData.purchase_link.trim() && { purchaseLink: toolData.purchase_link })
       });
 
+      // Clear the temporary data
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("toolUploadData");
+        if (window.toolUploadData) {
+          delete window.toolUploadData;
+        }
+      }
+
       router.push(`/tools-inventory/tool-detected?${params.toString()}`);
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to upload image", { position: "top-center" });
+      console.error("Upload error:", err);
+      toast.error(`Failed to upload image: ${err instanceof Error ? err.message : 'Unknown error'}`, { 
+        position: "top-center" 
+      });
       setShowModal(false);
     } finally {
       setIsLoading(false);
@@ -239,7 +286,7 @@ const UploadNewToolPage2 = () => {
   };
 
   const handleBack = () => {
-    router.push('/tools-inventory/upload-newtool/upload-new-tool-page1');
+    router.push('/tools-inventory/upload-new-tool/upload-new-tool-page1');
   };
 
   return (
@@ -253,7 +300,7 @@ const UploadNewToolPage2 = () => {
         />
       )}
       <div className="w-full mx-auto my-[45px]">
-        <div className="flex gap-[13px]">
+        <div className="flex items-center gap-[13px] sm:gap-[13px]">
           <div className="py-[13px] px-[11px]">
             <Image
               className="cursor-pointer"
@@ -265,7 +312,7 @@ const UploadNewToolPage2 = () => {
             />
           </div>
           <Text as="h3" className="grow">
-            Upload New Tool - Step 2 of 2
+            Upload New Tool
           </Text>
         </div>
         <div className="mt-[15px]">
@@ -290,9 +337,9 @@ const UploadNewToolPage2 = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row mt-[30px] mb-[25px] gap-[36px]">
-              {/* Image Display - Read Only */}
+              {/* Image Display - Now properly showing the image */}
               <div className="relative w-full sm:w-[430px] h-[433px] border border-b-0 rounded-[21px] bg-[#f9fcff] border-dotted border-gray-400">
-                <div className="absolute px-[12px] py-[8.5px] right-0 w-[88px] h-[41px] rounded-tr-[21px] bg-[#ebebeb]">
+                <div className="absolute px-[12px] py-[8.5px] right-0 w-[88px] h-[41px] rounded-tr-[21px] bg-[#ebebeb] z-10">
                   <div className="flex justify-center items-center gap-[12px]">
                     <div className="p-[7px]">
                       <Image
@@ -304,45 +351,74 @@ const UploadNewToolPage2 = () => {
                         className="cursor-pointer"
                       />
                     </div>
+                    <div className="p-[7px]">
+                      <Image
+                        src="/images/icons/cross.svg"
+                        width={45}
+                        height={45}
+                        alt="cross"
+                        className="cursor-pointer"
+                        onClick={handleRemoveImage}
+                      />
+                    </div>
                   </div>
                 </div>
+
+                {/* Image Container */}
                 <div
                   className="flex items-center justify-center h-[376px] bg-cover bg-center border-b-0 rounded-t-[21px] border-transparent overflow-hidden"
                   style={{
-                    backgroundImage: backgroundUrl
-                      ? `url(${backgroundUrl})`
-                      : undefined,
+                    backgroundImage: backgroundUrl ? `url(${backgroundUrl})` : undefined,
                     backgroundRepeat: "no-repeat",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center"
                   }}
                 >
+                  {!backgroundUrl && (
+                    <div className="flex flex-col items-center text-gray-500">
+                      <Image
+                        src="/images/icons/upload.svg"
+                        width={30}
+                        height={30}
+                        alt="upload"
+                      />
+                      <p className="mt-2 text-sm">No image selected</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom section */}
+                <div className="flex justify-center items-center h-[57px] border-b border-dotted bg-[#ebebeb] rounded-b-[21px]">
+                  <div className="flex justify-center gap-[10px]">
+                    <div className="p-[5px]">
+                      <Image
+                        src="/images/icons/upload.svg"
+                        alt="upload"
+                        width={20}
+                        height={20}
+                        className="cursor-pointer opacity-50"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Fullscreen Preview */}
-                {isPreviewOpen && (
+                {isPreviewOpen && backgroundUrl && (
                   <div
                     className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center"
                     onClick={handlePreviewClose}
                   >
-                    <Image
-                      src={backgroundUrl as string}
-                      alt="Full Preview"
-                      width={800}
-                      height={800}
-                      className="object-contain max-h-full max-w-full"
-                    />
+                    <div className="relative max-w-[90vw] max-h-[90vh]">
+                      <Image
+                        src={backgroundUrl}
+                        alt="Full Preview"
+                        width={800}
+                        height={800}
+                        className="object-contain max-h-full max-w-full"
+                      />
+                    </div>
                   </div>
                 )}
-
-                <div className="flex justify-center items-center h-[57px] border-b border-dotted bg-[#ebebeb] rounded-b-[21px]">
-                  <Text className="text-sm text-gray-600">Image uploaded</Text>
-                </div>
-
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={fileInputRef}
-                  className="hidden"
-                />
               </div>
 
               {/* Tool Options */}
@@ -351,59 +427,50 @@ const UploadNewToolPage2 = () => {
                   Brand
                 </Text>
                 <div className="flex justify-start mt-[20px] gap-[3px]">
-                  <div className="w-[91px] h-[65px] bg-[#d9d9d9] relative">
+                  <div 
+                    className={`w-[91px] h-[65px] bg-[#d9d9d9] relative cursor-pointer border-2 ${
+                      toolData.brand === 'Bosch' ? 'border-blue-500' : 'border-transparent'
+                    }`}
+                    onClick={() => setToolData({ ...toolData, brand: 'Bosch' })}
+                  >
                     <Image
-                      className="cursor-pointer"
                       src="/images/icons/workspace/Bosch.svg"
                       alt="bosch"
                       fill
                       style={{ objectFit: "contain" }}
-                      onClick={(e: React.MouseEvent<HTMLImageElement>) => {
-                        const src = (e.target as HTMLImageElement).src
-                          .split("/")
-                          .pop()
-                          ?.split(".")[0];
-                        setToolData({ ...toolData, brand: src as string });
-                      }}
                     />
                   </div>
-                  <div className="w-[91px] h-[65px] relative">
+                  <div 
+                    className={`w-[91px] h-[65px] relative cursor-pointer border-2 ${
+                      toolData.brand === 'Milwaukee' ? 'border-blue-500' : 'border-transparent'
+                    }`}
+                    onClick={() => setToolData({ ...toolData, brand: 'Milwaukee' })}
+                  >
                     <Image
-                      className="cursor-pointer"
                       src="/images/icons/workspace/Milwaukee.svg"
                       fill
                       alt="milwaukee"
                       style={{ objectFit: "contain" }}
-                      onClick={(e: React.MouseEvent<HTMLImageElement>) => {
-                        const src = (e.target as HTMLImageElement).src
-                          .split("/")
-                          .pop()
-                          ?.split(".")[0];
-                        setToolData({ ...toolData, brand: src as string });
-                      }}
                     />
                   </div>
-                  <div className="w-[91px] h-[65px] relative">
+                  <div 
+                    className={`w-[91px] h-[65px] relative cursor-pointer border-2 ${
+                      toolData.brand === 'Makita' ? 'border-blue-500' : 'border-transparent'
+                    }`}
+                    onClick={() => setToolData({ ...toolData, brand: 'Makita' })}
+                  >
                     <Image
-                      className="cursor-pointer"
                       src="/images/icons/workspace/Makita.svg"
                       fill
                       alt="makita"
                       style={{ objectFit: "contain" }}
-                      onClick={(e: React.MouseEvent<HTMLImageElement>) => {
-                        const src = (e.target as HTMLImageElement).src
-                          .split("/")
-                          .pop()
-                          ?.split(".")[0];
-                        setToolData({ ...toolData, brand: src as string });
-                      }}
                     />
                   </div>
                 </div>
 
                 {toolData.brand && (
-                  <span className="text-red-600 text-[14px]">
-                    {toolData.brand}
+                  <span className="text-green-600 text-[14px] mt-2">
+                    Selected: {toolData.brand}
                   </span>
                 )}
 
@@ -479,11 +546,9 @@ const UploadNewToolPage2 = () => {
                     <textarea
                       name="description"
                       className="w-full h-[132px] p-4 border border-gray-300 rounded-md resize-none"
-                      placeholder="Custom"
+                      placeholder="Enter tool description..."
                       value={toolData.description}
-                      onChange={(
-                        e: React.ChangeEvent<HTMLTextAreaElement>
-                      ) => {
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                         setToolData({
                           ...toolData,
                           description: e.target.value,
@@ -507,8 +572,7 @@ const UploadNewToolPage2 = () => {
                 <InputField
                   label=""
                   name="purchase_link"
-                  className={`w-full ${!validation.isValid && touched ? "border-red-500" : ""
-                    }`}
+                  className={`w-full ${!validation.isValid && touched ? "border-red-500" : ""}`}
                   placeholder="Please add purchasing link"
                   value={toolData.purchase_link}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
