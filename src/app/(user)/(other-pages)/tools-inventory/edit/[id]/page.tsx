@@ -97,6 +97,8 @@ const EditTool = () => {
         const data = await res.json();
         const tool = data.tool;
 
+        console.log("Fetched tool data:", tool); // Debug log
+
         setToolData({
           _id: tool._id,
           background_img: tool.backgroundImg || "",
@@ -107,8 +109,9 @@ const EditTool = () => {
           purchase_link: tool.purchaseLink || "",
         });
 
-        // Set background image if exists
+        // Set background image if exists - FIXED: Use the correct property
         if (tool.backgroundImg) {
+          console.log("Setting background URL:", tool.backgroundImg); // Debug log
           setBackgroundUrl(tool.backgroundImg);
           setToolOptions(true);
         }
@@ -144,6 +147,8 @@ const EditTool = () => {
 
       const timer = setTimeout(() => {
         setBackgroundUrl(pendingUrl);
+        // FIXED: Also update the toolData state
+        setToolData(prev => ({ ...prev, background_img: pendingUrl }));
         setShowModal(false);
         setToolOptions(true);
         setPendingUrl(null);
@@ -177,7 +182,20 @@ const EditTool = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // FIXED: Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select a valid image file", { position: "top-center" });
+      return;
+    }
+
+    // FIXED: Check file size (optional - 5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size should be less than 5MB", { position: "top-center" });
+      return;
+    }
+
     const url = URL.createObjectURL(file);
+    console.log("Created object URL:", url); // Debug log
     setPendingUrl(url);
     setShowModal(true);
 
@@ -185,7 +203,12 @@ const EditTool = () => {
   };
 
   const handleRemoveImage = () => {
-    setBackgroundUrl("");
+    // FIXED: Clean up object URL to prevent memory leaks
+    if (backgroundUrl && backgroundUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(backgroundUrl);
+    }
+    
+    setBackgroundUrl(null); // FIXED: Use null instead of empty string
     setToolOptions(false);
     setToolData({ ...toolData, background_img: "" });
 
@@ -198,6 +221,12 @@ const EditTool = () => {
     event.preventDefault();
     const file = event.dataTransfer.files?.[0];
     if (!file) return;
+
+    // FIXED: Validate file type for drag and drop too
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select a valid image file", { position: "top-center" });
+      return;
+    }
 
     const url = URL.createObjectURL(file);
     setPendingUrl(url);
@@ -356,7 +385,7 @@ const EditTool = () => {
       )}
       <ToastContainer />
       <div className="w-full mx-auto my-[45px]">
-        <div className="flex gap-[13px]">
+        <div className="flex items-center gap-[13px] sm:gap-[13px]">
           <div className="py-[13px] px-[11px]">
             <Image
               className="cursor-pointer"
@@ -465,20 +494,31 @@ const EditTool = () => {
                     </div>
                   </div>
                 </div>
+                
+                {/* FIXED: Improved image display logic */}
                 <div
-                  className="flex items-center justify-center h-[376px] bg-cover bg-center border-b-0 rounded-t-[21px] border-transparent overflow-hidden"
-                  style={{
-                    backgroundImage: backgroundUrl
-                      ? `url(${backgroundUrl})`
-                      : undefined,
-                    backgroundRepeat: "no-repeat",
-                  }}
+                  className="flex items-center justify-center h-[376px] bg-cover bg-center border-b-0 rounded-t-[21px] border-transparent overflow-hidden relative"
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
                 >
-                  <div className="flex flex-col items-center">
-                    <div className="p-[15px]">
-                      {!backgroundUrl && (
+                  {backgroundUrl ? (
+                    <Image
+                      src={backgroundUrl}
+                      alt="Tool background"
+                      fill
+                      className="object-cover rounded-t-[21px]"
+                      onError={(e) => {
+                        console.error("Image failed to load:", backgroundUrl);
+                        // Optionally set a fallback or clear the backgroundUrl
+                        setBackgroundUrl(null);
+                      }}
+                      onLoad={() => {
+                        console.log("Image loaded successfully:", backgroundUrl);
+                      }}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center">
+                      <div className="p-[15px]">
                         <Image
                           src="/images/icons/upload.svg"
                           width={30}
@@ -487,37 +527,35 @@ const EditTool = () => {
                           className="cursor-pointer"
                           onClick={handleImageUpload}
                         />
-                      )}
+                      </div>
+                      <p className="mt-[15px] text-[16px] leading-[18px] font-semibold text-center">
+                        Drag & Drop the image or <br />
+                        <span
+                          className="text-blue-500 underline cursor-pointer"
+                          onClick={handleImageUpload}
+                        >
+                          Click
+                        </span>{" "}
+                        to upload
+                      </p>
                     </div>
-                    {!backgroundUrl && (
-                      <>
-                        <p className="mt-[15px] text-[16px] leading-[18px] font-semibold text-center">
-                          Drag & Drop the image or <br />
-                          <span
-                            className="text-blue-500 underline cursor-pointer"
-                            onClick={handleImageUpload}
-                          >
-                            Click
-                          </span>{" "}
-                          to upload
-                        </p>
-                      </>
-                    )}
-                  </div>
+                  )}
                 </div>
 
-                {isPreviewOpen && (
+                {isPreviewOpen && backgroundUrl && (
                   <div
                     className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center"
                     onClick={handlePreviewClose}
                   >
-                    <Image
-                      src={backgroundUrl as string}
-                      alt="Full Preview"
-                      width={800}
-                      height={800}
-                      className="object-contain max-h-full max-w-full"
-                    />
+                    <div className="relative max-w-[90vw] max-h-[90vh]">
+                      <Image
+                        src={backgroundUrl}
+                        alt="Full Preview"
+                        width={800}
+                        height={800}
+                        className="object-contain max-h-full max-w-full"
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -571,7 +609,8 @@ const EditTool = () => {
                         alt="milwaukee"
                         style={{ objectFit: "contain" }}
                         onClick={() => {
-                          setToolData({ ...toolData, brand: "Milwakee" });
+                          // FIXED: Corrected brand name
+                          setToolData({ ...toolData, brand: "Milwaukee" });
                         }}
                       />
                     </div>
@@ -583,7 +622,8 @@ const EditTool = () => {
                         alt="makita"
                         style={{ objectFit: "contain" }}
                         onClick={() => {
-                          setToolData({ ...toolData, brand: "Dewalt" });
+                          // FIXED: Corrected brand name
+                          setToolData({ ...toolData, brand: "Makita" });
                         }}
                       />
                     </div>

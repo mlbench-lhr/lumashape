@@ -34,35 +34,15 @@ declare global {
 
 const UploadNewToolPage1 = () => {
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
-  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalDescription, setModalDescription] = useState("");
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (pendingUrl) {
-      setShowModal(true);
-      setModalTitle("Processing...");
-      setModalDescription(
-        "Detecting tool contours… this usually takes just a few seconds."
-      );
-
-      const timer = setTimeout(() => {
-        setBackgroundUrl(pendingUrl);
-        setShowModal(false);
-        setPendingUrl(null);
-        setModalTitle("");
-        setModalDescription("");
-      }, 2000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [pendingUrl]);
 
   const handlePreviewOpen = () => {
     if (!backgroundUrl) {
@@ -86,8 +66,7 @@ const UploadNewToolPage1 = () => {
     if (!file) return;
 
     const url = URL.createObjectURL(file);
-    setPendingUrl(url);
-    setShowModal(true);
+    setBackgroundUrl(url); // Set the image immediately without processing modal
 
     console.log("Selected file:", file);
   };
@@ -106,8 +85,7 @@ const UploadNewToolPage1 = () => {
     if (!file) return;
 
     const url = URL.createObjectURL(file);
-    setPendingUrl(url);
-    setShowModal(true);
+    setBackgroundUrl(url); // Set the image immediately without processing modal
 
     console.log("Dropped file:", file);
   };
@@ -134,17 +112,34 @@ const UploadNewToolPage1 = () => {
       return;
     }
 
-    // ✅ No any — now strongly typed
-    if (typeof window !== "undefined") {
-      window.toolUploadData = {
-        paperType: selectedPaper.type,
-        imageUrl: backgroundUrl,
-        file: file
-      };
-    }
+    // Show processing modal when Continue is clicked
+    setIsProcessing(true);
+    setShowModal(true);
+    setModalTitle("Processing...");
+    setModalDescription(
+      "Detecting tool contours… this usually takes just a few seconds."
+    );
 
-    // Navigate to page 2
-    router.push("/tools-inventory/upload-new-tool/upload-new-tool-page2");
+    // Simulate processing time
+    const timer = setTimeout(() => {
+      // ✅ No any — now strongly typed
+      if (typeof window !== "undefined") {
+        window.toolUploadData = {
+          paperType: selectedPaper.type,
+          imageUrl: backgroundUrl,
+          file: file
+        };
+      }
+
+      // Hide modal and navigate to page 2
+      setShowModal(false);
+      setIsProcessing(false);
+      setModalTitle("");
+      setModalDescription("");
+      router.push("/tools-inventory/upload-new-tool/upload-new-tool-page2");
+    }, 2000);
+
+    return () => clearTimeout(timer);
   };
 
   return (
@@ -158,7 +153,7 @@ const UploadNewToolPage1 = () => {
         />
       )}
       <div className="w-full mx-auto my-[45px]">
-        <div className="flex gap-[13px]">
+        <div className="flex items-center gap-[13px] sm:gap-[13px]">
           <div className="py-[13px] px-[11px]">
             <Image
               className="cursor-pointer"
@@ -355,8 +350,11 @@ const UploadNewToolPage1 = () => {
                 variant="primary"
                 size="lg"
                 onClick={handleNext}
+                disabled={isProcessing}
               >
-                <span className="text-[18px] font-semibold">Next</span>
+                <span className="text-[18px] font-semibold">
+                  {isProcessing ? "Processing..." : "Continue"}
+                </span>
               </Button>
             </div>
           </div>
