@@ -563,10 +563,10 @@ const EditTool = () => {
                         }}
                       />
                     </div>
-                    <div className={`w-[91px] h-[65px] relative border-2 ${toolData.brand === "Milwakee" ? "border-blue-500" : "border-transparent"}`}>
+                    <div className={`w-[91px] h-[65px] relative border-2 ${toolData.brand === "Milwaukee" ? "border-blue-500" : "border-transparent"}`}>
                       <Image
                         className="cursor-pointer"
-                        src="/images/icons/workspace/Milwakee.svg"
+                        src="/images/icons/workspace/Milwaukee.svg"
                         fill
                         alt="milwaukee"
                         style={{ objectFit: "contain" }}
@@ -575,12 +575,12 @@ const EditTool = () => {
                         }}
                       />
                     </div>
-                    <div className={`w-[91px] h-[65px] relative border-2 ${toolData.brand === "Dewalt" ? "border-blue-500" : "border-transparent"}`}>
+                    <div className={`w-[91px] h-[65px] relative border-2 ${toolData.brand === "Makita" ? "border-blue-500" : "border-transparent"}`}>
                       <Image
                         className="cursor-pointer"
-                        src="/images/icons/workspace/Dewalt.svg"
+                        src="/images/icons/workspace/Makita.svg"
                         fill
-                        alt="dewalt"
+                        alt="makita"
                         style={{ objectFit: "contain" }}
                         onClick={() => {
                           setToolData({ ...toolData, brand: "Dewalt" });

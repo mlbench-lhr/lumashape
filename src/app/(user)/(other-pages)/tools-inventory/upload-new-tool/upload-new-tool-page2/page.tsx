@@ -87,30 +87,47 @@ const UploadNewToolPage2 = () => {
 
   // Load data from previous page
   useEffect(() => {
-  if (typeof window !== "undefined" && window.toolUploadData) {
-    const data = window.toolUploadData;
+    if (typeof window !== "undefined") {
+      let data = window.toolUploadData;
 
-    // Set the paper type
-    const paper = PAPERS.find((p) => p.type === data.paperType);
-    if (paper) {
-      setSelectedPaper(paper);
-      setToolData((prev) => ({ ...prev, paper_type: data.paperType }));
+      // If window data doesn't exist, try localStorage
+      if (!data) {
+        const savedData = localStorage.getItem("toolUploadData");
+        if (savedData) {
+          data = JSON.parse(savedData);
+        }
+      }
+
+      if (data) {
+        // Set the paper type
+        const paper = PAPERS.find((p) => p.type === data.paperType);
+        if (paper) {
+          setSelectedPaper(paper);
+          setToolData((prev) => ({ ...prev, paper_type: data.paperType }));
+        }
+
+        // Set the image
+        setBackgroundUrl(data.imageUrl);
+
+        // Restore the file (not storable in localStorage, so skip if missing)
+        if (fileInputRef.current && data.file) {
+          const dt = new DataTransfer();
+          dt.items.add(data.file);
+          fileInputRef.current.files = dt.files;
+          setUploadFile(data.file);
+        }
+
+        // Save to localStorage for reload persistence
+        localStorage.setItem("toolUploadData", JSON.stringify({
+          paperType: data.paperType,
+          imageUrl: data.imageUrl,
+        }));
+      } else {
+        router.push("/tools-inventory/upload-new-tool/upload-new-tool-page2");
+      }
     }
+  }, [router]);
 
-    // Set the image
-    setBackgroundUrl(data.imageUrl);
-    setUploadFile(data.file);
-
-    // Create a fake file input to maintain the file reference
-    if (fileInputRef.current && data.file) {
-      const dt = new DataTransfer();
-      dt.items.add(data.file);
-      fileInputRef.current.files = dt.files;
-    }
-  } else {
-    router.push("/tools-inventory/upload-new-tool-page1");
-  }
-}, [router]);
 
 
   const handlePreviewOpen = () => {
@@ -222,7 +239,7 @@ const UploadNewToolPage2 = () => {
   };
 
   const handleBack = () => {
-    router.push('/tools-inventory/upload-new-tool-page1');
+    router.push('/tools-inventory/upload-newtool/upload-new-tool-page1');
   };
 
   return (
@@ -353,7 +370,7 @@ const UploadNewToolPage2 = () => {
                   <div className="w-[91px] h-[65px] relative">
                     <Image
                       className="cursor-pointer"
-                      src="/images/icons/workspace/Milwakee.svg"
+                      src="/images/icons/workspace/Milwaukee.svg"
                       fill
                       alt="milwaukee"
                       style={{ objectFit: "contain" }}
@@ -369,9 +386,9 @@ const UploadNewToolPage2 = () => {
                   <div className="w-[91px] h-[65px] relative">
                     <Image
                       className="cursor-pointer"
-                      src="/images/icons/workspace/Dewalt.svg"
+                      src="/images/icons/workspace/Makita.svg"
                       fill
-                      alt="dewalt"
+                      alt="makita"
                       style={{ objectFit: "contain" }}
                       onClick={(e: React.MouseEvent<HTMLImageElement>) => {
                         const src = (e.target as HTMLImageElement).src
@@ -430,10 +447,9 @@ const UploadNewToolPage2 = () => {
                             key={tool.id}
                             value={tool}
                             className={({ active }) =>
-                              `relative cursor-pointer select-none py-2 pl-3 pr-9 ${
-                                active
-                                  ? "bg-blue-100 text-blue-900"
-                                  : "text-gray-900"
+                              `relative cursor-pointer select-none py-2 pl-3 pr-9 ${active
+                                ? "bg-blue-100 text-blue-900"
+                                : "text-gray-900"
                               }`
                             }
                           >
@@ -491,9 +507,8 @@ const UploadNewToolPage2 = () => {
                 <InputField
                   label=""
                   name="purchase_link"
-                  className={`w-full ${
-                    !validation.isValid && touched ? "border-red-500" : ""
-                  }`}
+                  className={`w-full ${!validation.isValid && touched ? "border-red-500" : ""
+                    }`}
                   placeholder="Please add purchasing link"
                   value={toolData.purchase_link}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
