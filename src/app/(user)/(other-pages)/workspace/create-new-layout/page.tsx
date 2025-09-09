@@ -17,9 +17,9 @@ const CreateNewLayout = () => {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const brands = [
-    { name: 'BOSCH', logo: '/images/icons/workspace/Bosch.svg', bgColor: 'bg-gray-100' },
-    { name: 'Milwaukee', logo: '/images/icons/workspace/Milwakee.svg', bgColor: 'bg-red-600' },
-    { name: 'DEWALT', logo: '/images/icons/workspace/Dewalt.svg', bgColor: 'bg-yellow-400' }
+    { name: 'BOSCH', logo: '/images/icons/workspace/Bosch.svg' },
+    { name: 'Milwaukee', logo: '/images/icons/workspace/Milwaukee.svg' },
+    { name: 'Makita', logo: '/images/icons/workspace/Makita.svg' }
   ];
 
   // Load from sessionStorage
@@ -136,8 +136,8 @@ const CreateNewLayout = () => {
               {brands.map((brand) => (
                 <div
                   key={brand.name}
-                  className={`w-16 h-12 rounded border-2 cursor-pointer flex items-center justify-center ${selectedBrand === brand.name ? 'border-blue-500' : 'border-gray-300'
-                    } ${brand.bgColor}`}
+                  className={`w-16 h-12 border-2 cursor-pointer flex items-center justify-center ${selectedBrand === brand.name ? 'border-blue-500' : 'border-transparent'
+                    }`}
                   onClick={() => setSelectedBrand(brand.name)}
                 >
                   <img
