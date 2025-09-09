@@ -337,7 +337,7 @@ const MobileToolsInventory = () => {
         </div>
 
         {/* Tools Display */}
-        <div className="flex justify-center sm:justify-start items-center">
+        <div className={`flex items-center ${filteredTools.length === 0 ? 'justify-center min-h-[500px]' : 'justify-center sm:justify-start'}`}>
           <div className="flex flex-col items-center justify-center py-12">
             {filteredTools.length === 0 && (
               <>
@@ -443,7 +443,7 @@ const MobileToolsInventory = () => {
       {/* Floating Add Button */}
       <div className="fixed bottom-6 right-6 sm:hidden">
         <button
-          className="w-14 h-14 bg-blue-600 hover:bg-blue-700 rounded-full flex items-center justify-center shadow-lg transition-colors"
+          className="w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-lg transition-colors"
           onClick={() => router.push("/tools-inventory/upload-new-tool/upload-new-tool-page1")}
         >
           <Plus className="w-6 h-6 text-white" />

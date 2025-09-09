@@ -11,7 +11,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/context/SidebarContext";
 import { UserContext } from "@/context/UserContext";
-import CloseButton from "@/components/ui/CloseButton"; // Adjust path as needed
+import CloseButton from "@/components/ui/CloseButton";
 
 type NavItem = {
   name: string;
@@ -131,7 +131,7 @@ const navItems: NavItem[] = [
 
 const othersItems: NavItem[] = [];
 
-const AppSidebar: React.FC = () => {
+const NormalAppSidebar: React.FC = () => {
   const {
     isExpanded,
     isMobileOpen,
@@ -141,27 +141,36 @@ const AppSidebar: React.FC = () => {
   } = useSidebar();
   const pathname = usePathname();
   const { user } = useContext(UserContext);
-  const [token, setToken] = useState("");
-
-  console.log("User:", user);
-
-  // Check if we're on the design layout route
-  const isDesignLayoutRoute = pathname === '/workspace/create-new-layout/design-layout' || 
-                             pathname === '/workspace/create-new-layout/design-layout/';
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
     index: number;
   } | null>(null);
-  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
-    {}
-  );
+  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>({});
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const isActive = useCallback(
     (path: string) => {
       if (!path) return false;
-      return pathname === path || pathname === `${path}/`;
+      
+      // Remove trailing slash from pathname for consistent comparison
+      const cleanPathname = pathname.endsWith('/') && pathname !== '/' 
+        ? pathname.slice(0, -1) 
+        : pathname;
+      
+      // Remove trailing slash from path for consistent comparison
+      const cleanPath = path.endsWith('/') && path !== '/' 
+        ? path.slice(0, -1) 
+        : path;
+      
+      // Check for exact match first
+      if (cleanPathname === cleanPath) return true;
+      
+      // Check if current pathname starts with the path (for sub-routes)
+      // Make sure we don't match partial segments by checking for '/' after the path
+      if (cleanPathname.startsWith(cleanPath + '/')) return true;
+      
+      return false;
     },
     [pathname]
   );
@@ -203,7 +212,7 @@ const AppSidebar: React.FC = () => {
   }, [pathname, isActive]);
 
   useEffect(() => {
-    if (openSubmenu !== null && !isDesignLayoutRoute) {
+    if (openSubmenu !== null) {
       const key = `${openSubmenu.type}-${openSubmenu.index}`;
       if (subMenuRefs.current[key]) {
         setSubMenuHeight((prevHeights) => ({
@@ -212,9 +221,8 @@ const AppSidebar: React.FC = () => {
         }));
       }
     }
-  }, [openSubmenu, isDesignLayoutRoute]);
+  }, [openSubmenu]);
 
-  // Close mobile sidebar when clicking on a link
   const handleLinkClick = () => {
     if (isMobileOpen) {
       toggleMobileSidebar();
@@ -222,9 +230,6 @@ const AppSidebar: React.FC = () => {
   };
 
   const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
-    // Don't allow submenu toggle on design layout route
-    if (isDesignLayoutRoute) return;
-    
     setOpenSubmenu((prevOpenSubmenu) => {
       if (
         prevOpenSubmenu &&
@@ -237,8 +242,7 @@ const AppSidebar: React.FC = () => {
     });
   };
 
-  // Determine if sidebar should be collapsed (icons only)
-  const shouldShowIconsOnly = isDesignLayoutRoute || (!isExpanded && !isHovered && !isMobileOpen);
+  const shouldShowIconsOnly = !isExpanded && !isHovered && !isMobileOpen;
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -248,7 +252,7 @@ const AppSidebar: React.FC = () => {
       {navItems.map((nav, index) => {
         return (
           <li key={nav.name}>
-            {nav.subItems && !isDesignLayoutRoute ? (
+            {nav.subItems ? (
               <button
                 onClick={() => handleSubmenuToggle(index, menuType)}
                 className={`group w-full flex items-center gap-4 p-3 transition-colors cursor-pointer hover:bg-gray-50 rounded-lg ${
@@ -285,7 +289,7 @@ const AppSidebar: React.FC = () => {
                   className={`group flex items-center gap-4 w-full p-3 transition-colors rounded-lg ${
                     shouldShowIconsOnly ? "lg:justify-center" : "lg:justify-start"
                   } hover:bg-gray-50 ${isActive(nav.path) ? "bg-primary/5" : ""}`}
-                  title={shouldShowIconsOnly ? nav.name : undefined} // Add tooltip for icon-only mode
+                  title={shouldShowIconsOnly ? nav.name : undefined}
                 >
                   <span className="transition-all duration-200">
                     {isActive(nav.path) ? nav.iconActive : nav.icon}
@@ -376,16 +380,14 @@ const AppSidebar: React.FC = () => {
         ${
           isMobileOpen
             ? "w-[290px] translate-x-0"
-            : isDesignLayoutRoute
-            ? "w-[90px] lg:translate-x-0"
             : isExpanded || isHovered
             ? "w-[290px] lg:translate-x-0"
             : "w-[90px] lg:translate-x-0"
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         px-5`}
-      onMouseEnter={() => !isDesignLayoutRoute && !isExpanded && !isMobileOpen && setIsHovered(true)}
-      onMouseLeave={() => !isDesignLayoutRoute && !isMobileOpen && setIsHovered(false)}
+      onMouseEnter={() => !isExpanded && !isMobileOpen && setIsHovered(true)}
+      onMouseLeave={() => !isMobileOpen && setIsHovered(false)}
     >
       {/* Header with Logo and Close Button */}
       <div className="py-8 flex items-center justify-between">
@@ -395,9 +397,8 @@ const AppSidebar: React.FC = () => {
           }`}
         >
           <Link href="/" onClick={handleLinkClick}>
-            {!shouldShowIconsOnly ? (
+            {shouldShowIconsOnly && !isMobileOpen ? (
               <Image
-                className="ml-3"
                 src="/images/logo/lumashape.svg"
                 alt="Lumashape Logo"
                 width={175}
@@ -405,7 +406,7 @@ const AppSidebar: React.FC = () => {
               />
             ) : (
               <Image
-                className=""
+                className="ml-3"
                 src="/images/logo/lumashape.svg"
                 alt="Lumashape Logo"
                 width={175}
@@ -415,8 +416,7 @@ const AppSidebar: React.FC = () => {
           </Link>
         </div>
 
-        {/* Close Button - Only visible on mobile when sidebar is open */}
-        {!isDesignLayoutRoute && <CloseButton />}
+        <CloseButton />
       </div>
 
       {/* Navigation Content */}
@@ -472,4 +472,4 @@ const AppSidebar: React.FC = () => {
   );
 };
 
-export default AppSidebar;
+export default NormalAppSidebar;

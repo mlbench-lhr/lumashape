@@ -1,7 +1,8 @@
 "use client";
 
 import { useSidebar } from "@/context/SidebarContext";
-import AppSidebar from "@/layout/AppSidebar";
+import NormalAppSidebar from "@/layout/NormalAppSideBar/AppSidebar";
+import DesignLayoutAppSidebar from "@/layout/IconOnlyAppSideBar/AppSideBar";
 import Backdrop from "@/layout/Backdrop";
 import HamburgerMenu from "@/components/ui/HamburgerMenu";
 import { usePathname } from "next/navigation";
@@ -33,14 +34,17 @@ export default function AdminLayout({
     hideSidebarRoutes.includes(pathname) || // Exact match
     hideSidebarPrefixes.some((prefix) => pathname.startsWith(prefix)); // Prefix match
 
-  // Alternative approach using a single function for more complex matching:
-  // const shouldHideSidebar = checkIfShouldHideSidebar(pathname);
+  // Check if we're on the design layout route (icon-only sidebar)
+  const isDesignLayoutRoute = pathname === '/workspace/create-new-layout/design-layout' ||
+    pathname === '/workspace/create-new-layout/design-layout/';
 
   // Dynamic margin for responsive layout
   const sidebarMargin = shouldHideSidebar
     ? "ml-0" // No margin when sidebar is hidden
     : isMobileOpen
     ? "ml-0" // No margin on mobile when sidebar is open
+    : isDesignLayoutRoute
+    ? "lg:ml-[90px]" // Fixed 90px margin for design layout route
     : isExpanded || isHovered
     ? "lg:ml-[290px]"
     : "lg:ml-[90px]";
@@ -50,19 +54,25 @@ export default function AdminLayout({
       {/* Conditionally render sidebar components */}
       {!shouldHideSidebar && (
         <>
-          {/* Hamburger Menu - Only visible on mobile */}
-          <HamburgerMenu />
+          {/* Hamburger Menu - Only visible on mobile and not on design layout route */}
+          {!isDesignLayoutRoute && <HamburgerMenu />}
 
-          {/* Sidebar and Backdrop */}
-          <AppSidebar />
-          <Backdrop />
+          {/* Conditional Sidebar Rendering */}
+          {isDesignLayoutRoute ? (
+            <DesignLayoutAppSidebar />
+          ) : (
+            <>
+              <NormalAppSidebar />
+              <Backdrop />
+            </>
+          )}
         </>
       )}
 
       {/* Main Content Area */}
       <main
         className={`flex-1 transition-all duration-300 ease-in-out ${sidebarMargin} px-4 md:px-6 ${
-          shouldHideSidebar ? "pt-0" : "pt-16 lg:pt-0"
+          shouldHideSidebar ? "pt-0" : isDesignLayoutRoute ? "pt-0" : "pt-16 lg:pt-0"
         } bg-[#FAFAFA]`}
       >
         <div className="flex justify-center min-h-screen">
