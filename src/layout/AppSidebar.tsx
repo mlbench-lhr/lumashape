@@ -145,6 +145,10 @@ const AppSidebar: React.FC = () => {
 
   console.log("User:", user);
 
+  // Check if we're on the design layout route
+  const isDesignLayoutRoute = pathname === '/workspace/create-new-layout/design-layout' || 
+                             pathname === '/workspace/create-new-layout/design-layout/';
+
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
     index: number;
@@ -199,7 +203,7 @@ const AppSidebar: React.FC = () => {
   }, [pathname, isActive]);
 
   useEffect(() => {
-    if (openSubmenu !== null) {
+    if (openSubmenu !== null && !isDesignLayoutRoute) {
       const key = `${openSubmenu.type}-${openSubmenu.index}`;
       if (subMenuRefs.current[key]) {
         setSubMenuHeight((prevHeights) => ({
@@ -208,7 +212,7 @@ const AppSidebar: React.FC = () => {
         }));
       }
     }
-  }, [openSubmenu]);
+  }, [openSubmenu, isDesignLayoutRoute]);
 
   // Close mobile sidebar when clicking on a link
   const handleLinkClick = () => {
@@ -218,6 +222,9 @@ const AppSidebar: React.FC = () => {
   };
 
   const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
+    // Don't allow submenu toggle on design layout route
+    if (isDesignLayoutRoute) return;
+    
     setOpenSubmenu((prevOpenSubmenu) => {
       if (
         prevOpenSubmenu &&
@@ -230,134 +237,159 @@ const AppSidebar: React.FC = () => {
     });
   };
 
+  // Determine if sidebar should be collapsed (icons only)
+  const shouldShowIconsOnly = isDesignLayoutRoute || (!isExpanded && !isHovered && !isMobileOpen);
+
   const renderMenuItems = (
     navItems: NavItem[],
     menuType: "main" | "others"
   ) => (
     <ul className="font-raleway flex flex-col gap-4">
-      {navItems.map((nav, index) => (
-        <li key={nav.name}>
-          {nav.subItems ? (
-            <button
-              onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`group w-full flex items-center gap-4 p-3 transition-colors cursor-pointer hover:bg-gray-50 rounded-lg ${
-                !isExpanded && !isHovered && !isMobileOpen
-                  ? "lg:justify-center"
-                  : "lg:justify-start"
-              }`}
-            >
-              <span
-                className={`transition-all duration-200 ${
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? "text-primary"
-                    : "text-gray-600"
+      {navItems.map((nav, index) => {
+        // Special handling for workspace icon on design layout route
+        let iconToShow = nav.icon;
+        let activeIconToShow = nav.iconActive;
+        
+        if (nav.name === "Workspace" && isDesignLayoutRoute) {
+          iconToShow = (
+            <Image
+              src="/images/icons/sidebar/workspace.svg"
+              alt="Workspace"
+              width={24}
+              height={24}
+            />
+          );
+          activeIconToShow = (
+            <Image
+              src="/images/icons/sidebar/active/workspace.svg"
+              alt="Workspace Active"
+              width={24}
+              height={24}
+            />
+          );
+        }
+        
+        return (
+          <li key={nav.name}>
+            {nav.subItems && !isDesignLayoutRoute ? (
+              <button
+                onClick={() => handleSubmenuToggle(index, menuType)}
+                className={`group w-full flex items-center gap-4 p-3 transition-colors cursor-pointer hover:bg-gray-50 rounded-lg ${
+                  shouldShowIconsOnly ? "lg:justify-center" : "lg:justify-start"
                 }`}
               >
-                {nav.icon}
-              </span>
-              {(isExpanded || isHovered || isMobileOpen) && (
                 <span
-                  className={`font-medium transition-colors ${
-                    openSubmenu?.type === menuType &&
-                    openSubmenu?.index === index
+                  className={`transition-all duration-200 ${
+                    openSubmenu?.type === menuType && openSubmenu?.index === index
                       ? "text-primary"
-                      : "text-gray-700"
+                      : "text-gray-600"
                   }`}
                 >
-                  {nav.name}
+                  {iconToShow}
                 </span>
-              )}
-            </button>
-          ) : (
-            nav.path && (
-              <Link
-                href={nav.path}
-                onClick={handleLinkClick}
-                className={`group flex items-center gap-4 w-full p-3 transition-colors rounded-lg ${
-                  !isExpanded && !isHovered && !isMobileOpen
-                    ? "lg:justify-center"
-                    : "lg:justify-start"
-                } hover:bg-gray-50 ${isActive(nav.path) ? "bg-primary/5" : ""}`}
-              >
-                <span className="transition-all duration-200">
-                  {isActive(nav.path) ? nav.iconActive : nav.icon}
-                </span>
-                {(isExpanded || isHovered || isMobileOpen) && (
+                {!shouldShowIconsOnly && (
                   <span
                     className={`font-medium transition-colors ${
-                      isActive(nav.path) ? "text-primary" : "text-gray-700"
+                      openSubmenu?.type === menuType &&
+                      openSubmenu?.index === index
+                        ? "text-primary"
+                        : "text-gray-700"
                     }`}
                   >
                     {nav.name}
                   </span>
                 )}
-              </Link>
-            )
-          )}
-          {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
-            <div
-              ref={(el) => {
-                subMenuRefs.current[`${menuType}-${index}`] = el;
-              }}
-              className="overflow-hidden transition-all duration-300"
-              style={{
-                height:
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? `${subMenuHeight[`${menuType}-${index}`]}px`
-                    : "0px",
-              }}
-            >
-              <ul className="mt-2 space-y-1 ml-9">
-                {nav.subItems.map((subItem) => (
-                  <li key={subItem.name}>
-                    <Link
-                      href={subItem.path}
-                      onClick={handleLinkClick}
-                      className={`flex items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-gray-50 rounded-md ${
-                        isActive(subItem.path) ? "bg-gray-50" : ""
+              </button>
+            ) : (
+              nav.path && (
+                <Link
+                  href={nav.path}
+                  onClick={handleLinkClick}
+                  className={`group flex items-center gap-4 w-full p-3 transition-colors rounded-lg ${
+                    shouldShowIconsOnly ? "lg:justify-center" : "lg:justify-start"
+                  } hover:bg-gray-50 ${isActive(nav.path) ? "bg-primary/5" : ""}`}
+                  title={shouldShowIconsOnly ? nav.name : undefined} // Add tooltip for icon-only mode
+                >
+                  <span className="transition-all duration-200">
+                    {isActive(nav.path) ? activeIconToShow : iconToShow}
+                  </span>
+                  {!shouldShowIconsOnly && (
+                    <span
+                      className={`font-medium transition-colors ${
+                        isActive(nav.path) ? "text-primary" : "text-gray-700"
                       }`}
                     >
-                      <span
-                        className={`${
-                          isActive(subItem.path)
-                            ? "text-primary font-medium"
-                            : "text-gray-600"
+                      {nav.name}
+                    </span>
+                  )}
+                </Link>
+              )
+            )}
+            {nav.subItems && !shouldShowIconsOnly && (
+              <div
+                ref={(el) => {
+                  subMenuRefs.current[`${menuType}-${index}`] = el;
+                }}
+                className="overflow-hidden transition-all duration-300"
+                style={{
+                  height:
+                    openSubmenu?.type === menuType && openSubmenu?.index === index
+                      ? `${subMenuHeight[`${menuType}-${index}`]}px`
+                      : "0px",
+                }}
+              >
+                <ul className="mt-2 space-y-1 ml-9">
+                  {nav.subItems.map((subItem) => (
+                    <li key={subItem.name}>
+                      <Link
+                        href={subItem.path}
+                        onClick={handleLinkClick}
+                        className={`flex items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-gray-50 rounded-md ${
+                          isActive(subItem.path) ? "bg-gray-50" : ""
                         }`}
                       >
-                        {subItem.name}
-                      </span>
-                      <span className="flex items-center gap-1 ml-auto">
-                        {subItem.new && (
-                          <span
-                            className={`px-2 py-1 text-xs rounded-full ${
-                              isActive(subItem.path)
-                                ? "bg-primary/10 text-primary"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            new
-                          </span>
-                        )}
-                        {subItem.pro && (
-                          <span
-                            className={`px-2 py-1 text-xs rounded-full ${
-                              isActive(subItem.path)
-                                ? "bg-primary/10 text-primary"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            pro
-                          </span>
-                        )}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </li>
-      ))}
+                        <span
+                          className={`${
+                            isActive(subItem.path)
+                              ? "text-primary font-medium"
+                              : "text-gray-600"
+                          }`}
+                        >
+                          {subItem.name}
+                        </span>
+                        <span className="flex items-center gap-1 ml-auto">
+                          {subItem.new && (
+                            <span
+                              className={`px-2 py-1 text-xs rounded-full ${
+                                isActive(subItem.path)
+                                  ? "bg-primary/10 text-primary"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              new
+                            </span>
+                          )}
+                          {subItem.pro && (
+                            <span
+                              className={`px-2 py-1 text-xs rounded-full ${
+                                isActive(subItem.path)
+                                  ? "bg-primary/10 text-primary"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              pro
+                            </span>
+                          )}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 
@@ -367,26 +399,26 @@ const AppSidebar: React.FC = () => {
         ${
           isMobileOpen
             ? "w-[290px] translate-x-0"
+            : isDesignLayoutRoute
+            ? "w-[90px] lg:translate-x-0"
             : isExpanded || isHovered
             ? "w-[290px] lg:translate-x-0"
             : "w-[90px] lg:translate-x-0"
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         px-5`}
-      onMouseEnter={() => !isExpanded && !isMobileOpen && setIsHovered(true)}
-      onMouseLeave={() => !isMobileOpen && setIsHovered(false)}
+      onMouseEnter={() => !isDesignLayoutRoute && !isExpanded && !isMobileOpen && setIsHovered(true)}
+      onMouseLeave={() => !isDesignLayoutRoute && !isMobileOpen && setIsHovered(false)}
     >
       {/* Header with Logo and Close Button */}
       <div className="py-8 flex items-center justify-between">
         <div
           className={`flex ${
-            !isExpanded && !isHovered && !isMobileOpen
-              ? "lg:justify-center"
-              : "justify-start"
+            shouldShowIconsOnly ? "lg:justify-center" : "justify-start"
           }`}
         >
           <Link href="/" onClick={handleLinkClick}>
-            {isExpanded || isHovered || isMobileOpen ? (
+            {!shouldShowIconsOnly ? (
               <>
                 <Image
                   className="dark:hidden ml-3"
@@ -406,17 +438,17 @@ const AppSidebar: React.FC = () => {
             ) : (
               <Image
                 className="ml-2"
-                src="/images/logo/lumashape.svg"
-                alt="Stelomic Logo"
-                width={175}
-                height={47}
+                src="/images/logo/lumashape_logo.svg"
+                alt="Lumashape Logo"
+                width={40}
+                height={40}
               />
             )}
           </Link>
         </div>
 
         {/* Close Button - Only visible on mobile when sidebar is open */}
-        <CloseButton />
+        {!isDesignLayoutRoute && <CloseButton />}
       </div>
 
       {/* Navigation Content */}
@@ -432,10 +464,9 @@ const AppSidebar: React.FC = () => {
             <div className="mt-auto pb-4">
               <div
                 className={`flex items-center gap-3 p-3 transition-colors hover:bg-gray-50 rounded-lg ${
-                  !isExpanded && !isHovered && !isMobileOpen
-                    ? "lg:justify-center"
-                    : "lg:justify-start"
+                  shouldShowIconsOnly ? "lg:justify-center" : "lg:justify-start"
                 }`}
+                title={shouldShowIconsOnly ? (user?.username || "User Profile") : undefined}
               >
                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-white font-semibold text-lg">
@@ -454,7 +485,7 @@ const AppSidebar: React.FC = () => {
                     )}
                   </span>
                 </div>
-                {(isExpanded || isHovered || isMobileOpen) && (
+                {!shouldShowIconsOnly && (
                   <div className="flex flex-col min-w-0 flex-1">
                     <span className="font-semibold text-[16px] text-gray-900 truncate">
                       {user ? user.username : ""}
