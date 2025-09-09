@@ -246,29 +246,6 @@ const AppSidebar: React.FC = () => {
   ) => (
     <ul className="font-raleway flex flex-col gap-4">
       {navItems.map((nav, index) => {
-        // Special handling for workspace icon on design layout route
-        let iconToShow = nav.icon;
-        let activeIconToShow = nav.iconActive;
-        
-        if (nav.name === "Workspace" && isDesignLayoutRoute) {
-          iconToShow = (
-            <Image
-              src="/images/icons/sidebar/workspace.svg"
-              alt="Workspace"
-              width={24}
-              height={24}
-            />
-          );
-          activeIconToShow = (
-            <Image
-              src="/images/icons/sidebar/active/workspace.svg"
-              alt="Workspace Active"
-              width={24}
-              height={24}
-            />
-          );
-        }
-        
         return (
           <li key={nav.name}>
             {nav.subItems && !isDesignLayoutRoute ? (
@@ -285,7 +262,7 @@ const AppSidebar: React.FC = () => {
                       : "text-gray-600"
                   }`}
                 >
-                  {iconToShow}
+                  {nav.icon}
                 </span>
                 {!shouldShowIconsOnly && (
                   <span
@@ -311,7 +288,7 @@ const AppSidebar: React.FC = () => {
                   title={shouldShowIconsOnly ? nav.name : undefined} // Add tooltip for icon-only mode
                 >
                   <span className="transition-all duration-200">
-                    {isActive(nav.path) ? activeIconToShow : iconToShow}
+                    {isActive(nav.path) ? nav.iconActive : nav.icon}
                   </span>
                   {!shouldShowIconsOnly && (
                     <span
@@ -419,26 +396,17 @@ const AppSidebar: React.FC = () => {
         >
           <Link href="/" onClick={handleLinkClick}>
             {!shouldShowIconsOnly ? (
-              <>
-                <Image
-                  className="dark:hidden ml-3"
-                  src="/images/logo/lumashape.svg"
-                  alt="Lumashape Logo"
-                  width={175}
-                  height={47}
-                />
-                <Image
-                  className="hidden dark:block ml-3"
-                  src="/images/logo/lumashape.svg"
-                  alt="Lumashape Logo"
-                  width={175}
-                  height={47}
-                />
-              </>
+              <Image
+                className="ml-3"
+                src="/images/logo/lumashape.svg"
+                alt="Lumashape Logo"
+                width={175}
+                height={47}
+              />
             ) : (
               <Image
                 className=""
-                src="/images/logo/lumashape_logo.svg"
+                src="/images/logo/lumashape.svg"
                 alt="Lumashape Logo"
                 width={175}
                 height={47}
