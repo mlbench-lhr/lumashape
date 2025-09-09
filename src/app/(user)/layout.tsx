@@ -15,67 +15,58 @@ export default function AdminLayout({
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
   const pathname = usePathname();
 
-  // Routes where sidebar should be hidden
+  // Define routes where sidebar should be hidden
   const hideSidebarRoutes = [
-    "/annotations/cell-segmentation",
-    "/annotations/cell-segmentation/",
+    "/annotations/cell-segmentation", // Exact match
+    "/annotations/cell-segmentation/", // With trailing slash
+    // Add more exact routes as needed
   ];
 
-  const hideSidebarPrefixes = ["/annotations/cell-segmentation/"];
+  // Define route prefixes where sidebar should be hidden (for wildcard matching)
+  const hideSidebarPrefixes = [
+    "/annotations/cell-segmentation/", // Any route starting with this
+    // Add more prefixes as needed
+  ];
 
-  // Compact sidebar only for design layout route
-  const isDesignLayoutRoute =
-    pathname === "/workspace/create-new-layout/design-layout" ||
-    pathname === "/workspace/create-new-layout/design-layout/" ||
-    pathname === "/create-new-layout/design-layout" ||
-    pathname === "/create-new-layout/design-layout/";
-
+  // Check if current path should hide sidebar
   const shouldHideSidebar =
-    hideSidebarRoutes.includes(pathname) ||
-    hideSidebarPrefixes.some((prefix) => pathname.startsWith(prefix));
+    hideSidebarRoutes.includes(pathname) || // Exact match
+    hideSidebarPrefixes.some((prefix) => pathname.startsWith(prefix)); // Prefix match
 
-  // Sidebar width logic
-  const getSidebarWidth = () => {
-    if (isDesignLayoutRoute) return 70; // compact
-    if (isExpanded || isHovered) return 290; // expanded
-    return 90; // collapsed
-  };
+  // Alternative approach using a single function for more complex matching:
+  // const shouldHideSidebar = checkIfShouldHideSidebar(pathname);
 
-  const sidebarWidth = shouldHideSidebar ? 0 : getSidebarWidth();
-  const extraLeftMargin = 20;
+  // Dynamic margin for responsive layout
+  const sidebarMargin = shouldHideSidebar
+    ? "ml-0" // No margin when sidebar is hidden
+    : isMobileOpen
+    ? "ml-0" // No margin on mobile when sidebar is open
+    : isExpanded || isHovered
+    ? "lg:ml-[290px]"
+    : "lg:ml-[90px]";
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] relative">
-      {/* Sidebar (absolute, overlays, does not take flex space) */}
+    <div className="min-h-screen flex">
+      {/* Conditionally render sidebar components */}
       {!shouldHideSidebar && (
         <>
-          {!isDesignLayoutRoute && <HamburgerMenu />}
-          <div
-            className="fixed top-0 left-0 h-full z-40 transition-all duration-300"
-            style={{ width: `${sidebarWidth}px` }}
-          >
-            <AppSidebar />
-          </div>
+          {/* Hamburger Menu - Only visible on mobile */}
+          <HamburgerMenu />
+
+          {/* Sidebar and Backdrop */}
+          <AppSidebar />
           <Backdrop />
         </>
       )}
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <main
-        className={`transition-all duration-300 ease-in-out ${
-          isDesignLayoutRoute ? "bg-white" : "bg-[#FAFAFA]"
-        }`}
-        style={{
-          marginLeft: `${sidebarWidth + extraLeftMargin}px`, // 👈 push content extra from left
-          width: `calc(100% - ${sidebarWidth + extraLeftMargin}px)`, // take rest of the screen
-        }}
+        className={`flex-1 transition-all duration-300 ease-in-out ${sidebarMargin} px-4 md:px-6 ${
+          shouldHideSidebar ? "pt-0" : "pt-16 lg:pt-0"
+        } bg-[#FAFAFA]`}
       >
-        <div
-          className={`${
-            isDesignLayoutRoute ? "flex h-full" : "flex min-h-screen justify-start"
-          }`}
-        >
-          <div className="w-full">{children}</div>
+        <div className="flex justify-center min-h-screen">
+          <div className="w-full max-w-screen-xl">{children}</div>
         </div>
       </main>
     </div>

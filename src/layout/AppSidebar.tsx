@@ -437,11 +437,11 @@ const AppSidebar: React.FC = () => {
               </>
             ) : (
               <Image
-                className="ml-2"
+                className=""
                 src="/images/logo/lumashape_logo.svg"
                 alt="Lumashape Logo"
-                width={40}
-                height={40}
+                width={175}
+                height={47}
               />
             )}
           </Link>

@@ -253,11 +253,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             disabled: false
         },
         {
-            icon: "/images/workspace/zoom.svg",
-            label: 'Zoom',
-            disabled: true
-        },
-        {
             icon: "/images/workspace/delete.svg",
             label: 'delete',
             action: handleDelete,
