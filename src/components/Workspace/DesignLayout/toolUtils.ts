@@ -30,10 +30,10 @@ export const useUndoRedo = (initialState: DroppedTool[] = []) => {
       const newHistory = prevState.history.slice(0, prevState.currentIndex + 1);
       // Add the new state
       newHistory.push(JSON.parse(JSON.stringify(newState)));
-      
+
       // Keep history limited to 50 states
       const limitedHistory = newHistory.slice(-50);
-      
+
       const newStateObj = {
         history: limitedHistory,
         currentIndex: limitedHistory.length - 1,
@@ -94,7 +94,7 @@ export const rotateTool = (
   degrees: number
 ): void => {
   if (activeTool === 'cursor' && selectedTool === toolId) {
-    updateDroppedTools(prev => 
+    updateDroppedTools(prev =>
       prev.map(tool =>
         tool.id === toolId
           ? { ...tool, rotation: (tool.rotation + degrees) % 360 }
@@ -114,14 +114,14 @@ export const flipToolRelativeToRotation = (
   direction: 'horizontal' | 'vertical'
 ): void => {
   if (activeTool === 'cursor' && selectedTool === toolId) {
-    updateDroppedTools(prev => 
+    updateDroppedTools(prev =>
       prev.map(tool => {
         if (tool.id === toolId) {
           const normalizedRotation = ((tool.rotation % 360) + 360) % 360;
-          
+
           let flipHorizontal = tool.flipHorizontal;
           let flipVertical = tool.flipVertical;
-          
+
           if (direction === 'horizontal') {
             if (normalizedRotation >= 45 && normalizedRotation < 135) {
               flipVertical = !flipVertical;
@@ -143,7 +143,7 @@ export const flipToolRelativeToRotation = (
               flipVertical = !flipVertical;
             }
           }
-          
+
           return {
             ...tool,
             flipHorizontal,
@@ -228,7 +228,7 @@ export const copySelectedTools = (
   groups: ToolGroup[] = []
 ): void => {
   const selectedToolObjects = droppedTools.filter(tool => selectedTools.includes(tool.id));
-  const selectedGroupObjects = groups.filter(group => 
+  const selectedGroupObjects = groups.filter(group =>
     group.toolIds.some(toolId => selectedTools.includes(toolId))
   );
 
@@ -253,13 +253,13 @@ export const pasteTools = (
 
   updateDroppedTools(prev => {
     const newTools = [...prev];
-    
+
     // Create new tools with new IDs and offset positions
     clipboardData!.tools.forEach(tool => {
       const newId = `${tool.id}_copy_${Date.now()}_${Math.random()}`;
       idMapping[tool.id] = newId;
       newToolIds.push(newId);
-      
+
       const newTool: DroppedTool = {
         ...tool,
         id: newId,
@@ -267,7 +267,7 @@ export const pasteTools = (
         y: tool.y + offsetY,
         groupId: undefined // Will be set later if part of a group
       };
-      
+
       newTools.push(newTool);
     });
 
@@ -278,11 +278,11 @@ export const pasteTools = (
   if (setGroups && clipboardData.groups.length > 0) {
     setGroups(prev => {
       const newGroups = [...prev];
-      
+
       clipboardData!.groups.forEach(group => {
         const newGroupId = `${group.id}_copy_${Date.now()}`;
         const newToolIds = group.toolIds.map(toolId => idMapping[toolId]).filter(Boolean);
-        
+
         if (newToolIds.length > 0) {
           newGroups.push({
             ...group,
@@ -291,18 +291,18 @@ export const pasteTools = (
             x: group.x + offsetX,
             y: group.y + offsetY
           });
-          
+
           // Update tools to have the new group ID
-          updateDroppedTools(prev => 
-            prev.map(tool => 
-              newToolIds.includes(tool.id) 
+          updateDroppedTools(prev =>
+            prev.map(tool =>
+              newToolIds.includes(tool.id)
                 ? { ...tool, groupId: newGroupId }
                 : tool
             )
           );
         }
       });
-      
+
       return newGroups;
     });
   }
@@ -410,7 +410,7 @@ export const autoLayout = (
 
   updateDroppedTools(prev => {
     const newTools = [...prev];
-    
+
     sortedTools.forEach((tool, index) => {
       const toolIndex = newTools.findIndex(t => t.id === tool.id);
       if (toolIndex !== -1) {
@@ -469,6 +469,9 @@ export const updateToolAppearance = (
   property: 'opacity' | 'smooth',
   value: number
 ): void => {
+  // Ensure the input is a valid number
+  if (isNaN(value)) return;
+
   updateDroppedTools(prev =>
     prev.map(tool =>
       tool.id === toolId
