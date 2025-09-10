@@ -1,6 +1,6 @@
 import React from 'react';
 import { DroppedTool, Tool } from './types';
-import { RefreshCw, X, Move, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { RefreshCw, X, Move, ZoomIn, ZoomOut, Maximize, AlertTriangle, Check } from 'lucide-react';
 import { useCanvas } from './useCanvas';
 
 interface CanvasProps {
@@ -33,6 +33,8 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     canvasContainerRef,
     selectionBox,
     viewport,
+    hasOverlaps,
+    overlappingTools,
     getToolDimensions,
     getShadowOffset,
     getCanvasStyle,
@@ -46,6 +48,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     handleCanvasMouseDown,
     handleDeleteTool,
     handleDeleteSelectedTools,
+    autoFixOverlaps,
     getCanvasCursor,
     getToolCursor,
     fitToView,
@@ -74,6 +77,36 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     );
   };
 
+  // Render overlap notification
+  const renderOverlapNotification = () => {
+    if (!hasOverlaps) return null;
+
+    return (
+      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-50">
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 shadow-lg max-w-sm">
+          <div className="flex items-start space-x-3">
+            <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-800">
+                Note: The layout that you have selected is invalid
+              </p>
+              <p className="text-xs text-red-600 mt-1">
+                {overlappingTools.length} tool{overlappingTools.length > 1 ? 's are' : ' is'} overlapping
+              </p>
+              <button
+                onClick={autoFixOverlaps}
+                className="mt-2 inline-flex items-center px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded transition-colors"
+              >
+                <Check className="w-3 h-3 mr-1" />
+                Auto-fix positions
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Handle keyboard shortcuts
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -95,6 +128,9 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 
   return (
     <div className="flex-1 relative bg-gray-100 overflow-hidden">
+      {/* Overlap Notification */}
+      {renderOverlapNotification()}
+
       {/* Viewport Controls */}
       <div className="absolute top-4 right-4 z-40 flex flex-col gap-2 bg-white rounded-lg shadow-lg p-2">
         <button
@@ -117,7 +153,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
       </div>
 
       {/* Canvas Container - handles viewport and zoom */}
-      <div 
+      <div
         ref={canvasContainerRef}
         className="absolute inset-0 overflow-hidden"
         style={{
@@ -166,17 +202,18 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             const shadowOffset = getShadowOffset(tool);
             const isSelected = selectedTools.includes(tool.id);
             const isPrimarySelection = selectedTool === tool.id;
+            const isOverlapping = overlappingTools.includes(tool.id);
 
             return (
               <div
                 key={tool.id}
-                className={`absolute select-none group ${
-                  isSelected 
-                    ? isPrimarySelection 
-                      ? 'ring-2 ring-blue-500' 
-                      : 'ring-2 ring-blue-300'
-                    : ''
-                } ${isSelected ? 'z-20' : 'z-10'}`}
+                className={`absolute select-none group ${isSelected
+                  ? isPrimarySelection
+                    ? 'ring-2 ring-blue-500'
+                    : 'ring-2 ring-blue-300'
+                  : ''
+                  } ${isSelected ? 'z-20' : 'z-10'} ${isOverlapping ? 'ring-2 ring-red-500 ring-opacity-60' : ''
+                  }`}
                 style={{
                   left: tool.x,
                   top: tool.y,
@@ -212,15 +249,22 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                       <img
                         src={tool.image}
                         alt={tool.name}
-                        className={`relative w-full h-full object-cover rounded z-10 ${
-                          isSelected ? 'brightness-110' : ''
-                        }`}
+                        className={`relative w-full h-full object-cover rounded z-10 ${isSelected ? 'brightness-110' : ''
+                          } ${isOverlapping ? 'brightness-75 saturate-150' : ''
+                          }`}
                         style={{
                           boxSizing: 'border-box',
                           opacity: tool.opacity / 100
                         }}
                         draggable={false}
                       />
+                    </div>
+                  )}
+
+                  {/* Overlap indicator */}
+                  {isOverlapping && (
+                    <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center z-30">
+                      <AlertTriangle className="w-3 h-3" />
                     </div>
                   )}
 
@@ -251,6 +295,14 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     <span className="text-gray-300">
                       Size: {toolWidth}×{toolHeight}px
                     </span>
+                    {isOverlapping && (
+                      <>
+                        <br />
+                        <span className="text-red-300 text-xs">
+                          ⚠ Overlapping
+                        </span>
+                      </>
+                    )}
                     {isSelected && selectedTools.length > 1 && (
                       <>
                         <br />
@@ -306,6 +358,28 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           {activeTool === 'hand' && (
             <div className="text-xs text-gray-500 mt-1">
               Drag to pan • Scroll to zoom
+            </div>
+          )}
+        </div>
+
+        {/* Layout Status Indicator */}
+        <div className="absolute bottom-4 right-4 bg-white bg-opacity-90 rounded-lg px-3 py-2 text-sm shadow-lg">
+          <div className={`flex items-center space-x-2 ${hasOverlaps ? 'text-red-600' : 'text-green-600'}`}>
+            {hasOverlaps ? (
+              <>
+                <AlertTriangle className="w-4 h-4" />
+                <span className="font-medium">Layout Invalid</span>
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4" />
+                <span className="font-medium">Layout Valid</span>
+              </>
+            )}
+          </div>
+          {hasOverlaps && (
+            <div className="text-xs text-gray-600 mt-1">
+              {overlappingTools.length} overlapping tool{overlappingTools.length > 1 ? 's' : ''}
             </div>
           )}
         </div>
