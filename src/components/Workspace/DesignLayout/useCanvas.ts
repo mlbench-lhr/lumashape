@@ -41,6 +41,10 @@ export const useCanvas = ({
   const [isDraggingSelection, setIsDraggingSelection] = useState(false);
   const [initialPositions, setInitialPositions] = useState<Record<string, { x: number; y: number }>>({});
   
+  // Overlap detection state
+  const [hasOverlaps, setHasOverlaps] = useState(false);
+  const [overlappingTools, setOverlappingTools] = useState<string[]>([]);
+  
   // Viewport state (Figma-style navigation)
   const [viewport, setViewport] = useState({
     x: 0,     // viewport offset x
@@ -96,6 +100,103 @@ export const useCanvas = ({
       toolHeight: size.height 
     };
   }, []);
+
+  // Check if two tools overlap
+  const doToolsOverlap = useCallback((tool1: DroppedTool, tool2: DroppedTool) => {
+    const { toolWidth: w1, toolHeight: h1 } = getToolDimensions(tool1);
+    const { toolWidth: w2, toolHeight: h2 } = getToolDimensions(tool2);
+    
+    // Add small buffer to prevent touching tools from being considered overlapping
+    const buffer = 2;
+    
+    return !(tool1.x + w1 <= tool2.x + buffer || 
+             tool2.x + w2 <= tool1.x + buffer || 
+             tool1.y + h1 <= tool2.y + buffer || 
+             tool2.y + h2 <= tool1.y + buffer);
+  }, [getToolDimensions]);
+
+  // Detect overlaps between tools
+  const detectOverlaps = useCallback(() => {
+    const overlaps: string[] = [];
+    
+    for (let i = 0; i < droppedTools.length; i++) {
+      for (let j = i + 1; j < droppedTools.length; j++) {
+        if (doToolsOverlap(droppedTools[i], droppedTools[j])) {
+          if (!overlaps.includes(droppedTools[i].id)) {
+            overlaps.push(droppedTools[i].id);
+          }
+          if (!overlaps.includes(droppedTools[j].id)) {
+            overlaps.push(droppedTools[j].id);
+          }
+        }
+      }
+    }
+    
+    setOverlappingTools(overlaps);
+    setHasOverlaps(overlaps.length > 0);
+  }, [droppedTools, doToolsOverlap]);
+
+  // Run overlap detection when tools change
+  useEffect(() => {
+    detectOverlaps();
+  }, [detectOverlaps]);
+
+  // Find non-overlapping position for a tool
+  const findNonOverlappingPosition = useCallback((
+    tool: DroppedTool, 
+    existingTools: DroppedTool[], 
+    startX?: number, 
+    startY?: number
+  ) => {
+    const { toolWidth, toolHeight } = getToolDimensions(tool);
+    const canvasStyle = getCanvasStyle();
+    const maxCanvasWidth = parseInt(canvasStyle.width) - toolWidth;
+    const maxCanvasHeight = parseInt(canvasStyle.height) - toolHeight;
+    
+    let x = Math.max(0, Math.min(startX ?? tool.x, maxCanvasWidth));
+    let y = Math.max(0, Math.min(startY ?? tool.y, maxCanvasHeight));
+    
+    const step = 20; // Grid step for positioning
+    const maxAttempts = 100;
+    let attempts = 0;
+    
+    while (attempts < maxAttempts) {
+      const testTool = { ...tool, x, y };
+      
+      // Check if this position overlaps with any existing tool
+      const hasOverlap = existingTools.some(existingTool => 
+        existingTool.id !== tool.id && doToolsOverlap(testTool, existingTool)
+      );
+      
+      if (!hasOverlap) {
+        return { x, y };
+      }
+      
+      // Try next position in a spiral pattern
+      const spiralIndex = Math.floor(attempts / 4);
+      const direction = attempts % 4;
+      
+      switch (direction) {
+        case 0: // Right
+          x = Math.min(x + step * (spiralIndex + 1), maxCanvasWidth);
+          break;
+        case 1: // Down
+          y = Math.min(y + step * (spiralIndex + 1), maxCanvasHeight);
+          break;
+        case 2: // Left
+          x = Math.max(x - step * (spiralIndex + 1), 0);
+          break;
+        case 3: // Up
+          y = Math.max(y - step * (spiralIndex + 1), 0);
+          break;
+      }
+      
+      attempts++;
+    }
+    
+    // If no non-overlapping position found, return original or fallback
+    return { x: Math.max(0, Math.min(tool.x, maxCanvasWidth)), y: Math.max(0, Math.min(tool.y, maxCanvasHeight)) };
+  }, [getToolDimensions, getCanvasStyle, doToolsOverlap]);
 
   // Enhanced thickness calculation for 3D effect
   const getShadowOffset = useCallback((tool: DroppedTool) => {
@@ -249,9 +350,14 @@ export const useCanvas = ({
         smooth: 0,
       };
 
+      // Find non-overlapping position for the new tool
+      const nonOverlappingPos = findNonOverlappingPosition(newTool, droppedTools, x, y);
+      newTool.x = nonOverlappingPos.x;
+      newTool.y = nonOverlappingPos.y;
+
       setDroppedTools(prev => [...prev, newTool]);
     }
-  }, [getToolDimensions, unit, setDroppedTools, screenToCanvas]);
+  }, [getToolDimensions, unit, setDroppedTools, screenToCanvas, findNonOverlappingPosition, droppedTools]);
 
   const handleToolMouseDown = useCallback((e: React.MouseEvent, toolId: string) => {
     e.preventDefault();
@@ -428,6 +534,35 @@ export const useCanvas = ({
     }
   }, [selectedTools, setDroppedTools, setSelectedTools, setSelectedTool]);
 
+  // Auto-fix overlaps function
+  const autoFixOverlaps = useCallback(() => {
+    const toolsToFix = droppedTools.filter(tool => overlappingTools.includes(tool.id));
+    
+    setDroppedTools(prev => {
+      const newTools = [...prev];
+      const processedIds = new Set<string>();
+      
+      toolsToFix.forEach(tool => {
+        if (!processedIds.has(tool.id)) {
+          const otherTools = newTools.filter(t => t.id !== tool.id);
+          const nonOverlappingPos = findNonOverlappingPosition(tool, otherTools);
+          
+          const toolIndex = newTools.findIndex(t => t.id === tool.id);
+          if (toolIndex !== -1) {
+            newTools[toolIndex] = { 
+              ...newTools[toolIndex], 
+              x: nonOverlappingPos.x, 
+              y: nonOverlappingPos.y 
+            };
+          }
+          processedIds.add(tool.id);
+        }
+      });
+      
+      return newTools;
+    });
+  }, [droppedTools, overlappingTools, findNonOverlappingPosition, setDroppedTools]);
+
   // Style helpers
   const getCanvasCursor = useCallback(() => {
     if (isPanning) return 'grabbing';
@@ -503,12 +638,15 @@ export const useCanvas = ({
     dragOffset,
     selectionBox,
     viewport,
+    hasOverlaps,
+    overlappingTools,
 
     // Utility functions
     getToolDimensions,
     getShadowOffset,
     getCanvasStyle,
     getViewportTransform,
+    findNonOverlappingPosition,
 
     // Event handlers
     handleDragOver,
@@ -520,6 +658,7 @@ export const useCanvas = ({
     handleCanvasMouseDown,
     handleDeleteTool,
     handleDeleteSelectedTools,
+    autoFixOverlaps,
 
     // Style helpers
     getCanvasCursor,

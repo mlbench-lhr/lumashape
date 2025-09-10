@@ -127,7 +127,22 @@ const DesignLayoutAppSidebar: React.FC = () => {
   const isActive = useCallback(
     (path: string) => {
       if (!path) return false;
-      return pathname === path || pathname === `${path}/`;
+      
+      // Exact match or with trailing slash
+      if (pathname === path || pathname === `${path}/`) {
+        return true;
+      }
+      
+      // Check for nested paths under workspace and tools-inventory
+      if (path === '/workspace') {
+        return pathname.startsWith('/workspace/');
+      }
+      
+      if (path === '/tools-inventory') {
+        return pathname.startsWith('/tools-inventory/');
+      }
+      
+      return false;
     },
     [pathname]
   );
@@ -183,7 +198,7 @@ const DesignLayoutAppSidebar: React.FC = () => {
             {/* User Profile Section */}
             <div className="mt-auto pb-4">
               <div
-                className="flex items-center justify-center p-3 transition-colors hover:bg-gray-50 rounded-lg"
+                className="flex items-center justify-center p-3 transition-colors rounded-lg"
                 title={user?.username || "User Profile"}
               >
                 <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
