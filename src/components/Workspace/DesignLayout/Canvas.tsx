@@ -336,20 +336,6 @@ const Canvas: React.FC<CanvasProps> = (props) => {
               </p>
             </div>
           )}
-
-          {/* Multi-selection info */}
-          {selectedTools.length > 1 && (
-            <div className="absolute top-4 left-4 bg-blue-500 text-white px-3 py-2 rounded-md text-sm font-medium">
-              {selectedTools.length} tools selected
-              <button
-                className="ml-2 text-blue-200 hover:text-white"
-                onClick={handleDeleteSelectedTools}
-                title="Delete selected tools"
-              >
-                <X className="w-4 h-4 inline" />
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Zoom indicator */}
