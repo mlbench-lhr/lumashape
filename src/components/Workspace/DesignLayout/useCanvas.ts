@@ -74,6 +74,15 @@ export const useCanvas = ({
     };
   }, [canvasWidth, canvasHeight, unit, toPx]);
 
+  // Get canvas boundaries in pixels
+  const getCanvasBounds = useCallback(() => {
+    const style = getCanvasStyle();
+    return {
+      width: parseInt(style.width),
+      height: parseInt(style.height)
+    };
+  }, [getCanvasStyle]);
+
   // Get viewport transform for canvas and tools
   const getViewportTransform = useCallback(() => {
     return {
@@ -100,6 +109,17 @@ export const useCanvas = ({
       toolHeight: size.height 
     };
   }, []);
+
+  // Constrain tool position to canvas boundaries
+  const constrainToCanvas = useCallback((tool: DroppedTool, x: number, y: number) => {
+    const { toolWidth, toolHeight } = getToolDimensions(tool);
+    const { width: canvasWidthPx, height: canvasHeightPx } = getCanvasBounds();
+    
+    const constrainedX = Math.max(0, Math.min(x, canvasWidthPx - toolWidth));
+    const constrainedY = Math.max(0, Math.min(y, canvasHeightPx - toolHeight));
+    
+    return { x: constrainedX, y: constrainedY };
+  }, [getToolDimensions, getCanvasBounds]);
 
   // Check if two tools overlap
   const doToolsOverlap = useCallback((tool1: DroppedTool, tool2: DroppedTool) => {
@@ -149,9 +169,9 @@ export const useCanvas = ({
     startY?: number
   ) => {
     const { toolWidth, toolHeight } = getToolDimensions(tool);
-    const canvasStyle = getCanvasStyle();
-    const maxCanvasWidth = parseInt(canvasStyle.width) - toolWidth;
-    const maxCanvasHeight = parseInt(canvasStyle.height) - toolHeight;
+    const { width: canvasWidthPx, height: canvasHeightPx } = getCanvasBounds();
+    const maxCanvasWidth = canvasWidthPx - toolWidth;
+    const maxCanvasHeight = canvasHeightPx - toolHeight;
     
     let x = Math.max(0, Math.min(startX ?? tool.x, maxCanvasWidth));
     let y = Math.max(0, Math.min(startY ?? tool.y, maxCanvasHeight));
@@ -194,9 +214,9 @@ export const useCanvas = ({
       attempts++;
     }
     
-    // If no non-overlapping position found, return original or fallback
-    return { x: Math.max(0, Math.min(tool.x, maxCanvasWidth)), y: Math.max(0, Math.min(tool.y, maxCanvasHeight)) };
-  }, [getToolDimensions, getCanvasStyle, doToolsOverlap]);
+    // If no non-overlapping position found, return constrained position
+    return constrainToCanvas(tool, startX ?? tool.x, startY ?? tool.y);
+  }, [getToolDimensions, getCanvasBounds, doToolsOverlap, constrainToCanvas]);
 
   // Enhanced thickness calculation for 3D effect
   const getShadowOffset = useCallback((tool: DroppedTool) => {
@@ -331,14 +351,14 @@ export const useCanvas = ({
       const { toolWidth, toolHeight } = getToolDimensions(mockTool);
 
       // Center the tool on the drop position
-      const x = Math.max(0, canvasPos.x - (toolWidth / 2));
-      const y = Math.max(0, canvasPos.y - (toolHeight / 2));
+      const x = canvasPos.x - (toolWidth / 2);
+      const y = canvasPos.y - (toolHeight / 2);
 
       const newTool: DroppedTool = {
         ...tool,
         id: `${tool.id}-${Date.now()}`,
-        x,
-        y,
+        x: 0, // Will be set by constrainToCanvas
+        y: 0, // Will be set by constrainToCanvas
         rotation: 0,
         flipHorizontal: false,
         flipVertical: false,
@@ -350,14 +370,21 @@ export const useCanvas = ({
         smooth: 0,
       };
 
-      // Find non-overlapping position for the new tool
-      const nonOverlappingPos = findNonOverlappingPosition(newTool, droppedTools, x, y);
+      // Constrain to canvas first, then find non-overlapping position
+      const constrainedPos = constrainToCanvas(newTool, x, y);
+      const nonOverlappingPos = findNonOverlappingPosition(
+        { ...newTool, x: constrainedPos.x, y: constrainedPos.y }, 
+        droppedTools, 
+        constrainedPos.x, 
+        constrainedPos.y
+      );
+      
       newTool.x = nonOverlappingPos.x;
       newTool.y = nonOverlappingPos.y;
 
       setDroppedTools(prev => [...prev, newTool]);
     }
-  }, [getToolDimensions, unit, setDroppedTools, screenToCanvas, findNonOverlappingPosition, droppedTools]);
+  }, [getToolDimensions, unit, setDroppedTools, screenToCanvas, constrainToCanvas, findNonOverlappingPosition, droppedTools]);
 
   const handleToolMouseDown = useCallback((e: React.MouseEvent, toolId: string) => {
     e.preventDefault();
@@ -470,7 +497,7 @@ export const useCanvas = ({
       }
     }
 
-    // Handle tool dragging (only in cursor mode)
+    // Handle tool dragging (only in cursor mode) - WITH BOUNDARY CONSTRAINTS
     if (dragOffset && isDraggingSelection && activeTool === 'cursor' && selectedTool) {
       const canvasPos = screenToCanvas(e.clientX, e.clientY);
       const newX = canvasPos.x - dragOffset.x;
@@ -484,17 +511,41 @@ export const useCanvas = ({
         setDroppedTools(prev =>
           prev.map(tool => {
             if (selectedTools.includes(tool.id) && initialPositions[tool.id]) {
-              const newToolX = Math.max(0, initialPositions[tool.id].x + deltaX);
-              const newToolY = Math.max(0, initialPositions[tool.id].y + deltaY);
+              const proposedX = initialPositions[tool.id].x + deltaX;
+              const proposedY = initialPositions[tool.id].y + deltaY;
               
-              return { ...tool, x: newToolX, y: newToolY };
+              // CONSTRAIN TO CANVAS BOUNDARIES
+              const constrainedPos = constrainToCanvas(tool, proposedX, proposedY);
+              
+              return { 
+                ...tool, 
+                x: constrainedPos.x, 
+                y: constrainedPos.y 
+              };
             }
             return tool;
           })
         );
       }
     }
-  }, [isPanning, activeTool, updatePan, selectionBox, screenToCanvas, isToolInSelectionBox, droppedTools, setSelectedTools, setSelectedTool, dragOffset, isDraggingSelection, selectedTool, initialPositions, selectedTools, setDroppedTools]);
+  }, [
+    isPanning, 
+    activeTool, 
+    updatePan, 
+    selectionBox, 
+    screenToCanvas, 
+    isToolInSelectionBox, 
+    droppedTools, 
+    setSelectedTools, 
+    setSelectedTool, 
+    dragOffset, 
+    isDraggingSelection, 
+    selectedTool, 
+    initialPositions, 
+    selectedTools, 
+    setDroppedTools,
+    constrainToCanvas // Added this dependency
+  ]);
 
   const handleMouseUp = useCallback(() => {
     endPan();
@@ -647,6 +698,7 @@ export const useCanvas = ({
     getCanvasStyle,
     getViewportTransform,
     findNonOverlappingPosition,
+    constrainToCanvas, // Added this new function to exports
 
     // Event handlers
     handleDragOver,
