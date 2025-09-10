@@ -149,10 +149,10 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     const handleAppearanceChange = useCallback((property: 'opacity' | 'smooth', value: number) => {
         if (selectedTool) {
-            updateToolAppearance(selectedTool, droppedTools, setDroppedTools, property, value);
-            onHistoryChange?.();
+            const clampedValue = Math.max(0, Math.min(100, value));
+            updateToolAppearance(selectedTool, droppedTools, setDroppedTools, property, clampedValue);
         }
-    }, [selectedTool, droppedTools, setDroppedTools, onHistoryChange]);
+    }, [selectedTool, droppedTools, setDroppedTools]);
 
     const ToolInventoryView = () => (
         <>
@@ -325,8 +325,23 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 type="number"
                                 min="0"
                                 max="100"
-                                value={selectedToolObject?.opacity || 100}
-                                onChange={(e) => handleAppearanceChange('opacity', parseInt(e.target.value) || 0)}
+                                value={selectedToolObject?.opacity ?? ""} // allow empty
+                                onChange={(e) => {
+                                    const raw = e.target.value;
+                                    if (raw === "") {
+                                        // Let the user clear input without forcing 0
+                                        handleAppearanceChange("opacity", NaN);
+                                    } else {
+                                        handleAppearanceChange("opacity", Number(raw));
+                                    }
+                                }}
+                                onBlur={(e) => {
+                                    // Fix invalid or empty values on blur
+                                    let value = Number(e.target.value);
+                                    if (isNaN(value)) value = selectedToolObject?.opacity ?? 100; // fallback
+                                    value = Math.max(0, Math.min(100, value));
+                                    handleAppearanceChange("opacity", value);
+                                }}
                                 disabled={effectiveSelectedTools.length === 0}
                                 className="w-full bg-transparent text-sm text-gray-700 focus:outline-none disabled:opacity-50"
                             />
@@ -339,7 +354,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                             />
                         </div>
                     </div>
-
                     {/* Smooth */}
                     <div className="flex items-center space-x-2">
                         <span className="text-sm text-gray-700 w-16">Smooth</span>
@@ -348,8 +362,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 type="number"
                                 min="0"
                                 max="100"
-                                value={selectedToolObject?.smooth || 100}
-                                onChange={(e) => handleAppearanceChange('smooth', parseInt(e.target.value) || 0)}
+                                value={selectedToolObject?.smooth || 0}
+                                onChange={(e) => {
+                                    const value = parseInt(e.target.value) || 0;
+                                    handleAppearanceChange('smooth', value);
+                                }}
+                                onBlur={(e) => {
+                                    // Ensure valid value on blur
+                                    const value = Math.max(0, Math.min(100, parseInt(e.target.value) || 0));
+                                    if (value !== parseInt(e.target.value)) {
+                                        handleAppearanceChange('smooth', value);
+                                    }
+                                }}
                                 disabled={!selectedTool}
                                 className="w-full bg-transparent text-sm text-gray-700 focus:outline-none disabled:opacity-50"
                             />

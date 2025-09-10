@@ -181,21 +181,6 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             Canvas: {canvasWidth} × {canvasHeight} {unit}
           </div>
 
-          {/* Tool instructions */}
-          <div className="absolute -top-8 right-0 text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded flex items-center">
-            {activeTool === 'hand' ? (
-              <>
-                <Move className="w-3 h-3 mr-1" />
-                Drag to pan • Scroll to zoom
-              </>
-            ) : (
-              <>
-                <Move className="w-3 h-3 mr-1" />
-                Click to select • Drag to select multiple
-              </>
-            )}
-          </div>
-
           {/* Dropped Tools */}
           {droppedTools.map(tool => {
             const { toolWidth, toolHeight } = getToolDimensions(tool);
@@ -203,6 +188,10 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             const isSelected = selectedTools.includes(tool.id);
             const isPrimarySelection = selectedTool === tool.id;
             const isOverlapping = overlappingTools.includes(tool.id);
+
+            // Calculate opacity and blur values
+            const opacity = (tool.opacity || 100) / 100;
+            const blurAmount = (tool.smooth || 0) / 10; // Convert 0-100 to 0-10px blur
 
             return (
               <div
@@ -227,7 +216,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 <div className="relative w-full h-full">
                   {tool.image && (
                     <div className="relative w-full h-full">
-                      {/* 3D Thickness Effect */}
+                      {/* 3D Thickness Effect - also apply opacity to shadows */}
                       {Array.from({ length: Math.max(2, Math.floor(shadowOffset / 4)) }, (_, i) => (
                         <img
                           key={`depth-${i}`}
@@ -237,15 +226,15 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                           style={{
                             left: `${i * 2}px`,
                             top: `${i * 2}px`,
-                            filter: `brightness(${0.6 - i * 0.08}) saturate(0.7)`,
+                            filter: `brightness(${0.6 - i * 0.08}) saturate(0.7) blur(${blurAmount}px)`,
                             zIndex: -i,
-                            opacity: 0.9 - (i * 0.15)
+                            opacity: (0.9 - (i * 0.15)) * opacity // Apply tool opacity to shadows too
                           }}
                           draggable={false}
                         />
                       ))}
 
-                      {/* Main tool image on top */}
+                      {/* Main tool image on top - UPDATED WITH OPACITY AND SMOOTH */}
                       <img
                         src={tool.image}
                         alt={tool.name}
@@ -254,7 +243,9 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                           }`}
                         style={{
                           boxSizing: 'border-box',
-                          opacity: tool.opacity / 100
+                          opacity: opacity,
+                          filter: `blur(${blurAmount}px)`,
+                          transition: 'opacity 0.2s ease, filter 0.2s ease',
                         }}
                         draggable={false}
                       />
@@ -288,13 +279,30 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     </div>
                   )}
 
-                  {/* Tool info with individual tool dimensions */}
+                  {/* Tool info with individual tool dimensions - UPDATED WITH OPACITY AND SMOOTH INFO */}
                   <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30">
                     {tool.name}
                     <br />
                     <span className="text-gray-300">
                       Size: {toolWidth}×{toolHeight}px
                     </span>
+                    {/* Show opacity and smooth values in tooltip */}
+                    {(tool.opacity !== undefined && tool.opacity !== 100) && (
+                      <>
+                        <br />
+                        <span className="text-blue-300 text-xs">
+                          Opacity: {tool.opacity}%
+                        </span>
+                      </>
+                    )}
+                    {(tool.smooth !== undefined && tool.smooth !== 0) && (
+                      <>
+                        <br />
+                        <span className="text-green-300 text-xs">
+                          Smooth: {tool.smooth}%
+                        </span>
+                      </>
+                    )}
                     {isOverlapping && (
                       <>
                         <br />
