@@ -29,6 +29,9 @@ function DesignLayout() {
   // State for active tool (cursor, hand, box)
   const [activeTool, setActiveTool] = useState<'cursor' | 'hand' | 'box'>('cursor');
 
+  // State for overlap detection (passed from Canvas)
+  const [hasOverlaps, setHasOverlaps] = useState<boolean>(false);
+
   // Unit conversion helper
   const convertValue = (
     value: number,
@@ -108,9 +111,28 @@ function DesignLayout() {
     }
   }, [redo]);
 
+  // Handle successful save
+  const handleSaveLayout = useCallback(() => {
+    // Clear the layout state after successful save
+    setDroppedTools([]);
+    setSelectedTool(null);
+    setSelectedTools([]);
+    
+    // Optionally show success message or redirect
+    console.log('Layout saved successfully!');
+  }, []);
+
   return (
     <div className="h-screen flex flex-col bg-gray-100">
-      <Header />
+      <Header 
+        droppedTools={droppedTools}
+        canvasWidth={canvasWidth}
+        canvasHeight={canvasHeight}
+        thickness={thickness}
+        unit={unit}
+        hasOverlaps={hasOverlaps}
+        onSaveLayout={handleSaveLayout}
+      />
       <ControlBar
         canvasWidth={canvasWidth}
         setCanvasWidth={setCanvasWidth}
@@ -136,6 +158,7 @@ function DesignLayout() {
           canvasHeight={canvasHeight}
           unit={unit}
           activeTool={activeTool}
+          onOverlapChange={setHasOverlaps} // Add this prop to track overlaps
         />
         <div className="w-80 flex-shrink-0">
           <Sidebar
