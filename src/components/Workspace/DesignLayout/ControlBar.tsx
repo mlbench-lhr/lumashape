@@ -38,11 +38,21 @@ const ControlBar: React.FC<ControlBarProps> = ({
         try {
           const parsed = JSON.parse(savedData);
 
-          // Load exactly what was saved
+          // Load units first
           if (parsed.units && (parsed.units === 'mm' || parsed.units === 'inches')) {
             setUnit(parsed.units);
           }
 
+          // Load canvas dimensions - map from width/length to canvasWidth/canvasHeight
+          if (parsed.width !== undefined && !isNaN(Number(parsed.width))) {
+            setCanvasWidth(Number(parsed.width));
+          }
+
+          if (parsed.length !== undefined && !isNaN(Number(parsed.length))) {
+            setCanvasHeight(Number(parsed.length));
+          }
+
+          // Also check for existing canvasWidth/canvasHeight (for when returning from design layout)
           if (parsed.canvasWidth !== undefined && !isNaN(Number(parsed.canvasWidth))) {
             setCanvasWidth(Number(parsed.canvasWidth));
           }
@@ -65,8 +75,22 @@ const ControlBar: React.FC<ControlBarProps> = ({
   // Save to sessionStorage whenever values change
   useEffect(() => {
     if (hasLoadedFromSession) {
+      const savedData = sessionStorage.getItem('layoutForm');
+      let existingData = {};
+      
+      if (savedData) {
+        try {
+          existingData = JSON.parse(savedData);
+        } catch (error) {
+          console.error('Error parsing existing sessionStorage data:', error);
+        }
+      }
+
       const dataToSave = {
+        ...existingData,
         units: unit,
+        width: canvasWidth, // Keep original width field
+        length: canvasHeight, // Keep original length field  
         canvasWidth: canvasWidth,
         canvasHeight: canvasHeight,
         thickness: thickness
