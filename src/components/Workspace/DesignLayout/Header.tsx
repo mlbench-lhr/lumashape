@@ -217,7 +217,7 @@ const Header: React.FC<HeaderProps> = ({
                         <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
                         <div>
                             <p className="text-sm font-medium text-green-800">Layout Saved Successfully!</p>
-                            <p className="text-sm text-green-700 mt-1">Your design has been saved and you'll be redirected shortly.</p>
+                            <p className="text-sm text-green-700 mt-1">Your design has been saved and you&apos;ll be redirected shortly.</p>
                         </div>
                     </div>
                 </div>
