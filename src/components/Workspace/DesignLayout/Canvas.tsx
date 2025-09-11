@@ -15,6 +15,7 @@ interface CanvasProps {
   canvasHeight: number;
   unit: 'mm' | 'inches';
   activeTool: 'cursor' | 'hand' | 'box';
+  onOverlapChange?: (hasOverlaps: boolean) => void; // Add this new prop
 }
 
 const Canvas: React.FC<CanvasProps> = (props) => {
@@ -106,6 +107,13 @@ const Canvas: React.FC<CanvasProps> = (props) => {
       </div>
     );
   };
+
+  React.useEffect(() => {
+    // Call the overlap change callback whenever hasOverlaps changes
+    if (props.onOverlapChange) {
+      props.onOverlapChange(hasOverlaps);
+    }
+  }, [hasOverlaps, props.onOverlapChange]);
 
   // Handle keyboard shortcuts
   React.useEffect(() => {
