@@ -266,7 +266,7 @@ const MyLayouts = () => {
               </h3>
               {searchQuery && (
                 <p className="text-gray-600 text-center max-w-sm">
-                  No layouts match "{searchQuery}". Try a different search term.
+                  {`No layouts match "${searchQuery}". Try a different search term.`}
                 </p>
               )}
             </div>
