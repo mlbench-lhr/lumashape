@@ -23,7 +23,12 @@ type Tool = {
   description?: string;
   purchaseLink?: string;
   backgroundImg?: string;
+  outlinesImg?: string;
+  annotatedImg?: string;
+  maskImg?: string;
+  processingData?: string; // JSON string if you’re storing it raw
 };
+
 
 const BRANDS_DESKTOP: Brand[] = [
   { id: 0, brand_logo: "Custom" },
@@ -363,13 +368,31 @@ const MobileToolsInventory = () => {
                       <div className="relative inline-block" data-dropdown>
                         <div className="w-[258px] sm:w-[242px]">
                           <div className="relative w-full h-[150px]">
-                            {tool.backgroundImg ? (
-                              <Image src={tool.backgroundImg} alt={tool.toolType} fill style={{ objectFit: "cover" }} />
+                            {tool.annotatedImg ? (
+                              <Image
+                                src={tool.annotatedImg}
+                                alt={`${tool.toolType} outlines`}
+                                fill
+                                style={{ objectFit: "contain", backgroundColor: "#f9f9f9" }}
+                              />
+                            ) : tool.backgroundImg ? (
+                              <Image
+                                src={tool.backgroundImg}
+                                alt={tool.toolType}
+                                fill
+                                style={{ objectFit: "cover" }}
+                              />
                             ) : (
                               <div className="relative w-[80px] h-[80px]">
-                                <Image src="/images/icons/wrench.svg" fill style={{ objectFit: "contain" }} alt="tool" />
+                                <Image
+                                  src="/images/icons/wrench.svg"
+                                  fill
+                                  style={{ objectFit: "contain" }}
+                                  alt="tool"
+                                />
                               </div>
                             )}
+
 
                             {/* Three dots button */}
                             <button

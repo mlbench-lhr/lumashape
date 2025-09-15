@@ -32,15 +32,28 @@ type ToolData = {
   purchase_link: string;
 };
 
+type CvProcessingResponse = {
+  annotated_link: string;
+  diagonal_inches: number;
+  dxf_link: string;
+  mask_link: string;
+  outlines_link: string;
+  scale_info: string;
+  success: boolean;
+};
+
+
 declare global {
   interface Window {
     toolUploadData?: {
       paperType: string;
       imageUrl: string;
       file: File;
+      serverResponse: CvProcessingResponse;
     };
   }
 }
+
 
 const Tools: Tool[] = [
   { id: 0, type: "Custom" },
@@ -67,8 +80,10 @@ const UploadNewToolPage2 = () => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
+  const [annotatedImageUrl, setAnnotatedImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [serverResponse, setServerResponse] = useState<CvProcessingResponse | null>(null);
 
   const [toolData, setToolData] = useState<ToolData>({
     id: 0,
@@ -83,26 +98,21 @@ const UploadNewToolPage2 = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleRemoveImage = () => {
-    // Clear the current image and file data
     setBackgroundUrl(null);
+    setAnnotatedImageUrl(null);
     setUploadFile(null);
 
-    // Clear the file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
 
-    // Clear localStorage data
     if (typeof window !== "undefined") {
       localStorage.removeItem("toolUploadData");
+      if (window.toolUploadData) {
+        delete window.toolUploadData;
+      }
     }
 
-    // Clear window data
-    if (typeof window !== "undefined" && window.toolUploadData) {
-      delete window.toolUploadData;
-    }
-
-    // Navigate back to the previous page
     router.push('/tools-inventory/upload-new-tool/upload-new-tool-page1');
   };
 
@@ -111,7 +121,6 @@ const UploadNewToolPage2 = () => {
     if (typeof window !== "undefined") {
       let data = window.toolUploadData;
 
-      // If window data doesn't exist, try localStorage
       if (!data) {
         const savedData = localStorage.getItem("toolUploadData");
         if (savedData) {
@@ -124,24 +133,34 @@ const UploadNewToolPage2 = () => {
       }
 
       if (data && data.paperType && data.imageUrl) {
-        // Set the paper type
         const paper = PAPERS.find((p) => p.type === data.paperType);
         if (paper) {
           setSelectedPaper(paper);
           setToolData((prev) => ({ ...prev, paper_type: data.paperType }));
         }
 
-        // Set the image
+        // Set the original background image
         setBackgroundUrl(data.imageUrl);
+
+        // Set server response data
+        if (data.serverResponse) {
+          setServerResponse(data.serverResponse);
+
+          // Show annotated image if available
+          if (data.serverResponse.annotated_link) {
+            setAnnotatedImageUrl(data.serverResponse.annotated_link);
+          }
+        }
+
         setUploadFile(data.file || null);
 
-        // Save to localStorage for reload persistence (without file as it's not serializable)
+        // Save to localStorage for reload persistence
         localStorage.setItem("toolUploadData", JSON.stringify({
           paperType: data.paperType,
           imageUrl: data.imageUrl,
+          serverResponse: data.serverResponse
         }));
       } else {
-        // If no data found, redirect back to page 1
         console.log("No upload data found, redirecting to page 1");
         router.push("/tools-inventory/upload-new-tool/upload-new-tool-page1");
       }
@@ -149,9 +168,10 @@ const UploadNewToolPage2 = () => {
   }, [router]);
 
   const handlePreviewOpen = () => {
-    if (!backgroundUrl) {
+    // Use annotated image if available, otherwise use original
+    const previewImage = annotatedImageUrl || backgroundUrl;
+    if (!previewImage) {
       toast.error("Background image must be selected", { position: "top-center" });
-      setIsLoading(false);
       setIsPreviewOpen(false);
       return;
     }
@@ -206,62 +226,16 @@ const UploadNewToolPage2 = () => {
     }
 
     try {
-      setShowModal(true);
-      setModalTitle("Uploading...");
-      setModalDescription("Sending your image to the server for processing...");
-
-      // Get the actual File from the stored file or recreate it from the blob URL
-      let file = uploadFile;
-      
-      if (!file && backgroundUrl) {
-        // If we don't have the original file but have a blob URL, 
-        // we need to fetch it and convert back to a file
-        try {
-          const response = await fetch(backgroundUrl);
-          const blob = await response.blob();
-          file = new File([blob], `uploaded_image_${Date.now()}.jpg`, { type: blob.type });
-        } catch (error) {
-          console.error("Error converting blob URL to file:", error);
-          throw new Error("Could not process the image file");
-        }
-      }
-
-      if (!file) {
-        throw new Error("No file available for upload");
-      }
-
-      const formData = new FormData();
-      const fileName = `${Date.now()}_${file.name}`;
-      formData.append("file", file);
-      formData.append("fileName", fileName);
-
-      const res = await fetch("/api/user/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Upload failed: ${errorText}`);
-      }
-
-      const { url: uploadedUrl } = await res.json();
-
-      // Update toolData with uploaded image URL
-      setToolData((prev) => ({
-        ...prev,
-        background_img: uploadedUrl,
-      }));
-
-      setShowModal(false);
-
-      // Build URL with all parameters including description and purchase_link
+      // Build URL with all parameters including the server response data
       const params = new URLSearchParams({
         paper: toolData.paper_type,
         brand: toolData.brand,
         type: toolData.tool_type,
-        imageUrl: uploadedUrl,
+        imageUrl: backgroundUrl, // Original image
+        annotatedImageUrl: annotatedImageUrl || '', // Annotated image
+        outlinesImageUrl: serverResponse?.outlines_link || '', // Outlines image
         description: toolData.description,
+        serverResponse: JSON.stringify(serverResponse || {}),
         ...(toolData.purchase_link.trim() && { purchaseLink: toolData.purchase_link })
       });
 
@@ -275,11 +249,10 @@ const UploadNewToolPage2 = () => {
 
       router.push(`/tools-inventory/tool-detected?${params.toString()}`);
     } catch (err) {
-      console.error("Upload error:", err);
-      toast.error(`Failed to upload image: ${err instanceof Error ? err.message : 'Unknown error'}`, { 
-        position: "top-center" 
+      console.error("Navigation error:", err);
+      toast.error(`Failed to proceed: ${err instanceof Error ? err.message : 'Unknown error'}`, {
+        position: "top-center"
       });
-      setShowModal(false);
     } finally {
       setIsLoading(false);
     }
@@ -288,6 +261,9 @@ const UploadNewToolPage2 = () => {
   const handleBack = () => {
     router.push('/tools-inventory/upload-new-tool/upload-new-tool-page1');
   };
+
+  // Get the display image (prefer annotated over original)
+  const displayImageUrl = annotatedImageUrl || backgroundUrl;
 
   return (
     <>
@@ -337,8 +313,15 @@ const UploadNewToolPage2 = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row mt-[30px] mb-[25px] gap-[36px]">
-              {/* Image Display - Now properly showing the image */}
+              {/* Image Display - Now showing annotated image with badge */}
               <div className="relative w-full sm:w-[430px] h-[433px] border border-b-0 rounded-[21px] bg-[#f9fcff] border-dotted border-gray-400">
+                {/* Processing status badge */}
+                {annotatedImageUrl && (
+                  <div className="absolute top-2 left-2 z-20 bg-green-500 text-white px-2 py-1 rounded-md text-xs font-medium">
+                    Processed ✓
+                  </div>
+                )}
+
                 <div className="absolute px-[12px] py-[8.5px] right-0 w-[88px] h-[41px] rounded-tr-[21px] bg-[#ebebeb] z-10">
                   <div className="flex justify-center items-center gap-[12px]">
                     <div className="p-[7px]">
@@ -368,13 +351,13 @@ const UploadNewToolPage2 = () => {
                 <div
                   className="flex items-center justify-center h-[376px] bg-cover bg-center border-b-0 rounded-t-[21px] border-transparent overflow-hidden"
                   style={{
-                    backgroundImage: backgroundUrl ? `url(${backgroundUrl})` : undefined,
+                    backgroundImage: displayImageUrl ? `url(${displayImageUrl})` : undefined,
                     backgroundRepeat: "no-repeat",
                     backgroundSize: "cover",
                     backgroundPosition: "center"
                   }}
                 >
-                  {!backgroundUrl && (
+                  {!displayImageUrl && (
                     <div className="flex flex-col items-center text-gray-500">
                       <Image
                         src="/images/icons/upload.svg"
@@ -403,14 +386,14 @@ const UploadNewToolPage2 = () => {
                 </div>
 
                 {/* Fullscreen Preview */}
-                {isPreviewOpen && backgroundUrl && (
+                {isPreviewOpen && displayImageUrl && (
                   <div
                     className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center"
                     onClick={handlePreviewClose}
                   >
                     <div className="relative max-w-[90vw] max-h-[90vh]">
                       <Image
-                        src={backgroundUrl}
+                        src={displayImageUrl}
                         alt="Full Preview"
                         width={800}
                         height={800}
@@ -427,10 +410,9 @@ const UploadNewToolPage2 = () => {
                   Brand
                 </Text>
                 <div className="flex justify-start mt-[20px] gap-[3px]">
-                  <div 
-                    className={`w-[91px] h-[65px] bg-[#d9d9d9] relative cursor-pointer border-2 ${
-                      toolData.brand === 'Bosch' ? 'border-blue-500' : 'border-transparent'
-                    }`}
+                  <div
+                    className={`w-[91px] h-[65px] bg-[#d9d9d9] relative cursor-pointer border-2 ${toolData.brand === 'Bosch' ? 'border-blue-500' : 'border-transparent'
+                      }`}
                     onClick={() => setToolData({ ...toolData, brand: 'Bosch' })}
                   >
                     <Image
@@ -440,10 +422,9 @@ const UploadNewToolPage2 = () => {
                       style={{ objectFit: "contain" }}
                     />
                   </div>
-                  <div 
-                    className={`w-[91px] h-[65px] relative cursor-pointer border-2 ${
-                      toolData.brand === 'Milwaukee' ? 'border-blue-500' : 'border-transparent'
-                    }`}
+                  <div
+                    className={`w-[91px] h-[65px] relative cursor-pointer border-2 ${toolData.brand === 'Milwaukee' ? 'border-blue-500' : 'border-transparent'
+                      }`}
                     onClick={() => setToolData({ ...toolData, brand: 'Milwaukee' })}
                   >
                     <Image
@@ -453,10 +434,9 @@ const UploadNewToolPage2 = () => {
                       style={{ objectFit: "contain" }}
                     />
                   </div>
-                  <div 
-                    className={`w-[91px] h-[65px] relative cursor-pointer border-2 ${
-                      toolData.brand === 'Makita' ? 'border-blue-500' : 'border-transparent'
-                    }`}
+                  <div
+                    className={`w-[91px] h-[65px] relative cursor-pointer border-2 ${toolData.brand === 'Makita' ? 'border-blue-500' : 'border-transparent'
+                      }`}
                     onClick={() => setToolData({ ...toolData, brand: 'Makita' })}
                   >
                     <Image

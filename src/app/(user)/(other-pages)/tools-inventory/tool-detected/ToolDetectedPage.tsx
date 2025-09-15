@@ -15,8 +15,23 @@ const ToolDetectedPage = () => {
   const brand = searchParams.get("brand");
   const type = searchParams.get("type");
   const imageUrl = searchParams.get("imageUrl");
+  const annotatedImageUrl = searchParams.get("annotatedImageUrl");
+  const outlinesImageUrl = searchParams.get("outlinesImageUrl");
   const description = searchParams.get("description");
   const purchaseLink = searchParams.get("purchaseLink");
+  const serverResponseParam = searchParams.get("serverResponse");
+
+  let serverResponse = null;
+  try {
+    if (serverResponseParam) {
+      serverResponse = JSON.parse(serverResponseParam);
+    }
+  } catch (error) {
+    console.error("Error parsing server response:", error);
+  }
+
+  // Use outlines image for display, fallback to annotated, then original
+  const displayImageUrl = outlinesImageUrl || annotatedImageUrl || imageUrl;
 
   const handleSave = async () => {
     const savedToken = localStorage.getItem("auth-token");
@@ -34,8 +49,11 @@ const ToolDetectedPage = () => {
           brand,
           type,
           imageUrl,
+          annotatedImageUrl,
+          outlinesImageUrl,
           description,
           purchase_link: purchaseLink,
+          serverResponse: serverResponse, // Include full server response
         }),
       });
 
@@ -58,10 +76,12 @@ const ToolDetectedPage = () => {
     if (brand) params.set("brand", brand);
     if (type) params.set("type", type);
     if (imageUrl) params.set("imageUrl", imageUrl);
+    if (annotatedImageUrl) params.set("annotatedImageUrl", annotatedImageUrl);
     if (description) params.set("description", description);
     if (purchaseLink) params.set("purchaseLink", purchaseLink);
+    if (serverResponseParam) params.set("serverResponse", serverResponseParam);
 
-    router.push(`/tools-inventory/upload-new-tool-page2?${params.toString()}`);
+    router.push(`/tools-inventory/upload-new-tool/upload-new-tool-page2?${params.toString()}`);
   };
 
   return (
@@ -81,7 +101,6 @@ const ToolDetectedPage = () => {
         </Text>
       </div>
 
-
       {/* Subtitle */}
       <div className="mt-[10px] sm:mt-[15px]">
         <Text as="p1" className="text-[#808080] text-[14px] sm:text-[16px]">
@@ -89,12 +108,19 @@ const ToolDetectedPage = () => {
         </Text>
       </div>
 
-      {/* Image Preview */}
+      {/* Image Preview - Now showing outlines/processed image */}
       <div className="w-full sm:w-[897px] h-auto mt-[20px] sm:mt-[35px]">
         <div className="relative w-full sm:w-[602px] h-[371px] border border-b-0 rounded-t-[21px] border-dotted border-gray-400 overflow-hidden">
-          {imageUrl ? (
+          {/* Processing status badge */}
+          {(outlinesImageUrl || annotatedImageUrl) && (
+            <div className="absolute top-2 left-2 z-20 bg-blue-500 text-white px-2 py-1 rounded-md text-xs font-medium">
+              {outlinesImageUrl ? 'Tool Outline Detected' : 'Processed'}
+            </div>
+          )}
+          
+          {displayImageUrl ? (
             <Image
-              src={imageUrl}
+              src={displayImageUrl}
               alt="tool-preview"
               fill
               className="object-cover rounded-t-[21px]"

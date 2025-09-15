@@ -29,6 +29,8 @@ type ToolData = {
   tool_type: string;
   description: string;
   purchase_link: string;
+  annotatedImg: string;
+  outlinesImg: string;
 };
 
 const Tools: Tool[] = [
@@ -71,6 +73,8 @@ const EditTool = () => {
     tool_type: "",
     description: "",
     purchase_link: "",
+    annotatedImg:"",
+    outlinesImg:"",
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -107,12 +111,14 @@ const EditTool = () => {
           tool_type: tool.toolType,
           description: tool.description || "",
           purchase_link: tool.purchaseLink || "",
+          annotatedImg: tool.annotatedImg || "",
+          outlinesImg: tool.outlinesImg || "",
         });
 
         // Set background image if exists - FIXED: Use the correct property
-        if (tool.backgroundImg) {
-          console.log("Setting background URL:", tool.backgroundImg); // Debug log
-          setBackgroundUrl(tool.backgroundImg);
+        if (tool.annotatedImg) {
+          console.log("Setting background URL:", tool.annotatedImg); // Debug log
+          setBackgroundUrl(tool.annotatedImg);
           setToolOptions(true);
         }
 
@@ -148,7 +154,7 @@ const EditTool = () => {
       const timer = setTimeout(() => {
         setBackgroundUrl(pendingUrl);
         // FIXED: Also update the toolData state
-        setToolData(prev => ({ ...prev, background_img: pendingUrl }));
+        setToolData(prev => ({ ...prev, annotatedImg: pendingUrl }));
         setShowModal(false);
         setToolOptions(true);
         setPendingUrl(null);
