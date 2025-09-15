@@ -8,6 +8,9 @@ export interface ITool extends Document {
   description?: string;
   purchaseLink?: string;
   backgroundImg?: string;
+  annotatedImg?: string; // NEW: Store annotated image URL
+  outlinesImg?: string;  // NEW: Store outlines image URL
+  processingData?: string; // NEW: Store server response as JSON string
   createdAt: Date;
   updatedAt: Date;
 }
@@ -52,6 +55,18 @@ const ToolSchema: Schema<ITool> = new mongoose.Schema(
       },
     },
     backgroundImg: {
+      type: String,
+      trim: true,
+    },
+    annotatedImg: {
+      type: String,
+      trim: true,
+    },
+    outlinesImg: {
+      type: String,
+      trim: true,
+    },
+    processingData: {
       type: String,
       trim: true,
     },

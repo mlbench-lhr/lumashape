@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { Client } from '@gradio/client';
 
 type Paper = {
   id: number;
@@ -21,13 +22,46 @@ const PAPERS: Paper[] = [
   { id: 2, type: "US Letter" },
 ];
 
-// ✅ Extend window type properly
+// Raw API response from CV server
+type CvProcessingRawResponse = {
+  tool_png_link: string;
+  diagonal_inches: number;
+  dxf_link: string;
+  mask_link: string;
+  outlines_link: string;
+  scale_info: string;
+  success: boolean;
+};
+
+// Normalized response your app will use
+type CvProcessingResponse = {
+  annotated_link: string;
+  diagonal_inches: number;
+  dxf_link: string;
+  mask_link: string;
+  outlines_link: string;
+  scale_info: string;
+  success: boolean;
+};
+
+
+
+// Enhanced interface to match server response
 declare global {
   interface Window {
     toolUploadData?: {
       paperType: string;
       imageUrl: string;
       file: File;
+      serverResponse: {
+        annotated_link: string;
+        diagonal_inches: number;
+        dxf_link: string;
+        mask_link: string;
+        outlines_link: string;
+        scale_info: string;
+        success: boolean;
+      };
     };
   }
 }
@@ -43,7 +77,6 @@ const UploadNewToolPage1 = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const router = useRouter();
-
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePreviewOpen = () => {
@@ -69,7 +102,7 @@ const UploadNewToolPage1 = () => {
 
     const url = URL.createObjectURL(file);
     setBackgroundUrl(url);
-    setSelectedFile(file); // ✅ store file
+    setSelectedFile(file);
   };
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -77,7 +110,6 @@ const UploadNewToolPage1 = () => {
     const file = event.dataTransfer.files?.[0];
     if (!file) return;
 
-    // ✅ Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error("Please select a valid image file", { position: "top-center" });
       return;
@@ -85,18 +117,16 @@ const UploadNewToolPage1 = () => {
 
     const url = URL.createObjectURL(file);
     setBackgroundUrl(url);
-    setSelectedFile(file); // ✅ This line is already correct
+    setSelectedFile(file);
 
-    // ✅ Optional: Clear the file input to avoid conflicts
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
-
   const handleRemoveImage = () => {
-    setBackgroundUrl(null); // ✅ Set to null instead of empty string
-    setSelectedFile(null); // ✅ Also reset selectedFile
+    setBackgroundUrl(null);
+    setSelectedFile(null);
 
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
@@ -107,7 +137,58 @@ const UploadNewToolPage1 = () => {
     event.preventDefault();
   };
 
-  const handleNext = () => {
+  // Updated function to process image with CV and handle server response
+  const processImageWithCV = async (): Promise<CvProcessingResponse> => {
+    if (!selectedFile || !selectedPaper) {
+      throw new Error("Missing required data");
+    }
+
+    try {
+      const client = await Client.connect("lumashape/Contour_Detection_Paper");
+      const inputs = [
+        selectedFile,
+        selectedPaper.type,
+        0.00002,
+        "mm",
+        "Off",
+        [],
+      ];
+
+      const response = await client.predict("/predict_full_paper_conservative", inputs);
+      console.log("CV Processing Response:", response);
+
+      if (!response?.data || !Array.isArray(response.data)) {
+        throw new Error("Invalid response format from API");
+      }
+
+      const result = response.data.find(
+        (item: CvProcessingRawResponse | null): item is CvProcessingRawResponse => item !== null
+      );
+
+      if (!result || !result.success) {
+        throw new Error("Invalid response data");
+      }
+
+      // Map raw response -> normalized response
+      return {
+        annotated_link: result.tool_png_link,
+        diagonal_inches: result.diagonal_inches,
+        dxf_link: result.dxf_link,
+        mask_link: result.mask_link,
+        outlines_link: result.outlines_link,
+        scale_info: result.scale_info,
+        success: result.success,
+      };
+    } catch (error) {
+      console.error("CV Processing Error:", error);
+      throw new Error(`Processing failed: ${error || "Unknown error"}`);
+    }
+  };
+
+
+
+
+  const handleNext = async () => {
     if (!selectedPaper) {
       toast.error("Paper type must be selected", { position: "top-center" });
       return;
@@ -116,7 +197,6 @@ const UploadNewToolPage1 = () => {
       toast.error("An image must be selected", { position: "top-center" });
       return;
     }
-
     if (!selectedFile) {
       toast.error("No file selected", { position: "top-center" });
       return;
@@ -127,25 +207,54 @@ const UploadNewToolPage1 = () => {
     setModalTitle("Processing...");
     setModalDescription("Detecting tool contours… this usually takes just a few seconds.");
 
-    const timer = setTimeout(() => {
+    try {
+      // Process image with CV
+      const serverResponse = await processImageWithCV();
+
+      // Update modal to show success
+      setModalTitle("Processing Complete!");
+      setModalDescription("Tool contours detected successfully. Preparing results...");
+
+      // Store all data in window object with server response structure
       if (typeof window !== "undefined") {
         window.toolUploadData = {
           paperType: selectedPaper.type,
           imageUrl: backgroundUrl,
-          file: selectedFile, // ✅ works for both manual upload + drag/drop
+          file: selectedFile,
+          serverResponse: serverResponse
         };
+
+        console.log("Stored processing results:", window.toolUploadData);
       }
 
-      setShowModal(false);
-      setIsProcessing(false);
-      setModalTitle("");
-      setModalDescription("");
-      router.push("/tools-inventory/upload-new-tool/upload-new-tool-page2");
-    }, 2000);
+      // Small delay to show success message
+      setTimeout(() => {
+        setShowModal(false);
+        setIsProcessing(false);
+        setModalTitle("");
+        setModalDescription("");
+        router.push("/tools-inventory/upload-new-tool/upload-new-tool-page2");
+      }, 1500);
 
-    return () => clearTimeout(timer);
+    } catch (error) {
+      console.error("Error processing image:", error);
+
+      setModalTitle("Processing Failed");
+      setModalDescription(error instanceof Error ? error.message : 'Unknown error occurred');
+
+      setTimeout(() => {
+        setShowModal(false);
+        setIsProcessing(false);
+        setModalTitle("");
+        setModalDescription("");
+      }, 4000);
+
+      toast.error("Failed to process image. Please try again.", {
+        position: "top-center",
+        autoClose: 5000
+      });
+    }
   };
-
 
   return (
     <>

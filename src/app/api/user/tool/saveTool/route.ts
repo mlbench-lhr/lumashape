@@ -21,7 +21,17 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log("body: ", body);
 
-    const { paper, brand, type, imageUrl, description, purchase_link } = body;
+    const { 
+      paper, 
+      brand, 
+      type, 
+      imageUrl, 
+      annotatedImageUrl,
+      outlinesImageUrl,
+      description, 
+      purchase_link,
+      serverResponse 
+    } = body;
 
     if (!paper || !brand || !type || !imageUrl) {
       return NextResponse.json(
@@ -38,6 +48,11 @@ export async function POST(req: Request) {
       description: description || "",
       purchaseLink: purchase_link || "",
       backgroundImg: imageUrl,
+      // Store additional processed image URLs
+      annotatedImg: annotatedImageUrl || "",
+      outlinesImg: outlinesImageUrl || "",
+      // Store server response data
+      processingData: serverResponse ? JSON.stringify(serverResponse) : "",
     });
 
     console.log("tool: ", tool);
