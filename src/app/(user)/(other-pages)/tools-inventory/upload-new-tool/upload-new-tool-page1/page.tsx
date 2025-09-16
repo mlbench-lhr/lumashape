@@ -29,7 +29,7 @@ type CvProcessingRawResponse = {
   dxf_link: string;
   mask_link: string;
   outlines_link: string;
-  scale_info: string;
+  scale_factor: string;
   success: boolean;
 };
 
@@ -144,7 +144,7 @@ const UploadNewToolPage1 = () => {
     }
 
     try {
-      const client = await Client.connect("lumashape/Contour_Detection_Paper");
+      const client = await Client.connect("lumashape/website_dxf_generation");
       const inputs = [
         selectedFile,
         selectedPaper.type,
@@ -170,13 +170,14 @@ const UploadNewToolPage1 = () => {
       }
 
       // Map raw response -> normalized response
+      // Map raw response -> normalized response
       return {
         annotated_link: result.tool_png_link,
         diagonal_inches: result.diagonal_inches,
         dxf_link: result.dxf_link,
         mask_link: result.mask_link,
         outlines_link: result.outlines_link,
-        scale_info: result.scale_info,
+        scale_info: result.scale_factor, // Changed from scale_factor to scale_info
         success: result.success,
       };
     } catch (error) {

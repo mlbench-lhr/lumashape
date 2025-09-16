@@ -8,9 +8,16 @@ export interface ITool extends Document {
   description?: string;
   purchaseLink?: string;
   backgroundImg?: string;
-  annotatedImg?: string; // NEW: Store annotated image URL
-  outlinesImg?: string;  // NEW: Store outlines image URL
-  processingData?: string; // NEW: Store server response as JSON string
+  annotatedImg?: string;
+  outlinesImg?: string;
+  // Individual CV processing fields
+  diagonalInches?: number;
+  dxfLink?: string;
+  maskLink?: string;
+  outlinesLink?: string;
+  scaleFactor?: number;
+  success?: boolean;
+  toolPngLink?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,7 +29,7 @@ const ToolSchema: Schema<ITool> = new mongoose.Schema(
       required: true,
       trim: true,
       lowercase: true,
-      index: true, // foreign key reference to User.email
+      index: true,
     },
     paperType: {
       type: String,
@@ -66,7 +73,29 @@ const ToolSchema: Schema<ITool> = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    processingData: {
+    // Individual CV processing response fields
+    diagonalInches: {
+      type: Number,
+    },
+    dxfLink: {
+      type: String,
+      trim: true,
+    },
+    maskLink: {
+      type: String,
+      trim: true,
+    },
+    outlinesLink: {
+      type: String,
+      trim: true,
+    },
+    scaleFactor: {
+      type: Number,
+    },
+    success: {
+      type: Boolean,
+    },
+    toolPngLink: {
       type: String,
       trim: true,
     },

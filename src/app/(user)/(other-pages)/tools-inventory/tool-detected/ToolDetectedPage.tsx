@@ -117,7 +117,7 @@ const ToolDetectedPage = () => {
               {outlinesImageUrl ? 'Tool Outline Detected' : 'Processed'}
             </div>
           )}
-          
+
           {displayImageUrl ? (
             <Image
               src={displayImageUrl}
@@ -176,6 +176,11 @@ const ToolDetectedPage = () => {
               <Text as="p1" className="py-2">
                 Tool Type
               </Text>
+              {serverResponse?.diagonal_inches && (
+                <Text as="p1" className="py-2">
+                  Diagonal Size
+                </Text>
+              )}
             </div>
 
             {/* right column: values */}
@@ -191,6 +196,21 @@ const ToolDetectedPage = () => {
               </Text>
             </div>
           </div>
+
+          {/* Scale Information */}
+          {serverResponse?.scale_info && (
+            <div className="border-t border-[#e7e7ea] px-4 py-3">
+              <Text
+                as="p1"
+                className="text-[#808080] font-medium text-[14px] sm:text-[16px] mb-2 block"
+              >
+                Scale Information
+              </Text>
+              <Text as="h5" className="text-[14px] sm:text-[16px] leading-relaxed">
+                {serverResponse.scale_info}
+              </Text>
+            </div>
+          )}
 
           {/* Description */}
           <div className="border-t border-[#e7e7ea] px-4 py-3">
