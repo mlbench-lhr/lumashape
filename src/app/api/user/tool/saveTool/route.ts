@@ -21,16 +21,16 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log("body: ", body);
 
-    const { 
-      paper, 
-      brand, 
-      type, 
-      imageUrl, 
+    const {
+      paper,
+      brand,
+      type,
+      imageUrl,
       annotatedImageUrl,
       outlinesImageUrl,
-      description, 
+      description,
       purchase_link,
-      serverResponse 
+      serverResponse
     } = body;
 
     if (!paper || !brand || !type || !imageUrl) {
@@ -48,14 +48,14 @@ export async function POST(req: Request) {
       description: description || "",
       purchaseLink: purchase_link || "",
       backgroundImg: imageUrl,
-      // Store additional processed image URLs
       annotatedImg: annotatedImageUrl || "",
       outlinesImg: outlinesImageUrl || "",
-      // Store server response data
-      processingData: serverResponse ? JSON.stringify(serverResponse) : "",
+      diagonalInches: serverResponse?.diagonal_inches ?? undefined,
+      scaleFactor: serverResponse?.scale_info ?? undefined,
     });
 
-    console.log("tool: ", tool);
+    console.log("Tool object before save:", tool);
+    console.log(`Server Response while saving tool : `, serverResponse);
 
     await tool.save();
 

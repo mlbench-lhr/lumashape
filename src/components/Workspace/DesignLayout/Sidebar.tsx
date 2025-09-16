@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     Search,
     ChevronDown
@@ -37,14 +37,26 @@ interface SidebarProps {
     onRedo?: () => void;
 }
 
-const TOOLS: Tool[] = [
-    { id: '1', name: 'Pliers', icon: '🔧', brand: 'MILWAUKEE', image: '/images/workspace/pliers.png' },
-    { id: '2', name: 'Hammer', icon: '🔨', brand: 'DEWALT', image: '/images/workspace/pliers.png' },
-    { id: '3', name: 'Screwdriver', icon: '🪛', brand: 'MILWAUKEE', image: '/images/workspace/pliers.png' },
-    { id: '4', name: 'Wrench', icon: '🔧', brand: 'CRAFTSMAN', image: '/images/workspace/pliers.png' },
-    { id: '5', name: 'Drill', icon: '🪚', brand: 'DEWALT', image: '/images/workspace/pliers.png' },
-    { id: '6', name: 'Saw', icon: '🪚', brand: 'MILWAUKEE', image: '/images/workspace/pliers.png' },
-];
+// Database tool interface
+// Database tool interface
+interface DatabaseTool {
+    _id: string;
+    userEmail: string;
+    paperType: string;
+    brand: string;
+    toolType: string;
+    description: string;
+    purchaseLink: string;
+    backgroundImg: string;
+    annotatedImg: string;
+    outlinesImg: string;
+    diagonalInches: number;   // ✅ new
+    scaleFactor: number;      // ✅ new
+    createdAt: string;
+    updatedAt: string;
+    __v: number;
+}
+
 
 const Sidebar: React.FC<SidebarProps> = ({
     droppedTools = [],
@@ -64,9 +76,196 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     const [activeTab, setActiveTab] = useState<'inventory' | 'edit'>('inventory');
     const [searchTerm, setSearchTerm] = useState('');
+    const [tools, setTools] = useState<Tool[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const filteredTools = TOOLS.filter(tool =>
-        tool.name.toLowerCase().includes(searchTerm.toLowerCase())
+    // Extract database tool data into separate variables
+    const extractToolData = (dbTool: DatabaseTool) => {
+        const {
+            _id,
+            userEmail,
+            paperType,
+            brand,
+            toolType,
+            description,
+            purchaseLink,
+            backgroundImg,
+            annotatedImg,
+            outlinesImg,
+            diagonalInches,
+            scaleFactor,
+            createdAt,
+            updatedAt,
+            __v
+        } = dbTool;
+
+        return {
+            id: _id,
+            userEmail,
+            paperType,
+            brand,
+            toolType,
+            description,
+            purchaseLink,
+            backgroundImg,
+            annotatedImg,
+            outlinesImg,
+            diagonalInches,
+            scaleFactor,
+            createdAt,
+            updatedAt,
+            version: __v
+        };
+    };
+
+
+    // Parse scale info from processing data
+    const parseScaleInfo = (processingData: string) => {
+        try {
+            const data = JSON.parse(processingData);
+            if (!data.scale_info) return null;
+
+            const scaleInfoStr = data.scale_info;
+            const scaleMatch = scaleInfoStr.match(/Scale:\s*([\d.e-]+)\s*mm\/px/);
+            const diagonalMatch = data.diagonal_inches;
+
+            return {
+                scale: scaleMatch ? parseFloat(scaleMatch[1]) : null,
+                diagonal_inches: diagonalMatch || null,
+                raw: data
+            };
+        } catch (error) {
+            console.error('Error parsing scale info:', error);
+            return null;
+        }
+    };
+
+    // Convert database tools to the format expected by the component
+    const convertDatabaseToolsToTools = (dbTools: DatabaseTool[]): Tool[] => {
+        return dbTools.map((dbTool) => {
+            const extractedData = extractToolData(dbTool);
+
+            return {
+                id: extractedData.id,
+                name: extractedData.toolType || 'Unknown Tool',
+                icon: getToolIcon(extractedData.toolType),
+                brand: extractedData.brand,
+                image: extractedData.annotatedImg,
+                metadata: {
+                    userEmail: extractedData.userEmail,
+                    paperType: extractedData.paperType,
+                    description: extractedData.description,
+                    purchaseLink: extractedData.purchaseLink,
+                    backgroundImg: extractedData.backgroundImg,
+                    outlinesImg: extractedData.outlinesImg,
+                    diagonalInches: extractedData.diagonalInches,
+                    scaleFactor: extractedData.scaleFactor,
+                    createdAt: extractedData.createdAt,
+                    updatedAt: extractedData.updatedAt,
+                    version: extractedData.version
+                }
+            };
+        });
+    };
+
+
+    // Helper function to get appropriate icon based on tool type
+    const getToolIcon = (toolType: string): string => {
+        const toolTypeIconMap: { [key: string]: string } = {
+            'pliers': '🔧',
+            'hammer': '🔨',
+            'screwdriver': '🪛',
+            'wrench': '🔧',
+            'drill': '🪚',
+            'saw': '🪚',
+            'custom': '🔧' // default for custom tools
+        };
+
+        const normalizedToolType = toolType?.toLowerCase() || '';
+
+        // Check for partial matches
+        for (const [key, icon] of Object.entries(toolTypeIconMap)) {
+            if (normalizedToolType.includes(key)) {
+                return icon;
+            }
+        }
+
+        return '🔧'; // default icon
+    };
+
+    // Get tool real dimensions for display (helper function)
+    const getToolRealDimensions = (tool: DroppedTool): { width: string; height: string; info: string } => {
+        const diagInches = tool.metadata?.diagonalInches;
+        const scaleFactor = tool.metadata?.scaleFactor;
+
+        if (diagInches && scaleFactor) {
+            const diagMm = diagInches * 25.4;
+            const diagPx = diagMm / scaleFactor;
+
+            return {
+                width: `~${Math.round(diagPx * 0.8)}px`,
+                height: `~${Math.round(diagPx * 0.5)}px`,
+                info: 'Estimated'
+            };
+        }
+
+        return {
+            width: 'Unknown',
+            height: 'Unknown',
+            info: 'No scale data'
+        };
+    };
+
+
+    // Fetch tools from database
+    const fetchTools = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const token = localStorage.getItem('auth-token');
+            if (!token) {
+                throw new Error('No authentication token found');
+            }
+
+            const response = await fetch('/api/user/tool/getAllTools', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch tools: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('Fetched tools from database:', data.tools);
+
+            // Convert database tools to component format
+            const convertedTools = convertDatabaseToolsToTools(data.tools || []);
+            setTools(convertedTools);
+
+        } catch (err) {
+            console.error('Error fetching tools:', err);
+            setError(err instanceof Error ? err.message : 'Failed to fetch tools');
+            // Fallback to empty array on error
+            setTools([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Fetch tools on component mount
+    useEffect(() => {
+        fetchTools();
+    }, []);
+
+    const filteredTools = tools.filter(tool =>
+        tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tool.brand.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     // Get the selected tool object for appearance controls
@@ -175,16 +374,45 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
             </div>
 
-            <div className="space-y-2">
-                {filteredTools.map((tool) => (
-                    <DraggableTool key={tool.id} tool={tool} />
-                ))}
-            </div>
-
-            {filteredTools.length === 0 && (
+            {loading && (
                 <div className="text-center text-gray-500 py-8">
-                    <p>No tools found matching &quot;{searchTerm}&quot;</p>
+                    <p>Loading tools...</p>
                 </div>
+            )}
+
+            {error && (
+                <div className="text-center text-red-500 py-8">
+                    <p>Error: {error}</p>
+                    <button
+                        onClick={fetchTools}
+                        className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600"
+                    >
+                        Retry
+                    </button>
+                </div>
+            )}
+
+            {!loading && !error && (
+                <>
+                    <div className="space-y-2">
+                        {filteredTools.map((tool) => (
+                            <DraggableTool key={tool.id} tool={tool} />
+                        ))}
+                    </div>
+
+                    {filteredTools.length === 0 && tools.length > 0 && (
+                        <div className="text-center text-gray-500 py-8">
+                            <p>No tools found matching &quot;{searchTerm}&quot;</p>
+                        </div>
+                    )}
+
+                    {tools.length === 0 && (
+                        <div className="text-center text-gray-500 py-8">
+                            <p>No tools available</p>
+                            <p className="text-xs mt-1">Add some tools to get started</p>
+                        </div>
+                    )}
+                </>
             )}
         </>
     );
@@ -278,7 +506,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </p>
                 {selectedToolObject && (
                     <p className="text-xs text-gray-500 mt-1">
-                        Fixed size tools on canvas
+                        Real-size tools based on scale data
                     </p>
                 )}
             </div>
@@ -500,23 +728,45 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <span className="text-gray-600">Position:</span>
                             <span className="text-gray-900">({Math.round(selectedToolObject.x)}, {Math.round(selectedToolObject.y)})</span>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Size:</span>
-                            <span className="text-gray-900">Fixed (80×80px)</span>
-                        </div>
+                        {(() => {
+                            const realDims = getToolRealDimensions(selectedToolObject);
+                            return (
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-600">Size:</span>
+                                    <span className="text-gray-900">{realDims.width} × {realDims.height}</span>
+                                </div>
+                            );
+                        })()}
+                        {selectedToolObject?.metadata?.scaleFactor && (
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-600">Scale:</span>
+                                <span className="text-gray-900 text-xs">
+                                    {selectedToolObject.metadata.scaleFactor.toFixed(3)} mm/px
+                                </span>
+                            </div>
+                        )}
+                        {selectedToolObject?.metadata?.diagonalInches && (
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-600">Diagonal:</span>
+                                <span className="text-gray-900 text-xs">
+                                    {selectedToolObject.metadata.diagonalInches.toFixed(2)} in
+                                </span>
+                            </div>
+                        )}
+
                     </div>
                 </div>
             )}
 
-            {/* Canvas Info */}
+            {/* Scale Info Section */}
             <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Canvas Info</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Scale Information</h3>
                 <div className="bg-blue-50 p-3 rounded-md">
                     <p className="text-sm text-blue-800">
-                        Canvas dimensions are controlled by the Control Bar above.
+                        {"Tools now display at their real size based on scale data from processing."}
                     </p>
                     <p className="text-xs text-blue-600 mt-1">
-                        Tools maintain fixed visual size regardless of canvas dimensions.
+                        {"Each tool's dimensions are calculated from the scale information in the database."}
                     </p>
                 </div>
             </div>

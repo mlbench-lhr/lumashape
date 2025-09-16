@@ -79,10 +79,12 @@ function DesignLayout() {
 
   // Clear selection when selectedTool is cleared
   useEffect(() => {
-    if (!selectedTool && selectedTools.length > 0) {
-      setSelectedTools([]);
+    const firstSelected = selectedTools[0] || null;
+    if (selectedTool !== firstSelected) {
+      setSelectedTool(firstSelected);
     }
-  }, [selectedTool, selectedTools.length]);
+  }, [selectedTools]);
+
 
   // Keep selectedTool in sync with selectedTools
   useEffect(() => {
@@ -117,14 +119,14 @@ function DesignLayout() {
     setDroppedTools([]);
     setSelectedTool(null);
     setSelectedTools([]);
-    
+
     // Optionally show success message or redirect
     console.log('Layout saved successfully!');
   }, []);
 
   return (
     <div className="h-screen flex flex-col bg-gray-100">
-      <Header 
+      <Header
         droppedTools={droppedTools}
         canvasWidth={canvasWidth}
         canvasHeight={canvasHeight}

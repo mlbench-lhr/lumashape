@@ -65,6 +65,11 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     const width = Math.abs(selectionBox.currentX - selectionBox.startX);
     const height = Math.abs(selectionBox.currentY - selectionBox.startY);
 
+    const DPI = 96; // standard screen resolution
+    const canvasWidthPx = canvasWidth * DPI;
+    const canvasHeightPx = canvasHeight * DPI;
+
+
     return (
       <div
         className="absolute border-2 border-blue-500 bg-blue-100 bg-opacity-20 pointer-events-none z-30"
@@ -246,6 +251,12 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                       <img
                         src={tool.image}
                         alt={tool.name}
+                        onLoad={(e) => {
+                          const img = e.currentTarget;
+                          if (!tool.metadata) tool.metadata = {};
+                          tool.metadata.naturalWidth = img.naturalWidth;
+                          tool.metadata.naturalHeight = img.naturalHeight;
+                        }}
                         className={`relative w-full h-full object-cover rounded z-10 ${isSelected ? 'brightness-110' : ''
                           } ${isOverlapping ? 'brightness-75 saturate-150' : ''
                           }`}
@@ -287,46 +298,39 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     </div>
                   )}
 
-                  {/* Tool info with individual tool dimensions - UPDATED WITH OPACITY AND SMOOTH INFO */}
-                  <div className="absolute -bottom-12 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30">
-                    {tool.name}
-                    <br />
-                    <span className="text-gray-300">
-                      Size: {toolWidth}×{toolHeight}px
-                    </span>
-                    {/* Show opacity and smooth values in tooltip */}
-                    {(tool.opacity !== undefined && tool.opacity !== 100) && (
-                      <>
-                        <br />
-                        <span className="text-blue-300 text-xs">
-                          Opacity: {tool.opacity}%
-                        </span>
-                      </>
-                    )}
-                    {(tool.smooth !== undefined && tool.smooth !== 0) && (
-                      <>
-                        <br />
-                        <span className="text-green-300 text-xs">
-                          Smooth: {tool.smooth}%
-                        </span>
-                      </>
-                    )}
-                    {isOverlapping && (
-                      <>
-                        <br />
-                        <span className="text-red-300 text-xs">
-                          ⚠ Overlapping
-                        </span>
-                      </>
-                    )}
-                    {isSelected && selectedTools.length > 1 && (
-                      <>
-                        <br />
-                        <span className="text-blue-300 text-xs">
-                          {selectedTools.length} tools selected
-                        </span>
-                      </>
-                    )}
+                  {/* Enhanced Tool info with diagonal inches - UPDATED */}
+                  <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30">
+                    <div className="text-center">
+                      <div className="font-medium">{tool.name}</div>
+                      <div className="text-gray-300 text-xs">
+                        {`Real Diagonal: ${tool.metadata?.diagonalInches ?? 'N/A'}`}
+                      </div>
+                      <div className="text-gray-300 text-xs">
+                        {`Display: ${Math.round(toolWidth)} x ${Math.round(toolHeight)} px`}
+                      </div>
+
+                      {/* Show opacity and smooth values in tooltip */}
+                      {(tool.opacity !== undefined && tool.opacity !== 100) && (
+                        <div className="text-blue-300 text-xs">
+                          {`Opacity: ${tool.opacity}%`}
+                        </div>
+                      )}
+                      {(tool.smooth !== undefined && tool.smooth !== 0) && (
+                        <div className="text-green-300 text-xs">
+                          {`Smooth: ${tool.smooth}%`}
+                        </div>
+                      )}
+                      {isOverlapping && (
+                        <div className="text-red-300 text-xs">
+                          {"⚠ Overlapping"}
+                        </div>
+                      )}
+                      {isSelected && selectedTools.length > 1 && (
+                        <div className="text-blue-300 text-xs">
+                          {`${selectedTools.length} tools selected`}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -336,13 +340,16 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           {/* Selection Box */}
           {renderSelectionBox()}
 
-          {/* Center refresh icon */}
+          {/* Center refresh icon with updated text */}
           {droppedTools.length === 0 && (
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
               <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-2" />
               <p className="text-gray-500 text-sm">Drag tools from the sidebar to start designing</p>
               <p className="text-gray-400 text-xs mt-1">
                 Canvas Size: {canvasWidth} × {canvasHeight} {unit}
+              </p>
+              <p className="text-gray-400 text-xs mt-1">
+                Tools sized by real diagonal measurements from database
               </p>
               <p className="text-gray-400 text-xs mt-1">
                 Use <span className="font-semibold">Cursor</span> to select • <span className="font-semibold">Hand</span> to pan
@@ -364,7 +371,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           )}
         </div>
 
-        {/* Layout Status Indicator */}
+        {/* Layout Status Indicator with enhanced info */}
         <div className="absolute bottom-4 right-4 bg-white bg-opacity-90 rounded-lg px-3 py-2 text-sm shadow-lg">
           <div className={`flex items-center space-x-2 ${hasOverlaps ? 'text-red-600' : 'text-green-600'}`}>
             {hasOverlaps ? (
@@ -384,10 +391,15 @@ const Canvas: React.FC<CanvasProps> = (props) => {
               {overlappingTools.length} overlapping tool{overlappingTools.length > 1 ? 's' : ''}
             </div>
           )}
+          {droppedTools.length > 0 && (
+            <div className="text-xs text-gray-500 mt-1">
+              {droppedTools.length} tool{droppedTools.length > 1 ? 's' : ''} • Real-world sizing
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-export default Canvas;
+export default Canvas; 

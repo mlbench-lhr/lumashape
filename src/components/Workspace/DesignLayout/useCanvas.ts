@@ -15,6 +15,9 @@ interface UseCanvasProps {
   activeTool: 'cursor' | 'hand' | 'box';
 }
 
+
+
+
 export const useCanvas = ({
   droppedTools,
   setDroppedTools,
@@ -40,22 +43,24 @@ export const useCanvas = ({
   } | null>(null);
   const [isDraggingSelection, setIsDraggingSelection] = useState(false);
   const [initialPositions, setInitialPositions] = useState<Record<string, { x: number; y: number }>>({});
-  
+
   // Overlap detection state
   const [hasOverlaps, setHasOverlaps] = useState(false);
   const [overlappingTools, setOverlappingTools] = useState<string[]>([]);
-  
+
   // Viewport state (Figma-style navigation)
   const [viewport, setViewport] = useState({
     x: 0,     // viewport offset x
     y: 0,     // viewport offset y  
     zoom: 1   // zoom level (1 = 100%)
   });
-  
+
+  const DPI = 96; // standard screen resolution
+  const canvasWidthPx = canvasWidth * DPI;
+  const canvasHeightPx = canvasHeight * DPI;
+
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-  
-  const DPI = 96;
 
   // Unit conversion functions
   const toPx = useCallback((value: number, fromUnit: 'mm' | 'inches') => {
@@ -67,7 +72,7 @@ export const useCanvas = ({
   const getCanvasStyle = useCallback(() => {
     const widthPx = Math.max(100, toPx(canvasWidth, unit));
     const heightPx = Math.max(100, toPx(canvasHeight, unit));
-    
+
     return {
       width: `${widthPx}px`,
       height: `${heightPx}px`,
@@ -92,32 +97,47 @@ export const useCanvas = ({
   }, [viewport]);
 
   // Tool-specific dimensions based on tool type
-  const getToolDimensions = useCallback((tool: DroppedTool) => {
-    const toolSizes: Record<string, { width: number; height: number }> = {
-      'Pliers': { width: 120, height: 60 },
-      'Hammer': { width: 80, height: 100 },
-      'Screwdriver': { width: 20, height: 140 },
-      'Wrench': { width: 100, height: 30 },
-      'Drill': { width: 90, height: 90 },
-      'Saw': { width: 150, height: 40 },
-      'default': { width: 80, height: 80 }
-    };
+  // Inside useCanvas.ts
 
-    const size = toolSizes[tool.name] || toolSizes['default'];
-    return { 
-      toolWidth: size.width, 
-      toolHeight: size.height 
+
+  const getToolDimensions = (tool: DroppedTool) => {
+    if (tool.metadata?.diagonalInches) {
+      const diagonalInches = tool.metadata.diagonalInches;
+
+      const aspectRatio =
+        (tool.metadata?.naturalWidth && tool.metadata?.naturalHeight)
+          ? tool.metadata.naturalWidth / tool.metadata.naturalHeight
+          : 1;
+
+      // real size in inches
+      const realHeightInches = diagonalInches / Math.sqrt(aspectRatio * aspectRatio + 1);
+      const realWidthInches = realHeightInches * aspectRatio;
+
+      // convert to px with same DPI as canvas
+      return {
+        toolWidth: realWidthInches * DPI,
+        toolHeight: realHeightInches * DPI,
+      };
+    }
+
+    return {
+      toolWidth: tool.width,
+      toolHeight: tool.length,
     };
-  }, []);
+  };
+
+
+
+
 
   // Constrain tool position to canvas boundaries
   const constrainToCanvas = useCallback((tool: DroppedTool, x: number, y: number) => {
     const { toolWidth, toolHeight } = getToolDimensions(tool);
     const { width: canvasWidthPx, height: canvasHeightPx } = getCanvasBounds();
-    
+
     const constrainedX = Math.max(0, Math.min(x, canvasWidthPx - toolWidth));
     const constrainedY = Math.max(0, Math.min(y, canvasHeightPx - toolHeight));
-    
+
     return { x: constrainedX, y: constrainedY };
   }, [getToolDimensions, getCanvasBounds]);
 
@@ -125,20 +145,20 @@ export const useCanvas = ({
   const doToolsOverlap = useCallback((tool1: DroppedTool, tool2: DroppedTool) => {
     const { toolWidth: w1, toolHeight: h1 } = getToolDimensions(tool1);
     const { toolWidth: w2, toolHeight: h2 } = getToolDimensions(tool2);
-    
+
     // Add small buffer to prevent touching tools from being considered overlapping
     const buffer = 2;
-    
-    return !(tool1.x + w1 <= tool2.x + buffer || 
-             tool2.x + w2 <= tool1.x + buffer || 
-             tool1.y + h1 <= tool2.y + buffer || 
-             tool2.y + h2 <= tool1.y + buffer);
+
+    return !(tool1.x + w1 <= tool2.x + buffer ||
+      tool2.x + w2 <= tool1.x + buffer ||
+      tool1.y + h1 <= tool2.y + buffer ||
+      tool2.y + h2 <= tool1.y + buffer);
   }, [getToolDimensions]);
 
   // Detect overlaps between tools
   const detectOverlaps = useCallback(() => {
     const overlaps: string[] = [];
-    
+
     for (let i = 0; i < droppedTools.length; i++) {
       for (let j = i + 1; j < droppedTools.length; j++) {
         if (doToolsOverlap(droppedTools[i], droppedTools[j])) {
@@ -151,7 +171,7 @@ export const useCanvas = ({
         }
       }
     }
-    
+
     setOverlappingTools(overlaps);
     setHasOverlaps(overlaps.length > 0);
   }, [droppedTools, doToolsOverlap]);
@@ -163,39 +183,39 @@ export const useCanvas = ({
 
   // Find non-overlapping position for a tool
   const findNonOverlappingPosition = useCallback((
-    tool: DroppedTool, 
-    existingTools: DroppedTool[], 
-    startX?: number, 
+    tool: DroppedTool,
+    existingTools: DroppedTool[],
+    startX?: number,
     startY?: number
   ) => {
     const { toolWidth, toolHeight } = getToolDimensions(tool);
     const { width: canvasWidthPx, height: canvasHeightPx } = getCanvasBounds();
     const maxCanvasWidth = canvasWidthPx - toolWidth;
     const maxCanvasHeight = canvasHeightPx - toolHeight;
-    
+
     let x = Math.max(0, Math.min(startX ?? tool.x, maxCanvasWidth));
     let y = Math.max(0, Math.min(startY ?? tool.y, maxCanvasHeight));
-    
+
     const step = 20; // Grid step for positioning
     const maxAttempts = 100;
     let attempts = 0;
-    
+
     while (attempts < maxAttempts) {
       const testTool = { ...tool, x, y };
-      
+
       // Check if this position overlaps with any existing tool
-      const hasOverlap = existingTools.some(existingTool => 
+      const hasOverlap = existingTools.some(existingTool =>
         existingTool.id !== tool.id && doToolsOverlap(testTool, existingTool)
       );
-      
+
       if (!hasOverlap) {
         return { x, y };
       }
-      
+
       // Try next position in a spiral pattern
       const spiralIndex = Math.floor(attempts / 4);
       const direction = attempts % 4;
-      
+
       switch (direction) {
         case 0: // Right
           x = Math.min(x + step * (spiralIndex + 1), maxCanvasWidth);
@@ -210,10 +230,10 @@ export const useCanvas = ({
           y = Math.max(y - step * (spiralIndex + 1), 0);
           break;
       }
-      
+
       attempts++;
     }
-    
+
     // If no non-overlapping position found, return constrained position
     return constrainToCanvas(tool, startX ?? tool.x, startY ?? tool.y);
   }, [getToolDimensions, getCanvasBounds, doToolsOverlap, constrainToCanvas]);
@@ -236,61 +256,61 @@ export const useCanvas = ({
   // Convert screen coordinates to canvas coordinates (accounting for viewport)
   const screenToCanvas = useCallback((screenX: number, screenY: number) => {
     if (!canvasRef.current) return { x: 0, y: 0 };
-    
+
     const rect = canvasRef.current.getBoundingClientRect();
     const canvasX = (screenX - rect.left - viewport.x) / viewport.zoom;
     const canvasY = (screenY - rect.top - viewport.y) / viewport.zoom;
-    
+
     return { x: canvasX, y: canvasY };
   }, [viewport]);
 
   // Convert canvas coordinates to screen coordinates
   const canvasToScreen = useCallback((canvasX: number, canvasY: number) => {
     if (!canvasRef.current) return { x: 0, y: 0 };
-    
+
     const rect = canvasRef.current.getBoundingClientRect();
     const screenX = canvasX * viewport.zoom + viewport.x + rect.left;
     const screenY = canvasY * viewport.zoom + viewport.y + rect.top;
-    
+
     return { x: screenX, y: screenY };
   }, [viewport]);
 
   // Check if a tool is within the selection rectangle
   const isToolInSelectionBox = useCallback((tool: DroppedTool, selBox: typeof selectionBox) => {
     if (!selBox) return false;
-    
+
     const { toolWidth, toolHeight } = getToolDimensions(tool);
     const minX = Math.min(selBox.startX, selBox.currentX);
     const maxX = Math.max(selBox.startX, selBox.currentX);
     const minY = Math.min(selBox.startY, selBox.currentY);
     const maxY = Math.max(selBox.startY, selBox.currentY);
 
-    return !(tool.x + toolWidth < minX || 
-             tool.x > maxX || 
-             tool.y + toolHeight < minY || 
-             tool.y > maxY);
+    return !(tool.x + toolWidth < minX ||
+      tool.x > maxX ||
+      tool.y + toolHeight < minY ||
+      tool.y > maxY);
   }, [getToolDimensions]);
 
   // Zoom functionality
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
-    
+
     const container = canvasContainerRef.current;
     if (!container) return;
-    
+
     const rect = container.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
-    
+
     // Zoom factor
     const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
     const newZoom = Math.max(0.1, Math.min(5, viewport.zoom * zoomFactor));
-    
+
     // Zoom towards mouse position
     const zoomRatio = newZoom / viewport.zoom;
     const newX = mouseX - (mouseX - viewport.x) * zoomRatio;
     const newY = mouseY - (mouseY - viewport.y) * zoomRatio;
-    
+
     setViewport({
       x: newX,
       y: newY,
@@ -302,7 +322,7 @@ export const useCanvas = ({
   useEffect(() => {
     const container = canvasContainerRef.current;
     if (!container) return;
-    
+
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
@@ -315,7 +335,7 @@ export const useCanvas = ({
 
   const updatePan = useCallback((e: MouseEvent | React.MouseEvent) => {
     if (!isPanning) return;
-    
+
     setViewport(prev => ({
       ...prev,
       x: e.clientX - panStart.x,
@@ -328,10 +348,12 @@ export const useCanvas = ({
   }, []);
 
   useEffect(() => {
-    if (onSave) {
-      onSave(droppedTools);
-    }
+    if (!onSave) return;
+    const timeout = setTimeout(() => onSave([...droppedTools]), 300);
+    return () => clearTimeout(timeout);
   }, [droppedTools, onSave]);
+
+
 
   // Event handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -343,10 +365,10 @@ export const useCanvas = ({
     const toolData = e.dataTransfer.getData('application/json');
     if (toolData && canvasRef.current) {
       const tool: Tool = JSON.parse(toolData);
-      
+
       // Convert drop position to canvas coordinates
       const canvasPos = screenToCanvas(e.clientX, e.clientY);
-      
+
       const mockTool = { ...tool, name: tool.name } as DroppedTool;
       const { toolWidth, toolHeight } = getToolDimensions(mockTool);
 
@@ -358,7 +380,7 @@ export const useCanvas = ({
         ...tool,
         id: `${tool.id}-${Date.now()}`,
         x: 0, // Will be set by constrainToCanvas
-        y: 0, // Will be set by constrainToCanvas
+        y: 0,
         rotation: 0,
         flipHorizontal: false,
         flipVertical: false,
@@ -368,17 +390,25 @@ export const useCanvas = ({
         unit,
         opacity: 100,
         smooth: 0,
+
+        // ✅ Attach metadata so getToolDimensions works
+        metadata: {
+          diagonalInches: tool.metadata?.diagonalInches,
+          scaleFactor: tool.metadata?.scaleFactor ?? 1, // prevent divide by 0
+          naturalWidth: tool.metadata?.naturalWidth,
+          naturalHeight: tool.metadata?.naturalHeight,
+        },
       };
 
       // Constrain to canvas first, then find non-overlapping position
       const constrainedPos = constrainToCanvas(newTool, x, y);
       const nonOverlappingPos = findNonOverlappingPosition(
-        { ...newTool, x: constrainedPos.x, y: constrainedPos.y }, 
-        droppedTools, 
-        constrainedPos.x, 
+        { ...newTool, x: constrainedPos.x, y: constrainedPos.y },
+        droppedTools,
+        constrainedPos.x,
         constrainedPos.y
       );
-      
+
       newTool.x = nonOverlappingPos.x;
       newTool.y = nonOverlappingPos.y;
 
@@ -414,24 +444,24 @@ export const useCanvas = ({
       // Setup drag for the tool(s)
       const canvasPos = screenToCanvas(e.clientX, e.clientY);
       const clickedTool = droppedTools.find(tool => tool.id === toolId);
-      
+
       if (clickedTool) {
         // Set drag offset relative to the tool's position
         setDragOffset({
           x: canvasPos.x - clickedTool.x,
           y: canvasPos.y - clickedTool.y
         });
-        
+
         // Store initial positions of all selected tools
         const toolsToMove = selectedTools.includes(toolId) ? selectedTools : [toolId];
         const positions: Record<string, { x: number; y: number }> = {};
-        
+
         droppedTools.forEach(tool => {
           if (toolsToMove.includes(tool.id)) {
             positions[tool.id] = { x: tool.x, y: tool.y };
           }
         });
-        
+
         setInitialPositions(positions);
         setIsDraggingSelection(true);
       }
@@ -474,7 +504,7 @@ export const useCanvas = ({
     // Handle selection box
     if (selectionBox?.isSelecting && activeTool === 'cursor' && !isDraggingSelection) {
       const canvasPos = screenToCanvas(e.clientX, e.clientY);
-      
+
       setSelectionBox(prev => prev ? {
         ...prev,
         currentX: canvasPos.x,
@@ -482,7 +512,7 @@ export const useCanvas = ({
       } : null);
 
       const newSelectionBox = { ...selectionBox, currentX: canvasPos.x, currentY: canvasPos.y };
-      const toolsInBox = droppedTools.filter(tool => 
+      const toolsInBox = droppedTools.filter(tool =>
         isToolInSelectionBox(tool, newSelectionBox)
       ).map(tool => tool.id);
 
@@ -502,7 +532,7 @@ export const useCanvas = ({
       const canvasPos = screenToCanvas(e.clientX, e.clientY);
       const newX = canvasPos.x - dragOffset.x;
       const newY = canvasPos.y - dragOffset.y;
-      
+
       const primaryTool = droppedTools.find(t => t.id === selectedTool);
       if (primaryTool && selectedTool && initialPositions[selectedTool]) {
         const deltaX = newX - initialPositions[selectedTool].x;
@@ -513,14 +543,14 @@ export const useCanvas = ({
             if (selectedTools.includes(tool.id) && initialPositions[tool.id]) {
               const proposedX = initialPositions[tool.id].x + deltaX;
               const proposedY = initialPositions[tool.id].y + deltaY;
-              
+
               // CONSTRAIN TO CANVAS BOUNDARIES
               const constrainedPos = constrainToCanvas(tool, proposedX, proposedY);
-              
-              return { 
-                ...tool, 
-                x: constrainedPos.x, 
-                y: constrainedPos.y 
+
+              return {
+                ...tool,
+                x: constrainedPos.x,
+                y: constrainedPos.y
               };
             }
             return tool;
@@ -529,20 +559,20 @@ export const useCanvas = ({
       }
     }
   }, [
-    isPanning, 
-    activeTool, 
-    updatePan, 
-    selectionBox, 
-    screenToCanvas, 
-    isToolInSelectionBox, 
-    droppedTools, 
-    setSelectedTools, 
-    setSelectedTool, 
-    dragOffset, 
-    isDraggingSelection, 
-    selectedTool, 
-    initialPositions, 
-    selectedTools, 
+    isPanning,
+    activeTool,
+    updatePan,
+    selectionBox,
+    screenToCanvas,
+    isToolInSelectionBox,
+    droppedTools,
+    setSelectedTools,
+    setSelectedTool,
+    dragOffset,
+    isDraggingSelection,
+    selectedTool,
+    initialPositions,
+    selectedTools,
     setDroppedTools,
     constrainToCanvas // Added this dependency
   ]);
@@ -559,7 +589,7 @@ export const useCanvas = ({
     const target = e.target as HTMLElement;
     const isCanvasContainer = target === canvasContainerRef.current;
     const isCanvas = target === canvasRef.current;
-    
+
     if ((isCanvasContainer || isCanvas) && !selectionBox?.isSelecting && activeTool === 'cursor') {
       if (!e.ctrlKey && !e.metaKey) {
         setSelectedTools([]);
@@ -588,28 +618,28 @@ export const useCanvas = ({
   // Auto-fix overlaps function
   const autoFixOverlaps = useCallback(() => {
     const toolsToFix = droppedTools.filter(tool => overlappingTools.includes(tool.id));
-    
+
     setDroppedTools(prev => {
       const newTools = [...prev];
       const processedIds = new Set<string>();
-      
+
       toolsToFix.forEach(tool => {
         if (!processedIds.has(tool.id)) {
           const otherTools = newTools.filter(t => t.id !== tool.id);
           const nonOverlappingPos = findNonOverlappingPosition(tool, otherTools);
-          
+
           const toolIndex = newTools.findIndex(t => t.id === tool.id);
           if (toolIndex !== -1) {
-            newTools[toolIndex] = { 
-              ...newTools[toolIndex], 
-              x: nonOverlappingPos.x, 
-              y: nonOverlappingPos.y 
+            newTools[toolIndex] = {
+              ...newTools[toolIndex],
+              x: nonOverlappingPos.x,
+              y: nonOverlappingPos.y
             };
           }
           processedIds.add(tool.id);
         }
       });
-      
+
       return newTools;
     });
   }, [droppedTools, overlappingTools, findNonOverlappingPosition, setDroppedTools]);
@@ -640,19 +670,19 @@ export const useCanvas = ({
     const container = canvasContainerRef.current;
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
-    
+
     const containerRect = container.getBoundingClientRect();
     const canvasStyle = getCanvasStyle();
     const canvasWidth = parseInt(canvasStyle.width);
     const canvasHeight = parseInt(canvasStyle.height);
-    
+
     const scaleX = (containerRect.width - 100) / canvasWidth;
     const scaleY = (containerRect.height - 100) / canvasHeight;
     const scale = Math.min(scaleX, scaleY, 1);
-    
+
     const centerX = (containerRect.width - canvasWidth * scale) / 2;
     const centerY = (containerRect.height - canvasHeight * scale) / 2;
-    
+
     setViewport({
       x: centerX,
       y: centerY,
@@ -664,15 +694,15 @@ export const useCanvas = ({
   const centerCanvas = useCallback(() => {
     const container = canvasContainerRef.current;
     if (!container) return;
-    
+
     const containerRect = container.getBoundingClientRect();
     const canvasStyle = getCanvasStyle();
     const canvasWidth = parseInt(canvasStyle.width);
     const canvasHeight = parseInt(canvasStyle.height);
-    
+
     const centerX = (containerRect.width - canvasWidth * viewport.zoom) / 2;
     const centerY = (containerRect.height - canvasHeight * viewport.zoom) / 2;
-    
+
     setViewport(prev => ({
       ...prev,
       x: centerX,
