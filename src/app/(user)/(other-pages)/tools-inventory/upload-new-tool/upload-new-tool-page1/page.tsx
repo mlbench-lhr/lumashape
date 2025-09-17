@@ -206,7 +206,7 @@ const UploadNewToolPage1 = () => {
     setIsProcessing(true);
     setShowModal(true);
     setModalTitle("Processing...");
-    setModalDescription("Detecting tool contours… this usually takes just a few seconds.");
+    setModalDescription("Detecting tool contours… this usually takes 2 to 3 minutes.");
 
     try {
       // Process image with CV

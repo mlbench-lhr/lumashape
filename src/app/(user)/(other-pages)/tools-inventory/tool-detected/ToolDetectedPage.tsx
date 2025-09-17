@@ -31,7 +31,7 @@ const ToolDetectedPage = () => {
   }
 
   // Use outlines image for display, fallback to annotated, then original
-  const displayImageUrl = outlinesImageUrl || annotatedImageUrl || imageUrl;
+  const displayImageUrl = annotatedImageUrl || imageUrl;
 
   const handleSave = async () => {
     const savedToken = localStorage.getItem("auth-token");
@@ -111,12 +111,6 @@ const ToolDetectedPage = () => {
       {/* Image Preview - Now showing outlines/processed image */}
       <div className="w-full sm:w-[897px] h-auto mt-[20px] sm:mt-[35px]">
         <div className="relative w-full sm:w-[602px] h-[371px] border border-b-0 rounded-t-[21px] border-dotted border-gray-400 overflow-hidden">
-          {/* Processing status badge */}
-          {(outlinesImageUrl || annotatedImageUrl) && (
-            <div className="absolute top-2 left-2 z-20 bg-blue-500 text-white px-2 py-1 rounded-md text-xs font-medium">
-              {outlinesImageUrl ? 'Tool Outline Detected' : 'Processed'}
-            </div>
-          )}
 
           {displayImageUrl ? (
             <Image
@@ -176,11 +170,6 @@ const ToolDetectedPage = () => {
               <Text as="p1" className="py-2">
                 Tool Type
               </Text>
-              {serverResponse?.diagonal_inches && (
-                <Text as="p1" className="py-2">
-                  Diagonal Size
-                </Text>
-              )}
             </div>
 
             {/* right column: values */}
@@ -196,21 +185,6 @@ const ToolDetectedPage = () => {
               </Text>
             </div>
           </div>
-
-          {/* Scale Information */}
-          {serverResponse?.scale_info && (
-            <div className="border-t border-[#e7e7ea] px-4 py-3">
-              <Text
-                as="p1"
-                className="text-[#808080] font-medium text-[14px] sm:text-[16px] mb-2 block"
-              >
-                Scale Information
-              </Text>
-              <Text as="h5" className="text-[14px] sm:text-[16px] leading-relaxed">
-                {serverResponse.scale_info}
-              </Text>
-            </div>
-          )}
 
           {/* Description */}
           <div className="border-t border-[#e7e7ea] px-4 py-3">

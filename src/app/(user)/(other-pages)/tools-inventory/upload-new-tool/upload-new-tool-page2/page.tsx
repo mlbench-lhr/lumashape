@@ -315,12 +315,6 @@ const UploadNewToolPage2 = () => {
             <div className="flex flex-col sm:flex-row mt-[30px] mb-[25px] gap-[36px]">
               {/* Image Display - Now showing annotated image with badge */}
               <div className="relative w-full sm:w-[430px] h-[433px] border border-b-0 rounded-[21px] bg-[#f9fcff] border-dotted border-gray-400">
-                {/* Processing status badge */}
-                {annotatedImageUrl && (
-                  <div className="absolute top-2 left-2 z-20 bg-green-500 text-white px-2 py-1 rounded-md text-xs font-medium">
-                    Processed ✓
-                  </div>
-                )}
 
                 <div className="absolute px-[12px] py-[8.5px] right-0 w-[88px] h-[41px] rounded-tr-[21px] bg-[#ebebeb] z-10">
                   <div className="flex justify-center items-center gap-[12px]">

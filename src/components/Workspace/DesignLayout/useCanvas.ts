@@ -50,34 +50,36 @@ export const useCanvas = ({
 
   // Viewport state (Figma-style navigation)
   const [viewport, setViewport] = useState({
-    x: 0,     // viewport offset x
-    y: 0,     // viewport offset y  
-    zoom: 1   // zoom level (1 = 100%)
+    x: 0,
+    y: 0,
+    zoom: 1
   });
 
-  const DPI = 96; // standard screen resolution
-  const canvasWidthPx = canvasWidth * DPI;
-  const canvasHeightPx = canvasHeight * DPI;
+  const DPI = 96;
 
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const mmToPx = useCallback((mm: number) => {
+    // Use consistent DPI for all conversions
+    const DPI = 96;
+    return (mm / 25.4) * DPI;
+  }, []);
 
-  // Unit conversion functions
-  const toPx = useCallback((value: number, fromUnit: 'mm' | 'inches') => {
-    if (fromUnit === "inches") return value * DPI;
-    return (value / 25.4) * DPI;
-  }, [DPI]);
+  const inchesToPx = useCallback((inches: number) => {
+    const DPI = 96;
+    return inches * DPI;
+  }, []);
 
   // Convert canvas dimensions to pixels for styling
   const getCanvasStyle = useCallback(() => {
-    const widthPx = Math.max(100, toPx(canvasWidth, unit));
-    const heightPx = Math.max(100, toPx(canvasHeight, unit));
+    const widthPx = unit === 'mm' ? mmToPx(canvasWidth) : inchesToPx(canvasWidth);
+    const heightPx = unit === 'mm' ? mmToPx(canvasHeight) : inchesToPx(canvasHeight);
 
     return {
-      width: `${widthPx}px`,
-      height: `${heightPx}px`,
+      width: `${Math.max(100, widthPx)}px`,
+      height: `${Math.max(100, heightPx)}px`,
     };
-  }, [canvasWidth, canvasHeight, unit, toPx]);
+  }, [canvasWidth, canvasHeight, unit, mmToPx, inchesToPx]);
 
   // Get canvas boundaries in pixels
   const getCanvasBounds = useCallback(() => {
@@ -100,35 +102,36 @@ export const useCanvas = ({
   // Inside useCanvas.ts
 
 
-  const getToolDimensions = (tool: DroppedTool) => {
+
+
+  const getToolDimensions = useCallback((tool: DroppedTool) => {
     if (tool.metadata?.diagonalInches) {
       const diagonalInches = tool.metadata.diagonalInches;
+      const diagonalPx = inchesToPx(diagonalInches);
 
-      const aspectRatio =
-        (tool.metadata?.naturalWidth && tool.metadata?.naturalHeight)
-          ? tool.metadata.naturalWidth / tool.metadata.naturalHeight
-          : 1;
+      // Use natural dimensions if available, otherwise consistent default
+      let aspectRatio = 1.6; // Consistent default
+      if (tool.metadata?.naturalWidth &&
+        tool.metadata?.naturalHeight &&
+        tool.metadata.naturalWidth > 0 &&
+        tool.metadata.naturalHeight > 0) {
+        aspectRatio = tool.metadata.naturalWidth / tool.metadata.naturalHeight;
+      }
 
-      // real size in inches
-      const realHeightInches = diagonalInches / Math.sqrt(aspectRatio * aspectRatio + 1);
-      const realWidthInches = realHeightInches * aspectRatio;
+      const toolHeight = diagonalPx / Math.sqrt(aspectRatio * aspectRatio + 1);
+      const toolWidth = toolHeight * aspectRatio;
 
-      // convert to px with same DPI as canvas
       return {
-        toolWidth: realWidthInches * DPI,
-        toolHeight: realHeightInches * DPI,
+        toolWidth: Math.max(20, toolWidth),
+        toolHeight: Math.max(20, toolHeight),
       };
     }
 
     return {
-      toolWidth: tool.width,
-      toolHeight: tool.length,
+      toolWidth: tool.width || 50,
+      toolHeight: tool.length || 50,
     };
-  };
-
-
-
-
+  }, [inchesToPx]);
 
   // Constrain tool position to canvas boundaries
   const constrainToCanvas = useCallback((tool: DroppedTool, x: number, y: number) => {
@@ -362,6 +365,7 @@ export const useCanvas = ({
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    
     const toolData = e.dataTransfer.getData('application/json');
     if (toolData && canvasRef.current) {
       const tool: Tool = JSON.parse(toolData);
@@ -369,39 +373,37 @@ export const useCanvas = ({
       // Convert drop position to canvas coordinates
       const canvasPos = screenToCanvas(e.clientX, e.clientY);
 
-      const mockTool = { ...tool, name: tool.name } as DroppedTool;
-      const { toolWidth, toolHeight } = getToolDimensions(mockTool);
+      // Create new tool with complete metadata
+      const newTool: DroppedTool = {
+        ...tool,
+        id: `${tool.id}-${Date.now()}`,
+        x: 0, // Will be calculated below
+        y: 0,
+        rotation: 0,
+        flipHorizontal: false,
+        flipVertical: false,
+        width: 50, // Legacy fallback
+        length: 50, // Legacy fallback
+        thickness: unit === 'mm' ? 12.7 : 0.5,
+        unit,
+        opacity: 100,
+        smooth: 0,
+        metadata: {
+          ...tool.metadata, // Preserve all existing metadata including diagonalInches
+        },
+      };
+
+      // FIXED: Calculate dimensions with the complete tool object
+      const { toolWidth, toolHeight } = getToolDimensions(newTool);
 
       // Center the tool on the drop position
       const x = canvasPos.x - (toolWidth / 2);
       const y = canvasPos.y - (toolHeight / 2);
 
-      const newTool: DroppedTool = {
-        ...tool,
-        id: `${tool.id}-${Date.now()}`,
-        x: 0, // Will be set by constrainToCanvas
-        y: 0,
-        rotation: 0,
-        flipHorizontal: false,
-        flipVertical: false,
-        width: 50,
-        length: 50,
-        thickness: unit === 'mm' ? 12.7 : 0.5,
-        unit,
-        opacity: 100,
-        smooth: 0,
-
-        // ✅ Attach metadata so getToolDimensions works
-        metadata: {
-          diagonalInches: tool.metadata?.diagonalInches,
-          scaleFactor: tool.metadata?.scaleFactor ?? 1, // prevent divide by 0
-          naturalWidth: tool.metadata?.naturalWidth,
-          naturalHeight: tool.metadata?.naturalHeight,
-        },
-      };
-
-      // Constrain to canvas first, then find non-overlapping position
+      // Constrain to canvas boundaries
       const constrainedPos = constrainToCanvas(newTool, x, y);
+
+      // Find non-overlapping position
       const nonOverlappingPos = findNonOverlappingPosition(
         { ...newTool, x: constrainedPos.x, y: constrainedPos.y },
         droppedTools,
@@ -409,6 +411,7 @@ export const useCanvas = ({
         constrainedPos.y
       );
 
+      // Set final position
       newTool.x = nonOverlappingPos.x;
       newTool.y = nonOverlappingPos.y;
 
