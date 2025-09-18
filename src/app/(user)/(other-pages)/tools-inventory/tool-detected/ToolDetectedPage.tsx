@@ -117,8 +117,9 @@ const ToolDetectedPage = () => {
               src={displayImageUrl}
               alt="tool-preview"
               fill
-              className="object-cover rounded-t-[21px]"
+              className="object-contain rounded-t-[21px] bg-white"
             />
+
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400">
               No image available
