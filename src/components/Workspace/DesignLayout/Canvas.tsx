@@ -1,6 +1,7 @@
+// Updated Canvas.tsx - Clean tool rendering without borders
 import React from 'react';
 import { DroppedTool, Tool } from './types';
-import { RefreshCw, X, Move, ZoomIn, ZoomOut, Maximize, AlertTriangle, Check } from 'lucide-react';
+import { RefreshCw, X, Move, Maximize, AlertTriangle, Check } from 'lucide-react';
 import { useCanvas } from './useCanvas';
 
 interface CanvasProps {
@@ -15,7 +16,7 @@ interface CanvasProps {
   canvasHeight: number;
   unit: 'mm' | 'inches';
   activeTool: 'cursor' | 'hand' | 'box';
-  onOverlapChange?: (hasOverlaps: boolean) => void; // Add this new prop
+  onOverlapChange?: (hasOverlaps: boolean) => void;
 }
 
 const Canvas: React.FC<CanvasProps> = (props) => {
@@ -65,11 +66,6 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     const width = Math.abs(selectionBox.currentX - selectionBox.startX);
     const height = Math.abs(selectionBox.currentY - selectionBox.startY);
 
-    const DPI = 96; // standard screen resolution
-    const canvasWidthPx = canvasWidth * DPI;
-    const canvasHeightPx = canvasHeight * DPI;
-
-
     return (
       <div
         className="absolute border-2 border-blue-500 bg-blue-100 bg-opacity-20 pointer-events-none z-30"
@@ -114,7 +110,6 @@ const Canvas: React.FC<CanvasProps> = (props) => {
   };
 
   React.useEffect(() => {
-    // Call the overlap change callback whenever hasOverlaps changes
     if (props.onOverlapChange) {
       props.onOverlapChange(hasOverlaps);
     }
@@ -129,7 +124,6 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           handleDeleteSelectedTools();
         }
       }
-      // Space key for hand tool toggle
       if (e.code === 'Space' && e.target === document.body) {
         e.preventDefault();
       }
@@ -165,7 +159,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
         </div>
       </div>
 
-      {/* Canvas Container - handles viewport and zoom */}
+      {/* Canvas Container */}
       <div
         ref={canvasContainerRef}
         className="absolute inset-0 overflow-hidden"
@@ -194,28 +188,23 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             Canvas: {canvasWidth} × {canvasHeight} {unit}
           </div>
 
-          {/* Dropped Tools */}
+          {/* UPDATED: Clean Tool Rendering - No Borders */}
           {droppedTools.map(tool => {
             const { toolWidth, toolHeight } = getToolDimensions(tool);
-            const shadowOffset = getShadowOffset(tool);
             const isSelected = selectedTools.includes(tool.id);
             const isPrimarySelection = selectedTool === tool.id;
             const isOverlapping = overlappingTools.includes(tool.id);
 
             // Calculate opacity and blur values
             const opacity = (tool.opacity || 100) / 100;
-            const blurAmount = (tool.smooth || 0) / 10; // Convert 0-100 to 0-10px blur
+            const blurAmount = (tool.smooth || 0) / 10;
 
             return (
               <div
                 key={tool.id}
-                className={`absolute select-none group ${isSelected
-                  ? isPrimarySelection
-                    ? 'ring-2 ring-blue-500'
-                    : 'ring-2 ring-blue-300'
-                  : ''
-                  } ${isSelected ? 'z-20' : 'z-10'} ${isOverlapping ? 'ring-2 ring-red-500 ring-opacity-60' : ''
-                  }`}
+                className={`absolute select-none group ${
+                  isSelected ? 'z-20' : 'z-10'
+                }`}
                 style={{
                   left: tool.x,
                   top: tool.y,
@@ -229,25 +218,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 <div className="relative w-full h-full">
                   {tool.image && (
                     <div className="relative w-full h-full">
-                      {/* 3D Thickness Effect - also apply opacity to shadows */}
-                      {Array.from({ length: Math.max(2, Math.floor(shadowOffset / 4)) }, (_, i) => (
-                        <img
-                          key={`depth-${i}`}
-                          src={tool.image}
-                          alt=""
-                          className="absolute w-full h-full object-cover rounded"
-                          style={{
-                            left: `${i * 2}px`,
-                            top: `${i * 2}px`,
-                            filter: `brightness(${0.6 - i * 0.08}) saturate(0.7) blur(${blurAmount}px)`,
-                            zIndex: -i,
-                            opacity: (0.9 - (i * 0.15)) * opacity // Apply tool opacity to shadows too
-                          }}
-                          draggable={false}
-                        />
-                      ))}
-
-                      {/* Main tool image on top - UPDATED WITH OPACITY AND SMOOTH */}
+                      {/* CLEAN: Main tool image without borders or 3D effects */}
                       <img
                         src={tool.image}
                         alt={tool.name}
@@ -257,77 +228,91 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                           tool.metadata.naturalWidth = img.naturalWidth;
                           tool.metadata.naturalHeight = img.naturalHeight;
                         }}
-                        className={`relative w-full h-full object-cover rounded z-10 ${isSelected ? 'brightness-110' : ''
-                          } ${isOverlapping ? 'brightness-75 saturate-150' : ''
-                          }`}
+                        className={`relative w-full h-full object-contain transition-all duration-200 ${
+                          isOverlapping ? 'brightness-75 saturate-150' : ''
+                        }`}
                         style={{
-                          boxSizing: 'border-box',
                           opacity: opacity,
-                          filter: `blur(${blurAmount}px)`,
-                          transition: 'opacity 0.2s ease, filter 0.2s ease',
+                          filter: `blur(${blurAmount}px) ${
+                            isSelected 
+                              ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)) brightness(1.05)' 
+                              : ''
+                          }`,
                         }}
                         draggable={false}
                       />
                     </div>
                   )}
 
-                  {/* Overlap indicator */}
+                  {/* CLEAN: Subtle selection indicator - glow only */}
+                  {isSelected && (
+                    <div 
+                      className="absolute inset-0 pointer-events-none rounded-sm"
+                      style={{
+                        boxShadow: isPrimarySelection 
+                          ? '0 0 0 2px rgba(59, 130, 246, 0.8), 0 0 16px rgba(59, 130, 246, 0.4)' 
+                          : '0 0 0 1px rgba(59, 130, 246, 0.6), 0 0 8px rgba(59, 130, 246, 0.2)',
+                      }}
+                    />
+                  )}
+
+                  {/* Minimal overlap indicator */}
                   {isOverlapping && (
-                    <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center z-30">
-                      <AlertTriangle className="w-3 h-3" />
+                    <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center z-30">
+                      <AlertTriangle className="w-2.5 h-2.5" />
                     </div>
                   )}
 
-                  {/* Delete button - only show when tool is selected */}
+                  {/* Delete button - only when selected */}
                   {isSelected && (
                     <button
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity z-30"
+                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-30 shadow-sm"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteTool(tool.id);
                       }}
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3" />
                     </button>
                   )}
 
                   {/* Multi-select indicator */}
                   {isSelected && selectedTools.length > 1 && (
-                    <div className="absolute -top-1 -left-1 bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold z-30">
+                    <div className="absolute -top-1 -left-1 bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold z-30">
                       {isPrimarySelection ? '1' : selectedTools.indexOf(tool.id) + 1}
                     </div>
                   )}
 
-                  {/* Enhanced Tool info with diagonal inches - UPDATED */}
-                  <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30">
-                    <div className="text-center">
-                      <div className="font-medium">{tool.name}</div>
-                      <div className="text-gray-300 text-xs">
-                        {`Real Diagonal: ${tool.metadata?.diagonalInches ?? 'N/A'}`}
+                  {/* ENHANCED: Tool info tooltip */}
+                  <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-95 text-white text-xs px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 backdrop-blur-sm shadow-lg">
+                    <div className="text-center space-y-1">
+                      <div className="font-medium text-blue-200">{tool.name}</div>
+                      {tool.metadata?.diagonalInches && (
+                        <div className="text-gray-300">
+                          Real: {tool.metadata.diagonalInches.toFixed(1)}" diagonal
+                        </div>
+                      )}
+                      <div className="text-gray-400">
+                        Display: {Math.round(toolWidth)} × {Math.round(toolHeight)}px
                       </div>
-                      <div className="text-gray-300 text-xs">
-                        {`Display: ${Math.round(toolWidth)} x ${Math.round(toolHeight)} px`}
-                      </div>
-
-                      {/* Show opacity and smooth values in tooltip */}
                       {(tool.opacity !== undefined && tool.opacity !== 100) && (
-                        <div className="text-blue-300 text-xs">
-                          {`Opacity: ${tool.opacity}%`}
+                        <div className="text-yellow-300">
+                          Opacity: {tool.opacity}%
                         </div>
                       )}
                       {(tool.smooth !== undefined && tool.smooth !== 0) && (
-                        <div className="text-green-300 text-xs">
-                          {`Smooth: ${tool.smooth}%`}
+                        <div className="text-green-300">
+                          Blur: {tool.smooth}%
                         </div>
                       )}
                       {isOverlapping && (
-                        <div className="text-red-300 text-xs">
-                          {"⚠ Overlapping"}
+                        <div className="text-red-300 font-medium">
+                          ⚠ Overlapping
                         </div>
                       )}
                       {isSelected && selectedTools.length > 1 && (
-                        <div className="text-blue-300 text-xs">
-                          {`${selectedTools.length} tools selected`}
+                        <div className="text-blue-300">
+                          {selectedTools.length} tools selected
                         </div>
                       )}
                     </div>
@@ -340,7 +325,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           {/* Selection Box */}
           {renderSelectionBox()}
 
-          {/* Center refresh icon with updated text */}
+          {/* Empty canvas message */}
           {droppedTools.length === 0 && (
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
               <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-2" />
@@ -349,7 +334,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 Canvas Size: {canvasWidth} × {canvasHeight} {unit}
               </p>
               <p className="text-gray-400 text-xs mt-1">
-                Tools sized by real diagonal measurements from database
+                Tools display at real-world scale based on diagonal measurements
               </p>
               <p className="text-gray-400 text-xs mt-1">
                 Use <span className="font-semibold">Cursor</span> to select • <span className="font-semibold">Hand</span> to pan
@@ -371,7 +356,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           )}
         </div>
 
-        {/* Layout Status Indicator with enhanced info */}
+        {/* Layout Status Indicator */}
         <div className="absolute bottom-4 right-4 bg-white bg-opacity-90 rounded-lg px-3 py-2 text-sm shadow-lg">
           <div className={`flex items-center space-x-2 ${hasOverlaps ? 'text-red-600' : 'text-green-600'}`}>
             {hasOverlaps ? (
@@ -393,7 +378,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           )}
           {droppedTools.length > 0 && (
             <div className="text-xs text-gray-500 mt-1">
-              {droppedTools.length} tool{droppedTools.length > 1 ? 's' : ''} • Real-world sizing
+              {droppedTools.length} tool{droppedTools.length > 1 ? 's' : ''} • Real-world scale
             </div>
           )}
         </div>
@@ -402,4 +387,4 @@ const Canvas: React.FC<CanvasProps> = (props) => {
   );
 };
 
-export default Canvas; 
+export default Canvas;
