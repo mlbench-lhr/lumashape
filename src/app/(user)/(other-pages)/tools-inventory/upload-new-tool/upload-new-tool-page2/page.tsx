@@ -34,7 +34,7 @@ type ToolData = {
 
 type CvProcessingResponse = {
   annotated_link: string;
-  diagonal_inches: number;
+  height_in_inches: number;
   dxf_link: string;
   mask_link: string;
   outlines_link: string;

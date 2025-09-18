@@ -47,10 +47,11 @@ export async function POST(req: Request) {
       toolType: type,
       description: description || "",
       purchaseLink: purchase_link || "",
+      dxfLink: serverResponse.dxf_link || "",
       backgroundImg: imageUrl,
       annotatedImg: annotatedImageUrl || "",
       outlinesImg: outlinesImageUrl || "",
-      diagonalInches: serverResponse?.diagonal_inches ?? undefined,
+      diagonalInches: serverResponse?.height_in_inches ?? undefined,
       scaleFactor: serverResponse?.scale_info ?? undefined,
     });
 

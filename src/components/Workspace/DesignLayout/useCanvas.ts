@@ -104,34 +104,39 @@ export const useCanvas = ({
 
 
 
+  // Tool-specific dimensions based on tool type
   const getToolDimensions = useCallback((tool: DroppedTool) => {
     if (tool.metadata?.diagonalInches) {
-      const diagonalInches = tool.metadata.diagonalInches;
-      const diagonalPx = inchesToPx(diagonalInches);
+      // 🔹 Now this is actually the HEIGHT of the tool, not the diagonal
+      const toolHeightPx = inchesToPx(tool.metadata.diagonalInches);
 
-      // Use natural dimensions if available, otherwise consistent default
-      let aspectRatio = 1.6; // Consistent default
-      if (tool.metadata?.naturalWidth &&
+      // Default aspect ratio if natural dimensions are missing
+      let aspectRatio = 1.6;
+
+      if (
+        tool.metadata?.naturalWidth &&
         tool.metadata?.naturalHeight &&
         tool.metadata.naturalWidth > 0 &&
-        tool.metadata.naturalHeight > 0) {
+        tool.metadata.naturalHeight > 0
+      ) {
         aspectRatio = tool.metadata.naturalWidth / tool.metadata.naturalHeight;
       }
 
-      const toolHeight = diagonalPx / Math.sqrt(aspectRatio * aspectRatio + 1);
-      const toolWidth = toolHeight * aspectRatio;
+      const toolWidthPx = toolHeightPx * aspectRatio;
 
       return {
-        toolWidth: Math.max(20, toolWidth),
-        toolHeight: Math.max(20, toolHeight),
+        toolWidth: Math.max(20, toolWidthPx),
+        toolHeight: Math.max(20, toolHeightPx),
       };
     }
 
+    // Legacy fallback if no diagonalInches
     return {
       toolWidth: tool.width || 50,
       toolHeight: tool.length || 50,
     };
   }, [inchesToPx]);
+
 
   // Constrain tool position to canvas boundaries
   const constrainToCanvas = useCallback((tool: DroppedTool, x: number, y: number) => {
@@ -365,7 +370,7 @@ export const useCanvas = ({
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    
+
     const toolData = e.dataTransfer.getData('application/json');
     if (toolData && canvasRef.current) {
       const tool: Tool = JSON.parse(toolData);
