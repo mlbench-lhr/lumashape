@@ -202,9 +202,8 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             return (
               <div
                 key={tool.id}
-                className={`absolute select-none group ${
-                  isSelected ? 'z-20' : 'z-10'
-                }`}
+                className={`absolute select-none group ${isSelected ? 'z-20' : 'z-10'
+                  }`}
                 style={{
                   left: tool.x,
                   top: tool.y,
@@ -228,16 +227,14 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                           tool.metadata.naturalWidth = img.naturalWidth;
                           tool.metadata.naturalHeight = img.naturalHeight;
                         }}
-                        className={`relative w-full h-full object-contain transition-all duration-200 ${
-                          isOverlapping ? 'brightness-75 saturate-150' : ''
-                        }`}
+                        className={`relative w-full h-full object-contain transition-all duration-200 ${isOverlapping ? 'brightness-75 saturate-150' : ''
+                          }`}
                         style={{
                           opacity: opacity,
-                          filter: `blur(${blurAmount}px) ${
-                            isSelected 
-                              ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)) brightness(1.05)' 
+                          filter: `blur(${blurAmount}px) ${isSelected
+                              ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)) brightness(1.05)'
                               : ''
-                          }`,
+                            }`,
                         }}
                         draggable={false}
                       />
@@ -246,11 +243,11 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 
                   {/* CLEAN: Subtle selection indicator - glow only */}
                   {isSelected && (
-                    <div 
+                    <div
                       className="absolute inset-0 pointer-events-none rounded-sm"
                       style={{
-                        boxShadow: isPrimarySelection 
-                          ? '0 0 0 2px rgba(59, 130, 246, 0.8), 0 0 16px rgba(59, 130, 246, 0.4)' 
+                        boxShadow: isPrimarySelection
+                          ? '0 0 0 2px rgba(59, 130, 246, 0.8), 0 0 16px rgba(59, 130, 246, 0.4)'
                           : '0 0 0 1px rgba(59, 130, 246, 0.6), 0 0 8px rgba(59, 130, 246, 0.2)',
                       }}
                     />
@@ -287,32 +284,17 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                   <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-95 text-white text-xs px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 backdrop-blur-sm shadow-lg">
                     <div className="text-center space-y-1">
                       <div className="font-medium text-blue-200">{tool.name}</div>
-                      {tool.metadata?.diagonalInches && (
-                        <div className="text-gray-300">
-                          Real: {tool.metadata.diagonalInches.toFixed(1)}" diagonal
-                        </div>
-                      )}
                       <div className="text-gray-400">
-                        Display: {Math.round(toolWidth)} × {Math.round(toolHeight)}px
+                        {`Display: ${Math.round(toolWidth)} × ${Math.round(toolHeight)}px`}
                       </div>
-                      {(tool.opacity !== undefined && tool.opacity !== 100) && (
-                        <div className="text-yellow-300">
-                          Opacity: {tool.opacity}%
-                        </div>
-                      )}
-                      {(tool.smooth !== undefined && tool.smooth !== 0) && (
-                        <div className="text-green-300">
-                          Blur: {tool.smooth}%
-                        </div>
-                      )}
                       {isOverlapping && (
                         <div className="text-red-300 font-medium">
-                          ⚠ Overlapping
+                          {`⚠ Overlapping`}
                         </div>
                       )}
                       {isSelected && selectedTools.length > 1 && (
                         <div className="text-blue-300">
-                          {selectedTools.length} tools selected
+                          {`${selectedTools.length} tools selected`}
                         </div>
                       )}
                     </div>
@@ -331,10 +313,10 @@ const Canvas: React.FC<CanvasProps> = (props) => {
               <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-2" />
               <p className="text-gray-500 text-sm">Drag tools from the sidebar to start designing</p>
               <p className="text-gray-400 text-xs mt-1">
-                Canvas Size: {canvasWidth} × {canvasHeight} {unit}
+                {`Canvas Size: ${canvasWidth} × ${canvasHeight} ${unit}`}
               </p>
               <p className="text-gray-400 text-xs mt-1">
-                Tools display at real-world scale based on diagonal measurements
+                {`Tools display at real-world scale based on diagonal measurements`}
               </p>
               <p className="text-gray-400 text-xs mt-1">
                 Use <span className="font-semibold">Cursor</span> to select • <span className="font-semibold">Hand</span> to pan
@@ -348,10 +330,10 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 
         {/* Zoom indicator */}
         <div className="absolute bottom-4 left-4 bg-white bg-opacity-90 rounded-lg px-3 py-2 text-sm text-gray-600 shadow-lg">
-          Zoom: {Math.round(viewport.zoom * 100)}%
+          {`Zoom: ${Math.round(viewport.zoom * 100)}%`}
           {activeTool === 'hand' && (
             <div className="text-xs text-gray-500 mt-1">
-              Drag to pan • Scroll to zoom
+              {`Drag to pan • Scroll to zoom`}
             </div>
           )}
         </div>
