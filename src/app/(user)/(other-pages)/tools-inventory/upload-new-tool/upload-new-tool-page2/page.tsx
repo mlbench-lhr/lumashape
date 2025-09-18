@@ -34,7 +34,7 @@ type ToolData = {
 
 type CvProcessingResponse = {
   annotated_link: string;
-  diagonal_inches: number;
+  height_in_inches: number;
   dxf_link: string;
   mask_link: string;
   outlines_link: string;
@@ -342,246 +342,239 @@ const UploadNewToolPage2 = () => {
                 </div>
 
                 {/* Image Container */}
-                <div className="flex items-center justify-center h-[376px] border-b-0 rounded-t-[21px] overflow-hidden bg-white">
-                  {displayImageUrl ? (
-                    <Image
-                      src={displayImageUrl}
-                      alt="tool-preview"
-                      width={600}
-                      height={376}
-                      className="object-contain w-full h-full"
-                    />
-                  ) : (
+                <div
+                  className="flex items-center justify-center h-[376px] bg-cover bg-center border-b-0 rounded-t-[21px] border-transparent overflow-hidden"
+                  style={{
+                    backgroundImage: displayImageUrl ? `url(${displayImageUrl})` : undefined,
+                    backgroundRepeat: "no-repeat",
+                    backgroundSize: "contain",
+                    backgroundPosition: "center"
+                  }}
+                >
+                  {!displayImageUrl && (
                     <div className="flex flex-col items-center text-gray-500">
-                      <Image src="/images/icons/upload.svg" width={30} height={30} alt="upload" />
+                      <Image
+                        src="/images/icons/upload.svg"
+                        width={30}
+                        height={30}
+                        alt="upload"
+                      />
                       <p className="mt-2 text-sm">No image selected</p>
                     </div>
                   )}
                 </div>
 
-                {!displayImageUrl && (
-                  <div className="flex flex-col items-center text-gray-500">
-                    <Image
-                      src="/images/icons/upload.svg"
-                      width={30}
-                      height={30}
-                      alt="upload"
-                    />
-                    <p className="mt-2 text-sm">No image selected</p>
+                {/* Bottom section */}
+                <div className="flex justify-center items-center h-[57px] border-b border-dotted bg-[#ebebeb] rounded-b-[21px]">
+                  <div className="flex justify-center gap-[10px]">
+                    <div className="p-[5px]">
+                      <Image
+                        src="/images/icons/upload.svg"
+                        alt="upload"
+                        width={20}
+                        height={20}
+                        className="cursor-pointer opacity-50"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fullscreen Preview */}
+                {isPreviewOpen && displayImageUrl && (
+                  <div
+                    className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center"
+                    onClick={handlePreviewClose}
+                  >
+                    <div className="relative max-w-[90vw] max-h-[90vh]">
+                      <Image
+                        src={displayImageUrl}
+                        alt="Full Preview"
+                        width={800}
+                        height={800}
+                        className="object-contain max-h-full max-w-full"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* Bottom section */}
-              <div className="flex justify-center items-center h-[57px] border-b border-dotted bg-[#ebebeb] rounded-b-[21px]">
-                <div className="flex justify-center gap-[10px]">
-                  <div className="p-[5px]">
+              {/* Tool Options */}
+              <div className="flex flex-col w-full sm:w-[431px] sm:h-[428px]">
+                <Text className="font-bold" as="p1">
+                  Brand
+                </Text>
+                <div className="flex justify-start mt-[20px] gap-[3px]">
+                  <div
+                    className={`w-[91px] h-[65px] bg-[#d9d9d9] relative cursor-pointer border-2 ${toolData.brand === 'Bosch' ? 'border-blue-500' : 'border-transparent'
+                      }`}
+                    onClick={() => setToolData({ ...toolData, brand: 'Bosch' })}
+                  >
                     <Image
-                      src="/images/icons/upload.svg"
-                      alt="upload"
-                      width={20}
-                      height={20}
-                      className="cursor-pointer opacity-50"
+                      src="/images/icons/workspace/Bosch.svg"
+                      alt="bosch"
+                      fill
+                      style={{ objectFit: "contain" }}
+                    />
+                  </div>
+                  <div
+                    className={`w-[91px] h-[65px] relative cursor-pointer border-2 ${toolData.brand === 'Milwaukee' ? 'border-blue-500' : 'border-transparent'
+                      }`}
+                    onClick={() => setToolData({ ...toolData, brand: 'Milwaukee' })}
+                  >
+                    <Image
+                      src="/images/icons/workspace/Milwaukee.svg"
+                      fill
+                      alt="milwaukee"
+                      style={{ objectFit: "contain" }}
+                    />
+                  </div>
+                  <div
+                    className={`w-[91px] h-[65px] relative cursor-pointer border-2 ${toolData.brand === 'Makita' ? 'border-blue-500' : 'border-transparent'
+                      }`}
+                    onClick={() => setToolData({ ...toolData, brand: 'Makita' })}
+                  >
+                    <Image
+                      src="/images/icons/workspace/Makita.svg"
+                      fill
+                      alt="makita"
+                      style={{ objectFit: "contain" }}
                     />
                   </div>
                 </div>
-              </div>
 
-              {/* Fullscreen Preview */}
-              {isPreviewOpen && displayImageUrl && (
-                <div
-                  className="fixed inset-0 z-50 bg-black bg-opacity-80 flex items-center justify-center"
-                  onClick={handlePreviewClose}
-                >
-                  <div className="relative max-w-[90vw] max-h-[90vh]">
-                    <Image
-                      src={displayImageUrl}
-                      alt="Full Preview"
-                      width={800}
-                      height={800}
-                      className="object-contain max-h-full max-w-full"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+                {toolData.brand && (
+                  <span className="text-green-600 text-[14px] mt-2">
+                    Selected: {toolData.brand}
+                  </span>
+                )}
 
-            {/* Tool Options */}
-            <div className="flex flex-col w-full sm:w-[431px] sm:h-[428px]">
-              <Text className="font-bold" as="p1">
-                Brand
-              </Text>
-              <div className="flex justify-start mt-[20px] gap-[3px]">
-                <div
-                  className={`w-[91px] h-[65px] bg-[#d9d9d9] relative cursor-pointer border-2 ${toolData.brand === 'Bosch' ? 'border-blue-500' : 'border-transparent'
-                    }`}
-                  onClick={() => setToolData({ ...toolData, brand: 'Bosch' })}
-                >
-                  <Image
-                    src="/images/icons/workspace/Bosch.svg"
-                    alt="bosch"
-                    fill
-                    style={{ objectFit: "contain" }}
-                  />
-                </div>
-                <div
-                  className={`w-[91px] h-[65px] relative cursor-pointer border-2 ${toolData.brand === 'Milwaukee' ? 'border-blue-500' : 'border-transparent'
-                    }`}
-                  onClick={() => setToolData({ ...toolData, brand: 'Milwaukee' })}
-                >
-                  <Image
-                    src="/images/icons/workspace/Milwaukee.svg"
-                    fill
-                    alt="milwaukee"
-                    style={{ objectFit: "contain" }}
-                  />
-                </div>
-                <div
-                  className={`w-[91px] h-[65px] relative cursor-pointer border-2 ${toolData.brand === 'Makita' ? 'border-blue-500' : 'border-transparent'
-                    }`}
-                  onClick={() => setToolData({ ...toolData, brand: 'Makita' })}
-                >
-                  <Image
-                    src="/images/icons/workspace/Makita.svg"
-                    fill
-                    alt="makita"
-                    style={{ objectFit: "contain" }}
-                  />
-                </div>
-              </div>
-
-              {toolData.brand && (
-                <span className="text-green-600 text-[14px] mt-2">
-                  Selected: {toolData.brand}
-                </span>
-              )}
-
-              <div className="my-[30px]">
-                <Text className="font-bold" as="p1">
-                  Tool Type
-                </Text>
-                <Listbox
-                  value={selectedTool}
-                  onChange={(tool: Tool) => {
-                    setSelectedTool(tool);
-                    setToolData({ ...toolData, tool_type: tool.type });
-                  }}
-                >
-                  <div className="relative w-full mt-[16px]">
-                    <Listbox.Button className="relative w-full h-[50px] p-2 border rounded-lg border-[#e6e6e6] text-left focus:outline-none">
-                      <span className="flex items-center gap-2">
-                        {selectedTool ? (
-                          <span className="text-sm">
-                            {selectedTool.type}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">
-                            Select a Tool
-                          </span>
-                        )}
-                      </span>
-                      <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                        <Image
-                          src="/images/icons/arrow_down.svg"
-                          width={20}
-                          height={20}
-                          alt="chevron down"
-                        />
-                      </span>
-                    </Listbox.Button>
-
-                    <Listbox.Options className="absolute z-[10] mt-1 max-h-60 w-full left-0 top-[50px] overflow-auto rounded-[10px] bg-white p-4 text-base shadow-lg focus:outline-none sm:text-sm">
-                      {Tools.map((tool) => (
-                        <Listbox.Option
-                          key={tool.id}
-                          value={tool}
-                          className={({ active }) =>
-                            `relative cursor-pointer select-none py-2 pl-3 pr-9 ${active
-                              ? "bg-blue-100 text-blue-900"
-                              : "text-gray-900"
-                            }`
-                          }
-                        >
-                          {({ selected }) => (
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="radio"
-                                readOnly
-                                checked={selected}
-                                className="w-4 h-4"
-                              />
-                              <span className="text-sm">{tool.type}</span>
-                            </div>
-                          )}
-                        </Listbox.Option>
-                      ))}
-                    </Listbox.Options>
-                  </div>
-                </Listbox>
-              </div>
-
-              <div>
-                <Text className="font-bold" as="p1">
-                  Description
-                </Text>
-                <div className="mt-[16px]">
-                  <textarea
-                    name="description"
-                    className="w-full h-[132px] p-4 border border-gray-300 rounded-md resize-none"
-                    placeholder="Enter tool description..."
-                    value={toolData.description}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                      setToolData({
-                        ...toolData,
-                        description: e.target.value,
-                      });
+                <div className="my-[30px]">
+                  <Text className="font-bold" as="p1">
+                    Tool Type
+                  </Text>
+                  <Listbox
+                    value={selectedTool}
+                    onChange={(tool: Tool) => {
+                      setSelectedTool(tool);
+                      setToolData({ ...toolData, tool_type: tool.type });
                     }}
-                  />
+                  >
+                    <div className="relative w-full mt-[16px]">
+                      <Listbox.Button className="relative w-full h-[50px] p-2 border rounded-lg border-[#e6e6e6] text-left focus:outline-none">
+                        <span className="flex items-center gap-2">
+                          {selectedTool ? (
+                            <span className="text-sm">
+                              {selectedTool.type}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">
+                              Select a Tool
+                            </span>
+                          )}
+                        </span>
+                        <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                          <Image
+                            src="/images/icons/arrow_down.svg"
+                            width={20}
+                            height={20}
+                            alt="chevron down"
+                          />
+                        </span>
+                      </Listbox.Button>
+
+                      <Listbox.Options className="absolute z-[10] mt-1 max-h-60 w-full left-0 top-[50px] overflow-auto rounded-[10px] bg-white p-4 text-base shadow-lg focus:outline-none sm:text-sm">
+                        {Tools.map((tool) => (
+                          <Listbox.Option
+                            key={tool.id}
+                            value={tool}
+                            className={({ active }) =>
+                              `relative cursor-pointer select-none py-2 pl-3 pr-9 ${active
+                                ? "bg-blue-100 text-blue-900"
+                                : "text-gray-900"
+                              }`
+                            }
+                          >
+                            {({ selected }) => (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  readOnly
+                                  checked={selected}
+                                  className="w-4 h-4"
+                                />
+                                <span className="text-sm">{tool.type}</span>
+                              </div>
+                            )}
+                          </Listbox.Option>
+                        ))}
+                      </Listbox.Options>
+                    </div>
+                  </Listbox>
+                </div>
+
+                <div>
+                  <Text className="font-bold" as="p1">
+                    Description
+                  </Text>
+                  <div className="mt-[16px]">
+                    <textarea
+                      name="description"
+                      className="w-full h-[132px] p-4 border border-gray-300 rounded-md resize-none"
+                      placeholder="Enter tool description..."
+                      value={toolData.description}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                        setToolData({
+                          ...toolData,
+                          description: e.target.value,
+                        });
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Purchasing Link */}
-          <div>
-            <Text className="font-bold text-[16px]" as="h5">
-              Purchasing Link{" "}
-              <span className="font-medium text-[16px] text-[#808080]">
-                (Optional)
-              </span>
-            </Text>
-            <div className="mt-[18px] w-full sm:w-[897px]">
-              <InputField
-                label=""
-                name="purchase_link"
-                className={`w-full ${!validation.isValid && touched ? "border-red-500" : ""}`}
-                placeholder="Please add purchasing link"
-                value={toolData.purchase_link}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  setToolData({
-                    ...toolData,
-                    purchase_link: e.target.value,
-                  });
-                }}
-              />
+            {/* Purchasing Link */}
+            <div>
+              <Text className="font-bold text-[16px]" as="h5">
+                Purchasing Link{" "}
+                <span className="font-medium text-[16px] text-[#808080]">
+                  (Optional)
+                </span>
+              </Text>
+              <div className="mt-[18px] w-full sm:w-[897px]">
+                <InputField
+                  label=""
+                  name="purchase_link"
+                  className={`w-full ${!validation.isValid && touched ? "border-red-500" : ""}`}
+                  placeholder="Please add purchasing link"
+                  value={toolData.purchase_link}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    setToolData({
+                      ...toolData,
+                      purchase_link: e.target.value,
+                    });
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="mt-[60px]">
+              <Button
+                className="px-[3.5rem] py-[1rem] text-[18px] font-bold"
+                variant="primary"
+                size="lg"
+                onClick={handleImageOutline}
+                disabled={isLoading}
+              >
+                <span className="text-[18px] font-semibold">
+                  {isLoading ? 'Processing...' : 'Next'}
+                </span>
+              </Button>
             </div>
           </div>
-
-          <div className="mt-[60px]">
-            <Button
-              className="px-[3.5rem] py-[1rem] text-[18px] font-bold"
-              variant="primary"
-              size="lg"
-              onClick={handleImageOutline}
-              disabled={isLoading}
-            >
-              <span className="text-[18px] font-semibold">
-                {isLoading ? 'Processing...' : 'Next'}
-              </span>
-            </Button>
-          </div>
+          <div className="hidden sm:flex-[1]"></div>
         </div>
-        <div className="hidden sm:flex-[1]"></div>
       </div>
     </>
   );

@@ -25,7 +25,7 @@ const PAPERS: Paper[] = [
 // Raw API response from CV server
 type CvProcessingRawResponse = {
   tool_png_link: string;
-  diagonal_inches: number;
+  height_in_inches: number;
   dxf_link: string;
   mask_link: string;
   outlines_link: string;
@@ -36,7 +36,7 @@ type CvProcessingRawResponse = {
 // Normalized response your app will use
 type CvProcessingResponse = {
   annotated_link: string;
-  diagonal_inches: number;
+  height_in_inches: number;
   dxf_link: string;
   mask_link: string;
   outlines_link: string;
@@ -55,7 +55,7 @@ declare global {
       file: File;
       serverResponse: {
         annotated_link: string;
-        diagonal_inches: number;
+        height_in_inches: number;
         dxf_link: string;
         mask_link: string;
         outlines_link: string;
@@ -173,7 +173,7 @@ const UploadNewToolPage1 = () => {
       // Map raw response -> normalized response
       return {
         annotated_link: result.tool_png_link,
-        diagonal_inches: result.diagonal_inches,
+        height_in_inches: result.height_in_inches,
         dxf_link: result.dxf_link,
         mask_link: result.mask_link,
         outlines_link: result.outlines_link,
