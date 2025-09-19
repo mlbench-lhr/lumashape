@@ -174,6 +174,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
         {/* Canvas with viewport transform */}
         <div
           ref={canvasRef}
+          data-canvas="true"   // 🔥 Add this
           className="absolute border-2 border-dashed border-gray-300 bg-white rounded-lg shadow-lg"
           style={{
             ...getCanvasStyle(),
@@ -183,6 +184,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           onDrop={handleDrop}
           onClick={handleCanvasClick}
         >
+
           {/* Canvas dimensions indicator */}
           <div className="absolute -top-8 left-0 text-sm text-gray-600 font-medium bg-white px-2 py-1 rounded shadow-sm">
             Canvas: {canvasWidth} × {canvasHeight} {unit}
@@ -232,8 +234,8 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                         style={{
                           opacity: opacity,
                           filter: `blur(${blurAmount}px) ${isSelected
-                              ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)) brightness(1.05)'
-                              : ''
+                            ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)) brightness(1.05)'
+                            : ''
                             }`,
                         }}
                         draggable={false}

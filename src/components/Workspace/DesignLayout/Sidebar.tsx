@@ -50,7 +50,8 @@ interface DatabaseTool {
     backgroundImg: string;
     annotatedImg: string;
     outlinesImg: string;
-    diagonalInches: number;   // ✅ new
+    diagonalInches: number;
+    dxfLink: string;   // ✅ new
     scaleFactor: number;      // ✅ new
     createdAt: string;
     updatedAt: string;
@@ -94,6 +95,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             annotatedImg,
             outlinesImg,
             diagonalInches,
+            dxfLink,
             scaleFactor,
             createdAt,
             updatedAt,
@@ -112,6 +114,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             annotatedImg,
             outlinesImg,
             diagonalInches,
+            dxfLink,
             scaleFactor,
             createdAt,
             updatedAt,
@@ -157,9 +160,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                     paperType: extractedData.paperType,
                     description: extractedData.description,
                     purchaseLink: extractedData.purchaseLink,
+                    annotatedImg: extractedData.annotatedImg,
                     backgroundImg: extractedData.backgroundImg,
                     outlinesImg: extractedData.outlinesImg,
                     diagonalInches: extractedData.diagonalInches,
+                    dxfLink: extractedData.dxfLink,
                     scaleFactor: extractedData.scaleFactor,
                     createdAt: extractedData.createdAt,
                     updatedAt: extractedData.updatedAt,

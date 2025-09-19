@@ -11,8 +11,10 @@ export interface Tool {
     description?: string;
     purchaseLink?: string;
     backgroundImg?: string;
+    annotatedImg?: string;
     outlinesImg?: string;
-    diagonalInches?: number;   // ✅ new
+    diagonalInches?: number;
+    dxfLink?: string;   // ✅ new
     scaleFactor?: number;      // ✅ new (mm/px)
     createdAt?: string;
     updatedAt?: string;

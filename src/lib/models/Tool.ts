@@ -18,6 +18,8 @@ export interface ITool extends Document {
   scaleFactor?: number;
   success?: boolean;
   toolPngLink?: string;
+  // New published field
+  published: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -98,6 +100,10 @@ const ToolSchema: Schema<ITool> = new mongoose.Schema(
     toolPngLink: {
       type: String,
       trim: true,
+    },
+    // New published field - defaults to false
+    published: {
+      type: String,
     },
   },
   {

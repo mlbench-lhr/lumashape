@@ -26,9 +26,9 @@ type Tool = {
   outlinesImg?: string;
   annotatedImg?: string;
   maskImg?: string;
-  processingData?: string; // JSON string if you’re storing it raw
+  processingData?: string;
+  published?: string; // Add published field
 };
-
 
 const BRANDS_DESKTOP: Brand[] = [
   { id: 0, brand_logo: "Custom" },
@@ -121,6 +121,49 @@ const MobileToolsInventory = () => {
     setOpenDropdown(prev => prev === toolId ? null : toolId);
   };
 
+  // Publish tool API
+  const publishTool = async (toolId: string) => {
+    try {
+      const token = localStorage.getItem("auth-token");
+      if (!token) {
+        console.error("No auth token found");
+        return;
+      }
+
+      const res = await fetch("/api/user/tool/publishTool", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ toolId }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to publish tool");
+      }
+
+      const data = await res.json();
+      
+      // Update the tool in local state
+      setTools(prev => prev.map(tool => 
+        tool._id === toolId 
+          ? { ...tool, published: '1' }
+          : tool
+      ));
+
+      console.log("Tool published successfully:", data);
+      
+      // Optionally show a success message to the user
+      // You could add a toast notification here
+      
+    } catch (error) {
+      console.error("Error publishing tool:", error);
+      // Optionally show an error message to the user
+    }
+  };
+
   // Delete tool API
   const deleteTool = async (toolId: string) => {
     try {
@@ -145,15 +188,14 @@ const MobileToolsInventory = () => {
     }
   };
 
-  const handleMenuClick = (action: string, tool: Tool) => {
+  const handleMenuClick = async (action: string, tool: Tool) => {
     // Always close dropdown first
     setOpenDropdown(null);
 
     if (action === "Edit") {
       router.push(`/tools-inventory/edit/${tool._id}`);
     } else if (action === "Publish to profile") {
-      console.log("Publishing tool:", tool._id);
-      // TODO: API call for publishing
+      await publishTool(tool._id);
     } else if (action === "Delete") {
       if (window.confirm("Are you sure you want to delete this tool?")) {
         deleteTool(tool._id);
@@ -363,8 +405,15 @@ const MobileToolsInventory = () => {
                   {filteredTools.map((tool) => (
                     <div
                       key={tool._id}
-                      className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[248px] sm:w-[266px] sm:h-[248px]"
+                      className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[248px] sm:w-[266px] sm:h-[248px] relative"
                     >
+                      {/* Published Badge */}
+                      {tool.published && (
+                        <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium z-10">
+                          Published
+                        </div>
+                      )}
+                      
                       <div className="relative inline-block" data-dropdown>
                         <div className="w-[258px] sm:w-[242px]">
                           <div className="relative w-full h-[150px]">
@@ -392,7 +441,6 @@ const MobileToolsInventory = () => {
                                 />
                               </div>
                             )}
-
 
                             {/* Three dots button */}
                             <button
@@ -424,10 +472,17 @@ const MobileToolsInventory = () => {
                                     e.stopPropagation();
                                     handleMenuClick("Publish to profile", tool);
                                   }}
-                                  className="w-full px-1 py-1 sm:px-3 sm:py-2 text-left flex items-center gap-[5px] hover:bg-gray-50"
+                                  disabled={tool.published == '0'}
+                                  className={`w-full px-1 py-1 sm:px-3 sm:py-2 text-left flex items-center gap-[5px] hover:bg-gray-50 ${
+                                    tool.published ? 'opacity-50 cursor-not-allowed' : ''
+                                  }`}
                                 >
                                   <Image src="/images/icons/share.svg" width={16} height={16} alt="share" />
-                                  <span className="text-[#808080] text-[10px] sm:text-[14px] font-medium">Publish to profile</span>
+                                  <span className={`text-[10px] sm:text-[14px] font-medium ${
+                                    tool.published == '1' ? 'text-gray-400' : 'text-[#808080]'
+                                  }`}>
+                                    {tool.published == '1' ? 'Already Published' : 'Publish to profile'}
+                                  </span>
                                 </button>
 
                                 <button
