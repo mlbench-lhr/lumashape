@@ -368,6 +368,7 @@ export const useCanvas = ({
     e.preventDefault();
   }, []);
 
+  // Updated handleDrop function in useCanvas.ts
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
 
@@ -381,7 +382,7 @@ export const useCanvas = ({
       // Create new tool with complete metadata
       const newTool: DroppedTool = {
         ...tool,
-        id: `${tool.id}-${Date.now()}`,
+        id: `${tool.id}-${Date.now()}`, // Keep the unique dropped ID
         x: 0, // Will be calculated below
         y: 0,
         rotation: 0,
@@ -395,10 +396,11 @@ export const useCanvas = ({
         smooth: 0,
         metadata: {
           ...tool.metadata, // Preserve all existing metadata including diagonalInches
+          originalId: tool.id, // ✅ STORE THE ORIGINAL ID HERE
         },
       };
 
-      // FIXED: Calculate dimensions with the complete tool object
+      // Calculate dimensions with the complete tool object
       const { toolWidth, toolHeight } = getToolDimensions(newTool);
 
       // Center the tool on the drop position

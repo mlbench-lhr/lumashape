@@ -21,6 +21,7 @@ export interface Tool {
     version?: number;
     naturalWidth?: number;
     naturalHeight?: number;
+    originalId?: string; // ✅ Store original database ID
   };
 }
 

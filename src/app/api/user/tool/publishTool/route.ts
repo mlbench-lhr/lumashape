@@ -42,15 +42,18 @@ export async function PATCH(req: Request) {
       );
     }
 
-    // Update the published status
-    tool.published = '1';
+    // Update published status and date
+    tool.published = true;
+    tool.publishedDate = new Date();
+
     await tool.save();
 
     return NextResponse.json({ 
       success: true, 
       message: "Tool published to profile successfully",
       toolId: tool._id,
-      published: tool.published 
+      published: tool.published,
+      publishedDate: tool.publishedDate
     });
 
   } catch (err) {

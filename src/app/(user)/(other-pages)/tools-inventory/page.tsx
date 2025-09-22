@@ -27,7 +27,7 @@ type Tool = {
   annotatedImg?: string;
   maskImg?: string;
   processingData?: string;
-  published?: string; // Add published field
+  published?: boolean; // Add published field
 };
 
 const BRANDS_DESKTOP: Brand[] = [
@@ -149,7 +149,7 @@ const MobileToolsInventory = () => {
       // Update the tool in local state
       setTools(prev => prev.map(tool => 
         tool._id === toolId 
-          ? { ...tool, published: '1' }
+          ? { ...tool, published: true }
           : tool
       ));
 
@@ -472,16 +472,16 @@ const MobileToolsInventory = () => {
                                     e.stopPropagation();
                                     handleMenuClick("Publish to profile", tool);
                                   }}
-                                  disabled={tool.published == '0'}
+                                  disabled={tool.published}
                                   className={`w-full px-1 py-1 sm:px-3 sm:py-2 text-left flex items-center gap-[5px] hover:bg-gray-50 ${
                                     tool.published ? 'opacity-50 cursor-not-allowed' : ''
                                   }`}
                                 >
                                   <Image src="/images/icons/share.svg" width={16} height={16} alt="share" />
                                   <span className={`text-[10px] sm:text-[14px] font-medium ${
-                                    tool.published == '1' ? 'text-gray-400' : 'text-[#808080]'
+                                    tool.published ? 'text-gray-400' : 'text-[#808080]'
                                   }`}>
-                                    {tool.published == '1' ? 'Already Published' : 'Publish to profile'}
+                                    {tool.published ? 'Already Published' : 'Publish to profile'}
                                   </span>
                                 </button>
 
