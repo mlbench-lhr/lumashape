@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MoreHorizontal, RefreshCw, Save, AlertTriangle, CheckCircle, Download, FileText, Image as ImageIcon, File } from 'lucide-react';
 import Image from 'next/image';
 import { DroppedTool } from './types';
+import { Client } from '@gradio/client';
 
 interface HeaderProps {
     droppedTools: DroppedTool[];
@@ -26,7 +27,14 @@ interface LayoutFormData {
     thickness?: number;
 }
 
-// ✅ conversion helper
+// Gradio API response types
+type GradioLayoutResponse = {
+    success: boolean;
+    dxf_download_link?: string;
+    error?: string;
+};
+
+// conversion helper
 const mmToInches = (mm: number) => mm / 25.4;
 
 const Header: React.FC<HeaderProps> = ({
@@ -42,6 +50,7 @@ const Header: React.FC<HeaderProps> = ({
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
+    const [isDxfGenerating, setIsDxfGenerating] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     // Close dropdown when clicking outside
@@ -68,12 +77,10 @@ const Header: React.FC<HeaderProps> = ({
         }
     };
 
-    // ✅ Helper function to convert pixel position to inches
+    // Helper function to convert pixel position to inches
     const convertPositionToInches = (pixelPosition: number, canvasDimension: number): number => {
-        // Assuming the canvas is rendered with a specific pixel-to-unit ratio
-        // You may need to adjust this based on your actual canvas scaling
         const canvasInInches = unit === 'mm' ? mmToInches(canvasDimension) : canvasDimension;
-        
+
         // Get the actual canvas element to determine the pixel-to-inch ratio
         const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLDivElement;
         if (canvasElement) {
@@ -81,13 +88,172 @@ const Header: React.FC<HeaderProps> = ({
             const pixelsPerInch = canvasRect.width / canvasInInches;
             return pixelPosition / pixelsPerInch;
         }
-        
+
         // Fallback calculation if canvas element not found
-        // Assume standard 96 DPI (pixels per inch)
         return pixelPosition / 96;
     };
 
-    // ✅ Generate comprehensive text file data (always in inches + diagonal height + position in inches)
+    // Fetch tool DXF file as blob
+    const fetchToolDxfBlob = async (toolId: string, authToken: string): Promise<Blob> => {
+        const toolRes = await fetch(`/api/user/tool/getTool?toolId=${toolId}`, {
+            headers: { Authorization: `Bearer ${authToken}` },
+        });
+
+        if (!toolRes.ok) {
+            throw new Error(`Failed to fetch tool data for ID: ${toolId}`);
+        }
+
+        const { tool } = await toolRes.json();
+
+        if (!tool?.dxfLink) {
+            throw new Error(`Tool ${toolId} has no DXF link`);
+        }
+
+        // Fetch DXF file from S3
+        const dxfRes = await fetch(tool.dxfLink);
+        if (!dxfRes.ok) {
+            throw new Error(`Failed to download DXF from ${tool.dxfLink}`);
+        }
+
+        return await dxfRes.blob();
+    };
+
+    // Generate DXF file using Gradio
+    const generateDxfFile = async () => {
+        if (droppedTools.length === 0) {
+            setSaveError("Cannot generate DXF with no tools. Please add at least one tool.");
+            return;
+        }
+
+        setIsDxfGenerating(true);
+        setSaveError(null);
+
+        try {
+            // Get metadata
+            let layoutName = "Tool Layout";
+            let brand = "";
+            const sessionData = sessionStorage.getItem("layoutForm");
+            if (sessionData) {
+                try {
+                    const layoutForm = JSON.parse(sessionData) as LayoutFormData;
+                    layoutName = layoutForm.layoutName || "Tool Layout";
+                    brand = layoutForm.selectedBrand || "";
+                } catch (err) {
+                    console.error("Error parsing session data:", err);
+                }
+            }
+
+            // Convert canvas dimensions to inches
+            const canvasWidthInches = unit === "mm" ? mmToInches(canvasWidth) : canvasWidth;
+            const canvasHeightInches = unit === "mm" ? mmToInches(canvasHeight) : canvasHeight;
+            const canvasThicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
+
+            const authToken = localStorage.getItem("auth-token");
+            if (!authToken) throw new Error("Missing auth token");
+
+            // Prepare tool data and fetch DXF blobs
+            const toolData = [];
+            const dxfBlobs = [];
+
+            for (const droppedTool of droppedTools) {
+                // Get the original tool ID
+                const toolIdToFetch = droppedTool.metadata?.originalId || droppedTool.id.split('-').slice(0, -1).join('-');
+                
+                // Convert positions to inches
+                const xInches = convertPositionToInches(droppedTool.x, canvasWidth);
+                const yInches = convertPositionToInches(droppedTool.y, canvasHeight);
+
+                console.log(`Processing tool: ${droppedTool.name}, Original ID: ${toolIdToFetch}, Position: (${xInches}, ${yInches})`);
+
+                // Prepare tool information
+                toolData.push({
+                    name: droppedTool.name,
+                    x: xInches,
+                    y: yInches,
+                    rotation: droppedTool.rotation || 0,
+                });
+
+                // Fetch DXF blob
+                const dxfBlob = await fetchToolDxfBlob(toolIdToFetch, authToken);
+                dxfBlobs.push(dxfBlob);
+            }
+
+            // Connect to Gradio client
+            const client = await Client.connect("lumashape/generate_industrial_layout");
+            
+            // Prepare inputs for Gradio API
+            const inputs = [
+                canvasWidthInches,      // canvas_width
+                canvasHeightInches,     // canvas_height  
+                canvasThicknessInches,  // canvas_thickness
+                layoutName,             // layout_name
+                brand,                  // brand
+                dxfBlobs,              // dxf_files array
+                toolData.map(t => t.name),     // tool_names array
+                toolData.map(t => t.x),        // tool_x_positions array
+                toolData.map(t => t.y),        // tool_y_positions array
+                toolData.map(t => t.rotation), // tool_rotations array
+            ];
+
+            console.log("Sending to Gradio:", {
+                canvas: { width: canvasWidthInches, height: canvasHeightInches, thickness: canvasThicknessInches },
+                layout: { name: layoutName, brand },
+                toolCount: toolData.length
+            });
+
+            // Call Gradio API endpoint
+            const response = await client.predict("/generate_industrial_layout", inputs);
+            console.log("Gradio Response:", response);
+
+            if (!response?.data) {
+                throw new Error("Invalid response from Gradio API");
+            }
+
+            // Handle the response - Gradio typically returns file URLs
+            let downloadUrl: string;
+            
+            if (Array.isArray(response.data)) {
+                // If response is an array, find the download URL
+                const fileResult = response.data.find(item => 
+                    typeof item === 'string' && (item.includes('.dxf') || item.includes('download'))
+                );
+                
+                if (!fileResult) {
+                    throw new Error("No DXF download URL found in response");
+                }
+                
+                downloadUrl = fileResult;
+            } else if (typeof response.data === 'string') {
+                downloadUrl = response.data;
+            } else {
+                throw new Error("Unexpected response format from Gradio API");
+            }
+
+            // Download the file
+            const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+            const filename = `${layoutName.replace(/\s+/g, "_")}-layout-${timestamp}.dxf`;
+
+            // Create download link
+            const link = document.createElement("a");
+            link.href = downloadUrl;
+            link.download = filename;
+            link.target = "_blank"; // Open in new tab as fallback
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            setShowDropdown(false);
+            console.log("DXF file downloaded successfully");
+
+        } catch (err) {
+            console.error("Error generating DXF:", err);
+            setSaveError(err instanceof Error ? err.message : "Failed to generate DXF file");
+        } finally {
+            setIsDxfGenerating(false);
+        }
+    };
+
+    // Generate comprehensive text file data (always in inches + diagonal height + position in inches)
     const generateTextFileData = (): string => {
         const timestamp = new Date().toISOString();
 
@@ -126,18 +292,19 @@ const Header: React.FC<HeaderProps> = ({
         droppedTools.forEach((tool, index) => {
             content += `Tool ${index + 1}:\n`;
             content += `  ID: ${tool.id}\n`;
+            content += `  Original ID: ${tool.metadata?.originalId || 'N/A'}\n`;
             content += `  Name: ${tool.name}\n`;
             content += `  Brand: ${tool.brand}\n`;
-            
-            // ✅ Convert position from pixels to inches
+
+            // Convert position from pixels to inches
             const xInches = convertPositionToInches(tool.x, canvasWidth);
             const yInches = convertPositionToInches(tool.y, canvasHeight);
             content += `  Position (pixels): (${Math.round(tool.x)}, ${Math.round(tool.y)})\n`;
             content += `  Position (inches): (${xInches.toFixed(2)}, ${yInches.toFixed(2)})\n`;
-            
+
             content += `  Rotation: ${tool.rotation}°\n`;
 
-            // ✅ Use diagonal inches instead of width × length
+            // Use diagonal inches instead of width × length
             if (tool.metadata?.diagonalInches) {
                 content += `  Height (Diagonal): ${tool.metadata.diagonalInches} inches\n`;
             } else if (tool.width && tool.length) {
@@ -208,9 +375,6 @@ const Header: React.FC<HeaderProps> = ({
                 throw new Error('Canvas element not found');
             }
 
-            // Use html2canvas or similar library (you'll need to install it)
-            // For now, we'll use a simple approach with canvas API
-
             // Create a temporary canvas
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
@@ -238,11 +402,6 @@ const Header: React.FC<HeaderProps> = ({
             ctx.fillText(`Canvas: ${canvasWidth} × ${canvasHeight} ${unit}`, 20, 30);
             ctx.fillText(`Tools: ${droppedTools.length}`, 20, 50);
             ctx.fillText(`Status: ${hasOverlaps ? 'Invalid (Overlaps)' : 'Valid'}`, 20, 70);
-
-            // Note: For a complete implementation, you would need to:
-            // 1. Install html2canvas: npm install html2canvas
-            // 2. Import and use it to capture the actual visual layout
-            // This is a basic implementation for demonstration
 
             // Convert to blob and download
             canvas.toBlob((blob) => {
@@ -313,6 +472,7 @@ const Header: React.FC<HeaderProps> = ({
                 },
                 tools: droppedTools.map(tool => ({
                     id: tool.id,
+                    originalId: tool.metadata?.originalId,
                     name: tool.name,
                     x: tool.x,
                     y: tool.y,
@@ -395,8 +555,9 @@ const Header: React.FC<HeaderProps> = ({
         {
             icon: File,
             label: 'Generate DXF File',
-            action: () => { }, // Placeholder
-            disabled: true // Currently disabled as requested
+            action: generateDxfFile,
+            disabled: droppedTools.length === 0,
+            loading: isDxfGenerating
         }
     ];
 
@@ -463,16 +624,22 @@ const Header: React.FC<HeaderProps> = ({
                                         <button
                                             key={index}
                                             className={`w-full px-4 py-3 text-left text-sm flex items-center space-x-3 transition-colors ${option.disabled
-                                                    ? 'text-gray-400 cursor-not-allowed'
-                                                    : 'text-gray-700 hover:bg-gray-50 cursor-pointer'
+                                                ? 'text-gray-400 cursor-not-allowed'
+                                                : 'text-gray-700 hover:bg-gray-50 cursor-pointer'
                                                 }`}
                                             onClick={option.disabled ? undefined : option.action}
                                             disabled={option.disabled}
                                         >
-                                            <option.icon className="w-4 h-4" />
-                                            <span>{option.label}</span>
-                                            {option.disabled && (
-                                                <span className="ml-auto text-xs text-gray-400">(Coming Soon)</span>
+                                            {option.loading ? (
+                                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                                <option.icon className="w-4 h-4" />
+                                            )}
+                                            <span>
+                                                {option.loading ? 'Generating DXF...' : option.label}
+                                            </span>
+                                            {option.disabled && !option.loading && droppedTools.length === 0 && (
+                                                <span className="ml-auto text-xs text-gray-400">(Add tools first)</span>
                                             )}
                                         </button>
                                     ))}
@@ -509,13 +676,26 @@ const Header: React.FC<HeaderProps> = ({
                 </div>
             )}
 
+            {/* DXF Generation Message */}
+            {isDxfGenerating && (
+                <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
+                    <div className="flex items-start space-x-2">
+                        <RefreshCw className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5 animate-spin" />
+                        <div>
+                            <p className="text-sm font-medium text-blue-800">Generating DXF File...</p>
+                            <p className="text-sm text-blue-700 mt-1">Please wait while we create your industrial layout file via Gradio.</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Error Message */}
             {saveError && (
                 <div className="mt-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
                     <div className="flex items-start space-x-2">
                         <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                         <div>
-                            <p className="text-sm font-medium text-red-800">Cannot Save Layout</p>
+                            <p className="text-sm font-medium text-red-800">Operation Failed</p>
                             <p className="text-sm text-red-700 mt-1">{saveError}</p>
                         </div>
                     </div>
@@ -552,7 +732,6 @@ const Header: React.FC<HeaderProps> = ({
                     )}
                 </div>
             </div>
-
         </div>
     );
 };

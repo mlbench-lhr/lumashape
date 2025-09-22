@@ -43,7 +43,7 @@ export async function PATCH(req: Request) {
     }
 
     // Update the published status
-    tool.published = '1';
+    tool.published = true;
     await tool.save();
 
     return NextResponse.json({ 

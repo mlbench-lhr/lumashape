@@ -10,19 +10,14 @@ export interface ITool extends Document {
   backgroundImg?: string;
   annotatedImg?: string;
   outlinesImg?: string;
-  // Individual CV processing fields
   diagonalInches?: number;
   dxfLink?: string;
-  maskLink?: string;
-  outlinesLink?: string;
   scaleFactor?: number;
-  success?: boolean;
-  toolPngLink?: string;
-  // New published field
-  published: string;
+  published: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
+
 
 const ToolSchema: Schema<ITool> = new mongoose.Schema(
   {
@@ -63,10 +58,6 @@ const ToolSchema: Schema<ITool> = new mongoose.Schema(
         message: "Purchase link must be a valid URL",
       },
     },
-    backgroundImg: {
-      type: String,
-      trim: true,
-    },
     annotatedImg: {
       type: String,
       trim: true,
@@ -75,41 +66,24 @@ const ToolSchema: Schema<ITool> = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    // Individual CV processing response fields
-    diagonalInches: {
-      type: Number,
-    },
-    dxfLink: {
-      type: String,
-      trim: true,
-    },
-    maskLink: {
-      type: String,
-      trim: true,
-    },
-    outlinesLink: {
-      type: String,
-      trim: true,
-    },
-    scaleFactor: {
-      type: Number,
-    },
-    success: {
-      type: Boolean,
-    },
-    toolPngLink: {
-      type: String,
-      trim: true,
-    },
-    // New published field - defaults to false
+    diagonalInches: Number,
+    dxfLink: String,
+    scaleFactor: Number,
+
+    // Published as boolean with default
     published: {
-      type: String,
-    },
+      type: Boolean,
+      required: true,
+      default: false,
+      select: true,
+    }
+
   },
   {
     timestamps: true,
   }
 );
+
 
 const Tool: Model<ITool> =
   mongoose.models.Tool || mongoose.model<ITool>("Tool", ToolSchema);

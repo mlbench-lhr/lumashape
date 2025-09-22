@@ -53,8 +53,9 @@ export async function POST(req: Request) {
       outlinesImg: outlinesImageUrl || "",
       diagonalInches: serverResponse?.height_in_inches ?? undefined,
       scaleFactor: serverResponse?.scale_info ?? undefined,
-      published: '0',
+      published: false, // default unpublished
     });
+
 
     console.log("Tool object before save:", tool);
     console.log(`Server Response while saving tool : `, serverResponse);
