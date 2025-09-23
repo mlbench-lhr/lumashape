@@ -409,7 +409,7 @@ const MobileToolsInventory = () => {
                     >
                       {/* Published Badge */}
                       {tool.published && (
-                        <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium z-10">
+                        <div className="absolute top-2 left-2 bg-primary text-white px-2 py-1 rounded text-xs font-medium z-10">
                           Published
                         </div>
                       )}

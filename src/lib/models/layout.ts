@@ -40,6 +40,7 @@ export interface LayoutAttrs {
   canvas: Canvas;
   tools: Tool[];
   stats: Stats;
+  snapshotUrl?: string;
   metadata?: Record<string, unknown>;
   tags?: string[];
   isPublic?: boolean;
@@ -128,6 +129,7 @@ const LayoutSchema = new mongoose.Schema<LayoutDocument, LayoutModel>(
     },
     stats: { type: StatsSchema, required: true },
     metadata: { type: mongoose.Schema.Types.Mixed, default: {} },
+    snapshotUrl: { type: String },
     tags: [{ type: String, trim: true, maxLength: 50 }],
     isPublic: { type: Boolean, default: false },
   },

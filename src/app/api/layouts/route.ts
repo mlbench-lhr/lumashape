@@ -416,76 +416,62 @@ export async function POST(req: NextRequest) {
     await dbConnect();
 
     const token = req.headers.get("Authorization")?.split(" ")[1];
-    console.log("Authorization: ", token);
-
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-
     if (!isValidJWTPayload(decoded)) {
       return NextResponse.json({ error: "Invalid token payload" }, { status: 401 });
     }
 
     const body: unknown = await req.json();
-    console.log("Layout data: ", body);
-
-    // Validate the layout data
     const validatedData = validateLayoutData(body);
 
-    // Extract additional metadata (excluding core layout fields)
-    const bodyObj = body as LayoutRequestBody;
-    const { name, description, canvas, tools, stats, ...metadata } = bodyObj;
+    // Extract additional metadata + snapshotUrl
+    const bodyObj = body as LayoutRequestBody & { snapshotUrl?: string };
+    const { name, description, canvas, tools, stats, snapshotUrl, ...metadata } = bodyObj;
 
-    // Create new layout
     const layout = new Layout({
       userEmail: decoded.email,
       name: validatedData.name,
-      description: validatedData.description || '',
+      description: validatedData.description || "",
       canvas: validatedData.canvas,
       tools: validatedData.tools,
+      snapshotUrl: snapshotUrl || null, // ✅ store image URL
       stats: {
         ...validatedData.stats,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       },
-      // Store any additional form data
-      metadata
+      metadata,
     });
 
-    console.log("Layout to save: ", layout);
+    console.log(`snapshort url = ${layout.snapshotUrl}`);
+
     await layout.save();
-
-    return NextResponse.json({
-      success: true,
-      message: 'Layout saved successfully',
-      id: layout._id
-    }, { status: 201 });
-
-  } catch (error) {
-    console.error('Error saving layout:', error);
-
-    // Handle custom validation errors
-    if (error instanceof Error) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: error.message
-        },
-        { status: 400 }
-      );
-    }
 
     return NextResponse.json(
       {
+        success: true,
+        message: "Layout saved successfully",
+        id: layout._id,
+        snapshotUrl: layout.snapshotUrl,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Error saving layout:", error);
+    return NextResponse.json(
+      {
         success: false,
-        error: 'Failed to save layout'
+        error: error instanceof Error ? error.message : "Failed to save layout",
       },
       { status: 500 }
     );
   }
 }
+
 
 // PUT - Update existing layout
 export async function PUT(req: NextRequest) {
@@ -498,17 +484,16 @@ export async function PUT(req: NextRequest) {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-
     if (!isValidJWTPayload(decoded)) {
       return NextResponse.json({ error: "Invalid token payload" }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
-    const layoutId = searchParams.get('id');
+    const layoutId = searchParams.get("id");
 
     if (!layoutId) {
       return NextResponse.json(
-        { success: false, error: 'Layout ID is required' },
+        { success: false, error: "Layout ID is required" },
         { status: 400 }
       );
     }
@@ -516,61 +501,58 @@ export async function PUT(req: NextRequest) {
     const body: unknown = await req.json();
     const validatedData = validateLayoutData(body);
 
-    // Make sure user can only update their own layouts
+    // Extract additional metadata + snapshotUrl
+    const bodyObj = body as LayoutRequestBody & { snapshotUrl?: string };
+    const { name, description, canvas, tools, stats, snapshotUrl, ...metadata } = bodyObj;
+
     const existingLayout = await Layout.findOne({
       _id: layoutId,
-      userEmail: decoded.email
+      userEmail: decoded.email,
     });
 
     if (!existingLayout) {
       return NextResponse.json(
-        { success: false, error: 'Layout not found or access denied' },
+        { success: false, error: "Layout not found or access denied" },
         { status: 404 }
       );
     }
-
-    // Extract additional metadata
-    const bodyObj = body as LayoutRequestBody;
-    const { name, description, canvas, tools, stats, ...metadata } = bodyObj;
 
     const updatedLayout = await Layout.findByIdAndUpdate(
       layoutId,
       {
         name: validatedData.name,
-        description: validatedData.description || '',
+        description: validatedData.description || "",
         canvas: validatedData.canvas,
         tools: validatedData.tools,
+        snapshotUrl: snapshotUrl || existingLayout.snapshotUrl, // ✅ update snapshot if provided
         stats: {
           ...validatedData.stats,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         },
-        metadata
+        metadata,
       },
       { new: true, runValidators: true }
     );
 
+    console.log(updatedLayout);
+
     return NextResponse.json({
       success: true,
-      message: 'Layout updated successfully',
-      data: updatedLayout
+      message: "Layout updated successfully",
+      data: updatedLayout,
     });
-
   } catch (error) {
-    console.error('Error updating layout:', error);
-
-    if (error instanceof Error) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 400 }
-      );
-    }
-
+    console.error("Error updating layout:", error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update layout' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to update layout",
+      },
       { status: 500 }
     );
   }
 }
+
 
 // DELETE - Delete layout
 export async function DELETE(req: NextRequest) {

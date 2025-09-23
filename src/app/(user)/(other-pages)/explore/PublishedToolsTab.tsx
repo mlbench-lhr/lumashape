@@ -29,6 +29,10 @@ const PublishedToolsTab = () => {
     const [loading, setLoading] = useState(false);
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [selectedToolType, setSelectedToolType] = useState("");
+    const [selectedBrand, setSelectedBrand] = useState("");
+
 
     useEffect(() => {
         fetchPublishedTools();
@@ -51,6 +55,19 @@ const PublishedToolsTab = () => {
             setLoading(false);
         }
     };
+
+    const filteredTools = publishedTools.filter((tool) => {
+        const matchesSearch =
+            tool.toolType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            tool.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            tool.paperType.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesType = selectedToolType ? tool.toolType === selectedToolType : true;
+        const matchesBrand = selectedBrand ? tool.brand === selectedBrand : true;
+
+        return matchesSearch && matchesType && matchesBrand;
+    });
+
 
     // Handle like/dislike actions
     const handleInteraction = async (toolId: string, action: 'like' | 'dislike') => {
@@ -163,18 +180,24 @@ const PublishedToolsTab = () => {
                     <input
                         type="text"
                         placeholder="Search Keyword"
-                        className="w-full pl-10 pr-4 py-2 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 text-base border rounded-md focus:outline-none"
                     />
                 </div>
                 {/* Dropdown Filters */}
                 <div className="flex gap-3">
                     <div className="relative">
                         <select
+                            value={selectedToolType}
+                            onChange={(e) => setSelectedToolType(e.target.value)}
                             className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none"
                         >
                             <option>Tool Type</option>
-                            <option>Type 1</option>
-                            <option>Type 2</option>
+                            <option>Custom</option>
+                            <option>Wrench</option>
+                            <option>Pliers</option>
+                            <option>Hammer</option>
                         </select>
                         {/* Custom Arrow */}
                         <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
@@ -191,11 +214,14 @@ const PublishedToolsTab = () => {
 
                     <div className="relative">
                         <select
+                            value={selectedBrand}
+                            onChange={(e) => setSelectedBrand(e.target.value)}
                             className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none"
                         >
                             <option>Tool Brand</option>
-                            <option>Brand A</option>
-                            <option>Brand B</option>
+                            <option>Bosch</option>
+                            <option>Milwaukee</option>
+                            <option>Makita</option>
                         </select>
                         {/* Custom Arrow */}
                         <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
@@ -227,7 +253,7 @@ const PublishedToolsTab = () => {
             ) : (
                 <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-0">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[10px]">
-                        {publishedTools.map((tool) => (
+                        {filteredTools.map((tool) => (
                             <div
                                 key={tool._id}
                                 className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[280px] sm:w-[266px] sm:h-[280px] relative"
@@ -399,5 +425,4 @@ const PublishedToolsTab = () => {
         </div>
     );
 };
-
 export default PublishedToolsTab;
