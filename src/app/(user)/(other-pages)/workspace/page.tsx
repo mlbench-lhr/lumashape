@@ -191,7 +191,7 @@ const MyLayouts = () => {
 
   // Format canvas dimensions
   const formatDimensions = (canvas: CanvasData) => {
-    return `${canvas.width}" × ${canvas.height}" (${canvas.unit})`;
+    return `(${canvas.width}" × ${canvas.height}")`;
   };
 
   return (
@@ -199,38 +199,42 @@ const MyLayouts = () => {
       {/* Main Content */}
       <div className="px-0 md:px-4 py-6 flex-1">
         <div className="mx-auto w-full max-w-[343px] sm:max-w-[1250px]">
-          <div className="flex items-center justify-between w-full h-full sm:h-[64px]">
-            <h1 className="text-2xl font-bold text-gray-900">My Layouts</h1>
-            <div className="flex sm:flex hidden">
-              <Button
-                onClick={() => router.push("/workspace/create-new-layout")}
-                variant="primary"
-                size="lg"
-              >
-                <Image
-                  src="/images/icons/mdi_add.svg"
-                  width={24}
-                  height={24}
-                  alt="add"
-                />
-                Create New Layout
-              </Button>
-              <div className="flex text-[#bababa] rounded-[14px] border justify-center px-2 mx-2">
-                <Image
-                  src="/images/icons/bell.svg"
-                  width={36}
-                  height={36}
-                  alt="notifications"
-                />
+          <div className="row">
+            <div className="flex items-center justify-between w-full h-full sm:h-[64px]">
+              <h1 className="text-2xl font-bold text-gray-900">My Layouts</h1>
+              <div className="flex sm:flex hidden">
+                <Button
+                  onClick={() => router.push("/workspace/create-new-layout")}
+                  variant="primary"
+                  size="lg"
+                >
+                  <Image
+                    src="/images/icons/mdi_add.svg"
+                    width={24}
+                    height={24}
+                    alt="add"
+                  />
+                  Create New Layout
+                </Button>
+                <div className="flex text-[#bababa] rounded-[14px] border justify-center px-2 mx-2">
+                  <Image
+                    src="/images/icons/bell.svg"
+                    width={36}
+                    height={36}
+                    alt="notifications"
+                  />
+                </div>
+              </div>
+              <div className="relative w-[30px] h-[30px] rounded-[10px] border-[#c7c7c7] border flex items-center justify-center sm:hidden">
+                <Image src="/images/icons/bell.svg" fill alt="notifications" />
               </div>
             </div>
-            <div className="relative w-[30px] h-[30px] rounded-[10px] border-[#c7c7c7] border flex items-center justify-center sm:hidden">
-              <Image src="/images/icons/bell.svg" fill alt="notifications" />
-            </div>
+            <p>{`View, download, or duplicate all DXF layouts you’ve previously created.`}</p>
           </div>
 
+
           {/* Search & Sort */}
-          <div className="flex flex-row sm:items-center sm:justify-between w-full gap-3 sm:gap-6 mt-4">
+          <div className="flex flex-row sm:items-center sm:justify-between w-full sm:gap-6 mt-4">
             {/* Search Box */}
             <div className="relative w-full w-[193px] sm:w-[382px]">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
