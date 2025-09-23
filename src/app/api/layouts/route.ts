@@ -26,7 +26,7 @@ interface ToolData {
   metadata?: {
     userEmail?: string;
     paperType?: string;
-    description?: string;
+    brand?: string;
     purchaseLink?: string;
     backgroundImg?: string;
     outlinesImg?: string;
@@ -55,7 +55,7 @@ interface LayoutStats {
 
 interface LayoutData {
   name: string;
-  description?: string;
+  brand?: string;
   canvas: CanvasData;
   tools: ToolData[];
   stats: LayoutStats;
@@ -77,7 +77,7 @@ interface SearchQuery {
   userEmail: string;
   $or?: Array<{
     name?: { $regex: string; $options: string };
-    description?: { $regex: string; $options: string };
+    brand?: { $regex: string; $options: string };
   }>;
 }
 
@@ -297,7 +297,7 @@ const validateLayoutData = (data: unknown): LayoutData => {
   }
 
   const dataObj = data as Record<string, unknown>;
-  const { name, description, canvas, tools, stats } = dataObj;
+  const { name, brand, canvas, tools, stats } = dataObj;
 
   if (typeof name !== 'string' || name.trim().length === 0) {
     throw new Error('Layout name is required');
@@ -328,7 +328,7 @@ const validateLayoutData = (data: unknown): LayoutData => {
 
   return {
     name: name.trim(),
-    description: typeof description === 'string' ? description.trim() : undefined,
+    brand: typeof brand === 'string' ? brand.trim() : undefined,
     canvas: validatedCanvas,
     tools: validatedTools,
     stats: validatedStats
@@ -374,7 +374,7 @@ export async function GET(req: NextRequest) {
     if (search) {
       searchQuery.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { brand: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -430,12 +430,12 @@ export async function POST(req: NextRequest) {
 
     // Extract additional metadata + snapshotUrl
     const bodyObj = body as LayoutRequestBody & { snapshotUrl?: string };
-    const { name, description, canvas, tools, stats, snapshotUrl, ...metadata } = bodyObj;
+    const { name, brand, canvas, tools, stats, snapshotUrl, ...metadata } = bodyObj;
 
     const layout = new Layout({
       userEmail: decoded.email,
       name: validatedData.name,
-      description: validatedData.description || "",
+      brand: validatedData.brand || "",
       canvas: validatedData.canvas,
       tools: validatedData.tools,
       snapshotUrl: snapshotUrl || null, // ✅ store image URL
@@ -503,7 +503,7 @@ export async function PUT(req: NextRequest) {
 
     // Extract additional metadata + snapshotUrl
     const bodyObj = body as LayoutRequestBody & { snapshotUrl?: string };
-    const { name, description, canvas, tools, stats, snapshotUrl, ...metadata } = bodyObj;
+    const { name, brand, canvas, tools, stats, snapshotUrl, ...metadata } = bodyObj;
 
     const existingLayout = await Layout.findOne({
       _id: layoutId,
@@ -521,7 +521,7 @@ export async function PUT(req: NextRequest) {
       layoutId,
       {
         name: validatedData.name,
-        description: validatedData.description || "",
+        brand: validatedData.brand || "",
         canvas: validatedData.canvas,
         tools: validatedData.tools,
         snapshotUrl: snapshotUrl || existingLayout.snapshotUrl, // ✅ update snapshot if provided

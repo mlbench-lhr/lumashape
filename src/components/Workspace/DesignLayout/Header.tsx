@@ -560,10 +560,10 @@ const Header: React.FC<HeaderProps> = ({
             setSaveSuccess(true);
             sessionStorage.removeItem("layoutForm");
 
-            // setTimeout(() => {
-            //     onSaveLayout?.();
-            //     window.location.href = "/workspace";
-            // }, 1500);
+            setTimeout(() => {
+                onSaveLayout?.();
+                window.location.href = "/workspace";
+            }, 1500);
 
         } catch (error) {
             console.error("Error saving layout:", error);
