@@ -208,8 +208,9 @@ const MyLayouts = () => {
                   variant="primary"
                   size="lg"
                 >
+                  
                   <Image
-                    src="/images/icons/mdi_add.svg"
+                    src="/images/icons/mdi_add.svg" 
                     width={24}
                     height={24}
                     alt="add"
