@@ -36,10 +36,11 @@ interface Stats {
 export interface LayoutAttrs {
   userEmail: string;
   name: string;
-  description?: string;
+  brand?: string;
   canvas: Canvas;
   tools: Tool[];
   stats: Stats;
+  snapshotUrl?: string;
   metadata?: Record<string, unknown>;
   tags?: string[];
   isPublic?: boolean;
@@ -50,7 +51,7 @@ export interface LayoutMethods {
   getSummary(): {
     id: string;
     name: string;
-    description: string;
+    brand: string;
     toolCount: number;
     canvasSize: string;
     isValid: boolean;
@@ -114,7 +115,7 @@ const LayoutSchema = new mongoose.Schema<LayoutDocument, LayoutModel>(
   {
     userEmail: { type: String, required: true, index: true },
     name: { type: String, required: true, trim: true, maxLength: 255 },
-    description: { type: String, trim: true, maxLength: 1000, default: "" },
+    brand: { type: String, trim: true, maxLength: 1000, default: "" },
     canvas: { type: CanvasSchema, required: true },
     tools: {
       type: [ToolSchema],
@@ -128,6 +129,7 @@ const LayoutSchema = new mongoose.Schema<LayoutDocument, LayoutModel>(
     },
     stats: { type: StatsSchema, required: true },
     metadata: { type: mongoose.Schema.Types.Mixed, default: {} },
+    snapshotUrl: { type: String },
     tags: [{ type: String, trim: true, maxLength: 50 }],
     isPublic: { type: Boolean, default: false },
   },
@@ -180,7 +182,7 @@ LayoutSchema.methods.getSummary = function () {
   return {
     id: this._id.toString(),
     name: this.name,
-    description: this.description,
+    brand: this.brand,
     toolCount: this.stats.totalTools,
     canvasSize: `${this.canvas.width}×${this.canvas.height} ${this.canvas.unit}`,
     isValid: this.stats.validLayout,

@@ -1,9 +1,10 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreHorizontal, RefreshCw, Save, AlertTriangle, CheckCircle, Download, FileText, Image as ImageIcon, File } from 'lucide-react';
+import { MoreHorizontal, RefreshCw, Save, AlertTriangle, CheckCircle, Download, FileText, Image as ImageIcon, File, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
 import { DroppedTool } from './types';
 import { Client } from '@gradio/client';
+import * as htmlToImage from "html-to-image";
 
 interface HeaderProps {
     droppedTools: DroppedTool[];
@@ -158,7 +159,7 @@ const Header: React.FC<HeaderProps> = ({
             for (const droppedTool of droppedTools) {
                 // Get the original tool ID
                 const toolIdToFetch = droppedTool.metadata?.originalId || droppedTool.id.split('-').slice(0, -1).join('-');
-                
+
                 // Convert positions to inches
                 const xInches = convertPositionToInches(droppedTool.x, canvasWidth);
                 const yInches = convertPositionToInches(droppedTool.y, canvasHeight);
@@ -180,7 +181,7 @@ const Header: React.FC<HeaderProps> = ({
 
             // Connect to Gradio client
             const client = await Client.connect("lumashape/generate_industrial_layout");
-            
+
             // Prepare inputs for Gradio API
             const inputs = [
                 canvasWidthInches,      // canvas_width
@@ -211,17 +212,17 @@ const Header: React.FC<HeaderProps> = ({
 
             // Handle the response - Gradio typically returns file URLs
             let downloadUrl: string;
-            
+
             if (Array.isArray(response.data)) {
                 // If response is an array, find the download URL
-                const fileResult = response.data.find(item => 
+                const fileResult = response.data.find(item =>
                     typeof item === 'string' && (item.includes('.dxf') || item.includes('download'))
                 );
-                
+
                 if (!fileResult) {
                     throw new Error("No DXF download URL found in response");
                 }
-                
+
                 downloadUrl = fileResult;
             } else if (typeof response.data === 'string') {
                 downloadUrl = response.data;
@@ -366,75 +367,103 @@ const Header: React.FC<HeaderProps> = ({
         }
     };
 
-    // Capture and download layout image
-    const downloadLayoutImage = async () => {
+
+    // Replace the uploadToDigitalOcean function in your Header.tsx with this:
+
+    const uploadToDigitalOcean = async (blob: Blob): Promise<string> => {
         try {
-            // Find the canvas element
-            const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLDivElement;
-            if (!canvasElement) {
-                throw new Error('Canvas element not found');
+            // Create form data with the image blob
+            const formData = new FormData();
+            formData.append('image', blob, 'layout.png');
+
+            // Upload through your own API endpoint (no CORS issues)
+            const response = await fetch('/api/upload-url', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${getAuthToken()}`
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP ${response.status}: Upload failed`);
             }
 
-            // Create a temporary canvas
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            if (!ctx) throw new Error('Failed to get canvas context');
+            const { success, fileUrl } = await response.json();
 
-            // Set canvas size based on the layout
-            const canvasRect = canvasElement.getBoundingClientRect();
-            canvas.width = canvasRect.width;
-            canvas.height = canvasRect.height;
+            if (!success || !fileUrl) {
+                throw new Error('Invalid response from upload API');
+            }
 
-            // Fill background
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            console.log('Successfully uploaded image:', fileUrl);
+            return fileUrl;
 
-            // Draw canvas border
-            ctx.strokeStyle = '#d1d5db';
-            ctx.setLineDash([5, 5]);
-            ctx.lineWidth = 2;
-            ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
-
-            // Add text overlay with layout info
-            ctx.fillStyle = '#374151';
-            ctx.font = '14px Arial';
-            ctx.setLineDash([]);
-            ctx.fillText(`Canvas: ${canvasWidth} × ${canvasHeight} ${unit}`, 20, 30);
-            ctx.fillText(`Tools: ${droppedTools.length}`, 20, 50);
-            ctx.fillText(`Status: ${hasOverlaps ? 'Invalid (Overlaps)' : 'Valid'}`, 20, 70);
-
-            // Convert to blob and download
-            canvas.toBlob((blob) => {
-                if (!blob) throw new Error('Failed to create image blob');
-
-                const url = URL.createObjectURL(blob);
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                const filename = `layout-image-${timestamp}.png`;
-
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
-            }, 'image/png');
-
-            setShowDropdown(false);
         } catch (error) {
-            console.error('Error downloading layout image:', error);
-            setSaveError('Failed to generate layout image');
+            console.error('Error uploading to DigitalOcean:', error);
+            throw new Error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     };
 
-    const handleSaveAndExit = async () => {
-        if (hasOverlaps) {
-            setSaveError('Cannot save layout with overlapping tools. Please fix overlaps first.');
-            return;
+
+    // Capture and download layout image
+
+    const captureCanvasImage = async (): Promise<Blob> => {
+        const layoutElement = document.querySelector('[data-canvas="true"]') as HTMLElement;
+        if (!layoutElement) {
+            throw new Error("Canvas element not found. Make sure the canvas has data-canvas='true' attribute.");
         }
 
+        // Save original styles to restore later
+        const originalTransform = layoutElement.style.transform;
+        const originalPosition = layoutElement.style.position;
+        const originalZIndex = layoutElement.style.zIndex;
+
+        try {
+            // Temporarily adjust styles for better screenshot
+            layoutElement.style.transform = "none";
+            layoutElement.style.position = "static";
+            layoutElement.style.zIndex = "auto";
+
+            // Wait a bit for styles to apply
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            const dataUrl = await htmlToImage.toPng(layoutElement, {
+                backgroundColor: "#ffffff",
+                cacheBust: true,
+                pixelRatio: 1, // Adjust for quality vs file size
+                quality: 0.9,
+                width: layoutElement.offsetWidth,
+                height: layoutElement.offsetHeight,
+            });
+
+            // Convert base64 to Blob
+            const res = await fetch(dataUrl);
+            const blob = await res.blob();
+
+            console.log(`Canvas image captured: ${blob.size} bytes`);
+            return blob;
+
+        } catch (error) {
+            console.error("Error capturing canvas image:", error);
+            throw new Error(`Failed to capture image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+            // Always restore original styles
+            layoutElement.style.transform = originalTransform;
+            layoutElement.style.position = originalPosition;
+            layoutElement.style.zIndex = originalZIndex;
+        }
+    };
+
+
+
+    const handleSaveAndExit = async () => {
+        if (hasOverlaps) {
+            setSaveError("Cannot save layout with overlapping tools. Please fix overlaps first.");
+            return;
+        }
         if (droppedTools.length === 0) {
-            setSaveError('Cannot save empty layout. Please add at least one tool.');
+            setSaveError("Cannot save empty layout. Please add at least one tool.");
             return;
         }
 
@@ -442,35 +471,49 @@ const Header: React.FC<HeaderProps> = ({
         setSaveError(null);
         setSaveSuccess(false);
 
+        let imageUrl: string | null = null;
+
         try {
-            // Get auth token
             const authToken = getAuthToken();
-            if (!authToken) {
-                throw new Error('Authentication required. Please log in again.');
-            }
+            if (!authToken) throw new Error("Authentication required. Please log in again.");
 
             let additionalData: LayoutFormData = {};
-
-            const sessionData = sessionStorage.getItem('layoutForm');
+            const sessionData = sessionStorage.getItem("layoutForm");
             if (sessionData) {
                 try {
                     additionalData = JSON.parse(sessionData) as LayoutFormData;
                 } catch (error) {
-                    console.error('Error parsing session data:', error);
+                    console.error("Error parsing session data:", error);
                 }
             }
 
+            // Step 1: Capture and upload image
+            try {
+                console.log("Capturing canvas image...");
+                const canvasBlob = await captureCanvasImage();
+
+                console.log("Uploading image to DigitalOcean...");
+                imageUrl = await uploadToDigitalOcean(canvasBlob);
+
+                console.log("Image uploaded successfully:", imageUrl);
+            } catch (imageError) {
+                console.warn("Failed to capture/upload image:", imageError);
+                // Continue saving without image - don't fail the entire operation
+                setSaveError("Warning: Could not save layout image, but layout data will still be saved.");
+            }
+
+            // Step 2: Save layout data with image URL
             const layoutData = {
                 name: additionalData.layoutName || `Layout ${new Date().toLocaleDateString()}`,
-                brand: additionalData.selectedBrand || '',
-                containerType: additionalData.containerType || '',
+                brand: additionalData.selectedBrand || "",
+                containerType: additionalData.containerType || "",
                 canvas: {
                     width: additionalData.canvasWidth ?? canvasWidth,
                     height: additionalData.canvasHeight ?? canvasHeight,
                     unit: additionalData.units ?? unit,
                     thickness: additionalData.thickness ?? thickness,
                 },
-                tools: droppedTools.map(tool => ({
+                tools: droppedTools.map((tool) => ({
                     id: tool.id,
                     originalId: tool.metadata?.originalId,
                     name: tool.name,
@@ -492,52 +535,44 @@ const Header: React.FC<HeaderProps> = ({
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString(),
                 },
+                snapshotUrl: imageUrl, // Will be null if upload failed
                 ...additionalData,
             };
 
-            console.log("Final layout data:", layoutData);
+            console.log("Saving layout data:", { ...layoutData, snapshotUrl: imageUrl ? "✅ Included" : "❌ Failed" });
 
-            // Make the API call
-            const response = await fetch('/api/layouts', {
-                method: 'POST',
+            const response = await fetch("/api/layouts", {
+                method: "POST",
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`,
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${authToken}`,
                 },
                 body: JSON.stringify(layoutData),
             });
 
             const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.error || `HTTP error! status: ${response.status}`);
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || "Failed to save layout");
             }
 
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to save layout');
-            }
-
-            // Success!
+            // Clear any previous error if we got here
+            setSaveError(null);
             setSaveSuccess(true);
-            console.log('Layout saved successfully with ID:', result.id);
+            sessionStorage.removeItem("layoutForm");
 
-            // Clear session data after successful save
-            sessionStorage.removeItem('layoutForm');
-
-            // Call the success callback after a brief delay to show success message
             setTimeout(() => {
                 onSaveLayout?.();
-                // Redirect to workspace after successful save
-                window.location.href = '/workspace';
+                window.location.href = "/workspace";
             }, 1500);
 
         } catch (error) {
-            console.error('Error saving layout:', error);
-            setSaveError(error instanceof Error ? error.message : 'Failed to save layout');
+            console.error("Error saving layout:", error);
+            setSaveError(error instanceof Error ? error.message : "Failed to save layout");
         } finally {
             setIsSaving(false);
         }
     };
+
 
     const exportOptions = [
         {
@@ -547,18 +582,18 @@ const Header: React.FC<HeaderProps> = ({
             disabled: false
         },
         {
-            icon: ImageIcon,
-            label: 'Download Layout Image',
-            action: downloadLayoutImage,
-            disabled: false
-        },
-        {
             icon: File,
             label: 'Generate DXF File',
             action: generateDxfFile,
             disabled: droppedTools.length === 0,
             loading: isDxfGenerating
-        }
+        },
+        {
+            icon: ShoppingCart,
+            label: 'Add to cart',
+            action: downloadTextFile,
+            disabled: false
+        },
     ];
 
     return (
