@@ -21,9 +21,11 @@ interface ToolWithInteraction {
     likes: number;
     dislikes: number;
     downloads: number;
+    published?: boolean;   // ✅ Add this
     publishedDate?: string;
     userInteraction?: UserInteraction;
 }
+
 
 const MyToolContours = () => {
     const router = useRouter();
@@ -61,10 +63,10 @@ const MyToolContours = () => {
             if (!res.ok) throw new Error("Failed to fetch my tools");
             const data = await res.json();
 
-            // ✅ Only keep published tools
             const publishedTools = (data.tools || []).filter(
-                (tool: ToolWithInteraction) => (tool as any).published === true
+                (tool: ToolWithInteraction) => tool.published === true
             );
+
 
             setMyTools(publishedTools);
         } catch (err) {
@@ -124,7 +126,7 @@ const MyToolContours = () => {
                 <p className="text-center text-gray-500">Loading your tools...</p>
             ) : myTools.length === 0 ? (
                 <div className="text-center text-gray-500">
-                    <p>You haven't published any tools yet.</p>
+                    <p>{`You haven't published any tools yet.`}</p>
                 </div>
             ) : (
                 <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-0">
