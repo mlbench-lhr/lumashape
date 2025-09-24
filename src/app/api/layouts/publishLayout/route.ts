@@ -19,8 +19,8 @@ export async function PATCH(req: Request) {
     const decoded = jwt.verify(token, JWT_SECRET) as { email: string };
 
     // Get layout ID from request body
-    const { layoutId } = await req.json();
-    if (!layoutId) {
+    const { id } = await req.json();
+    if (!id) {
       return NextResponse.json(
         { error: "Layout ID is required" },
         { status: 400 }
@@ -29,7 +29,7 @@ export async function PATCH(req: Request) {
 
     // Find the layout and verify ownership
     const layout = await Layout.findOne({
-      _id: layoutId,
+      _id: id,
       userEmail: decoded.email,
     });
 
@@ -48,7 +48,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({
       success: true,
       message: "Layout published to profile successfully",
-      layoutId: layout._id,
+      id: layout._id,
       published: layout.published,
       publishedDate: layout.publishedDate,
     });
