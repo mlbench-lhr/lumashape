@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 
 interface JwtPayload {
     email: string;
-    [key: string]: any;
+    key: string;
 }
 
 export async function POST(request: Request) {
