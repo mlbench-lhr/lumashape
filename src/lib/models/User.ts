@@ -15,6 +15,7 @@ export interface IUser extends Document {
   isDeleted: boolean
   deletedAt?: Date
   isVerified: boolean
+  isPublic?: boolean
   createdAt: Date
   updatedAt: Date
 
@@ -80,6 +81,10 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
     isVerified: {
       type: Boolean,
       default: false,
+    },
+    isPublic: {
+      type: Boolean,
+      default: true,
     },
   },
   {
