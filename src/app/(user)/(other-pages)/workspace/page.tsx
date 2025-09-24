@@ -146,19 +146,19 @@ const MyLayouts = () => {
   }, []);
 
   // Toggle dropdown
-  const toggleDropdown = (layoutId: string) => {
-    setOpenDropdown(prev => prev === layoutId ? null : layoutId);
+  const toggleDropdown = (id: string) => {
+    setOpenDropdown(prev => prev === id ? null : id);
   };
 
   // Delete layout
-  const deleteLayout = async (layoutId: string) => {
+  const deleteLayout = async (id: string) => {
     try {
       setOpenDropdown(null);
 
       const token = localStorage.getItem("auth-token");
       if (!token) return;
 
-      const res = await fetch(`/api/layouts/${layoutId}`, {
+      const res = await fetch(`/api/layouts/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -166,7 +166,7 @@ const MyLayouts = () => {
       if (!res.ok) throw new Error("Failed to delete layout");
 
       // Update layouts state
-      setLayouts(prev => prev.filter(layout => layout._id !== layoutId));
+      setLayouts(prev => prev.filter(layout => layout._id !== id));
 
     } catch (error) {
       console.error("Error deleting layout:", error);
@@ -178,15 +178,20 @@ const MyLayouts = () => {
     router.push(`/workspace/design?edit=${layout._id}`);
   };
 
-  const publishLayout = async (layoutId: string) => {
+  const publishLayout = async (id: string) => {
     try {
       const token = localStorage.getItem("auth-token");
       if (!token) return;
 
-      const res = await fetch(`/api/layouts/${layoutId}/publish`, {
+      const res = await fetch(`/api/layouts/publishLayout`, {
         method: "PATCH",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ id }),
       });
+
 
       if (!res.ok) throw new Error("Failed to publish layout");
       const data = await res.json();
@@ -194,7 +199,7 @@ const MyLayouts = () => {
       // Update layouts in state
       setLayouts((prev) =>
         prev.map((l) =>
-          l._id === layoutId ? { ...l, published: true } : l
+          l._id === id ? { ...l, published: true } : l
         )
       );
     } catch (err) {
