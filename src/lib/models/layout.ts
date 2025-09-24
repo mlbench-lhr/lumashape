@@ -34,6 +34,7 @@ interface Stats {
 }
 
 export interface LayoutAttrs {
+  originalLayoutId: mongoose.Schema.Types.ObjectId;
   userEmail: string;
   name: string;
   brand?: string;
@@ -42,8 +43,10 @@ export interface LayoutAttrs {
   stats: Stats;
   snapshotUrl?: string;
   metadata?: Record<string, unknown>;
-  tags?: string[];
-  isPublic?: boolean;
+  published: boolean;
+  downloads: number;
+  publishedDate?: Date | null;
+  downloadedByUsers: string[];
 }
 
 export interface LayoutMethods {
@@ -130,8 +133,16 @@ const LayoutSchema = new mongoose.Schema<LayoutDocument, LayoutModel>(
     stats: { type: StatsSchema, required: true },
     metadata: { type: mongoose.Schema.Types.Mixed, default: {} },
     snapshotUrl: { type: String },
-    tags: [{ type: String, trim: true, maxLength: 50 }],
-    isPublic: { type: Boolean, default: false },
+    published: { type: Boolean, required: true, default: false, select: true },
+    downloads: { type: Number, default: 0 },
+    publishedDate: { type: Date, default: null },
+    downloadedByUsers: [{ type: String, trim: true, lowercase: true }],
+
+    originalLayoutId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'layout',
+      required: false
+    },
   },
   {
     timestamps: true, // adds createdAt and updatedAt
@@ -142,8 +153,7 @@ const LayoutSchema = new mongoose.Schema<LayoutDocument, LayoutModel>(
 LayoutSchema.index({ userEmail: 1, "stats.updatedAt": -1 });
 LayoutSchema.index({ name: 1 });
 LayoutSchema.index({ "stats.createdAt": -1 });
-LayoutSchema.index({ tags: 1 });
-LayoutSchema.index({ isPublic: 1 });
+LayoutSchema.index({ published: 1 });
 
 /* ---------------------- Middleware ---------------------- */
 LayoutSchema.pre("save", function (next) {
