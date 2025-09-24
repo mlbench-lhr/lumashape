@@ -33,7 +33,6 @@ const PublishedToolsTab = () => {
     const [selectedToolType, setSelectedToolType] = useState("");
     const [selectedBrand, setSelectedBrand] = useState("");
 
-
     useEffect(() => {
         fetchPublishedTools();
     }, []);
@@ -68,6 +67,11 @@ const PublishedToolsTab = () => {
         return matchesSearch && matchesType && matchesBrand;
     });
 
+    const clearFilters = () => {
+        setSearchTerm("");
+        setSelectedToolType("");
+        setSelectedBrand("");
+    };
 
     // Handle like/dislike actions
     const handleInteraction = async (toolId: string, action: 'like' | 'dislike') => {
@@ -182,22 +186,22 @@ const PublishedToolsTab = () => {
                         placeholder="Search Keyword"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 text-base border rounded-md focus:outline-none"
+                        className="w-full pl-10 pr-4 py-2 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
                 </div>
                 {/* Dropdown Filters */}
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                     <div className="relative">
                         <select
                             value={selectedToolType}
                             onChange={(e) => setSelectedToolType(e.target.value)}
                             className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none"
                         >
-                            <option>Tool Type</option>
-                            <option>Custom</option>
-                            <option>Wrench</option>
-                            <option>Pliers</option>
-                            <option>Hammer</option>
+                            <option value="">Tool Type</option>
+                            <option value="Custom">Custom</option>
+                            <option value="Wrench">Wrench</option>
+                            <option value="Pliers">Pliers</option>
+                            <option value="Hammer">Hammer</option>
                         </select>
                         {/* Custom Arrow */}
                         <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
@@ -218,10 +222,10 @@ const PublishedToolsTab = () => {
                             onChange={(e) => setSelectedBrand(e.target.value)}
                             className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none"
                         >
-                            <option>Tool Brand</option>
-                            <option>Bosch</option>
-                            <option>Milwaukee</option>
-                            <option>Makita</option>
+                            <option value="">Tool Brand</option>
+                            <option value="Bosch">Bosch</option>
+                            <option value="Milwaukee">Milwaukee</option>
+                            <option value="Makita">Makita</option>
                         </select>
                         {/* Custom Arrow */}
                         <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
@@ -235,6 +239,16 @@ const PublishedToolsTab = () => {
                             </svg>
                         </div>
                     </div>
+
+                    {/* Clear Filters Button */}
+                    {(searchTerm || selectedToolType || selectedBrand) && (
+                        <button
+                            onClick={clearFilters}
+                            className="px-3 py-2 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50 focus:outline-none"
+                        >
+                            Clear Filters
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -243,13 +257,37 @@ const PublishedToolsTab = () => {
                 your tool inventory and reuse them in your own layouts.
             </p>
 
+            {/* Results count */}
+            {!loading && (
+                <div className="mb-4 text-sm text-gray-600">
+                    Showing {filteredTools.length} of {publishedTools.length} tools
+                    {(searchTerm || selectedToolType || selectedBrand) && (
+                        <span className="ml-2 text-blue-600">
+                            (filtered)
+                        </span>
+                    )}
+                </div>
+            )}
+
             {/* Published Tools Grid */}
             {loading ? (
                 <p className="text-center text-gray-500">Loading tools...</p>
-            ) : publishedTools.length === 0 ? (
-                <p className="text-center text-gray-500">
-                    No published tools available yet.
-                </p>
+            ) : filteredTools.length === 0 ? (
+                <div className="text-center text-gray-500">
+                    {publishedTools.length === 0 ? (
+                        <p>No published tools available yet.</p>
+                    ) : (
+                        <div>
+                            <p>No tools match your current filters.</p>
+                            <button
+                                onClick={clearFilters}
+                                className="mt-2 px-4 py-2 text-blue-600 hover:text-blue-800 underline"
+                            >
+                                Clear all filters
+                            </button>
+                        </div>
+                    )}
+                </div>
             ) : (
                 <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-0">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[10px]">

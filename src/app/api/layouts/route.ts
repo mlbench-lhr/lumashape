@@ -445,6 +445,11 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date(),
       },
       metadata,
+      published: false,
+      likes: 0,
+      dislikes: 0,
+      downloads: 0,
+      publishedDate: null,
     });
 
     console.log(`snapshort url = ${layout.snapshotUrl}`);

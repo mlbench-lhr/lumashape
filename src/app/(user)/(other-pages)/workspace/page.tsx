@@ -44,6 +44,7 @@ interface Layout {
   stats: LayoutStats;
   userEmail: string;
   snapshotUrl?: string;
+  published?: boolean;
 }
 
 interface PaginationInfo {
@@ -177,6 +178,31 @@ const MyLayouts = () => {
     router.push(`/workspace/design?edit=${layout._id}`);
   };
 
+  const publishLayout = async (layoutId: string) => {
+    try {
+      const token = localStorage.getItem("auth-token");
+      if (!token) return;
+
+      const res = await fetch(`/api/layouts/${layoutId}/publish`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) throw new Error("Failed to publish layout");
+      const data = await res.json();
+
+      // Update layouts in state
+      setLayouts((prev) =>
+        prev.map((l) =>
+          l._id === layoutId ? { ...l, published: true } : l
+        )
+      );
+    } catch (err) {
+      console.error("Error publishing layout:", err);
+    }
+  };
+
+
   const handleMenuClick = async (action: string, layout: Layout) => {
     setOpenDropdown(null);
 
@@ -186,8 +212,11 @@ const MyLayouts = () => {
       if (window.confirm("Are you sure you want to delete this layout?")) {
         deleteLayout(layout._id);
       }
+    } else if (action === "Publish to profile") {
+      publishLayout(layout._id);
     }
   };
+
 
   // Format canvas dimensions
   const formatDimensions = (canvas: CanvasData) => {
@@ -208,9 +237,9 @@ const MyLayouts = () => {
                   variant="primary"
                   size="lg"
                 >
-                  
+
                   <Image
-                    src="/images/icons/mdi_add.svg" 
+                    src="/images/icons/mdi_add.svg"
                     width={24}
                     height={24}
                     alt="add"
@@ -283,6 +312,12 @@ const MyLayouts = () => {
                       className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[248px] sm:w-[266px] sm:h-[248px] relative cursor-pointer"
                       onClick={() => handleEditLayout(layout)}
                     >
+                      {/* Published Badge */}
+                      {layout.published && (
+                        <div className="absolute top-2 left-2 bg-primary text-white px-2 py-1 rounded text-xs font-medium z-10">
+                          Published
+                        </div>
+                      )}
                       <div className="relative inline-block" data-dropdown>
                         <div className="w-[258px] sm:w-[242px]">
                           <div className="relative w-full h-[150px]">
@@ -334,6 +369,17 @@ const MyLayouts = () => {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    handleMenuClick("Publish to profile", layout);
+                                  }}
+                                  className="w-full px-1 py-1 sm:px-3 sm:py-2 text-left flex items-center gap-[5px] hover:bg-gray-50"
+                                >
+                                  <Image src="/images/icons/share.svg" width={16} height={16} alt="share" />
+                                  <span className="text-[10px] sm:text-[14px] font-medium text-[#808080]">Publish to profile</span>
+                                </button>
+
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     handleMenuClick("Delete", layout);
                                   }}
                                   className="w-full px-1 py-1 sm:px-3 text-left flex items-center gap-[5px] hover:bg-gray-50"
@@ -362,6 +408,23 @@ const MyLayouts = () => {
               </div>
             )}
 
+            {layouts.length === 0 && (
+              <div className="flex flex-col items-center justify-center px-4 py-20">
+                {/* Empty State Icon */}
+                <Image src={"/images/icons/workspace/noLayouts.svg"} alt="Layout" width={261} height={261} />
+
+                {/* Empty State Text */}
+                <h3 className="text-lg font-medium text-gray-700 mb-2 mt-2">
+                  {searchQuery ? 'No layouts found' : 'No Layout Created Yet'}
+                </h3>
+                {searchQuery && (
+                  <p className="text-gray-600 text-center max-w-sm">
+                    {`No layouts match "${searchQuery}". Try a different search term.`}
+                  </p>
+                )}
+              </div>
+            )}
+
             {loading && (
               <div className="flex items-center justify-center">
                 <RefreshCw className="w-8 h-8 animate-spin text-gray-400" />
@@ -370,18 +433,18 @@ const MyLayouts = () => {
             )}
           </div>
         </div>
-      </div>
+      </div >
 
       {/* Floating Add Button */}
-      <div className="fixed bottom-6 right-6 sm:hidden">
+      < div className="fixed bottom-6 right-6 sm:hidden" >
         <button
           className="w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-lg transition-colors"
           onClick={() => router.push("/workspace/create-new-layout")}
         >
           <Plus className="w-6 h-6 text-white" />
         </button>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 
