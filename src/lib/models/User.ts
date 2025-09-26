@@ -10,6 +10,7 @@ export interface IUser extends Document {
   resetPasswordExpires?: Date
   avatar?: string
   avatarPublicId?: string
+  profilePic?: string
   phone?: string
   company?: string
   isDeleted: boolean
@@ -62,6 +63,10 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
     },
     avatarPublicId: {
       type: String,
+    },
+    profilePic: {
+      type: String,
+      default: '',
     },
     phone: {
       type: String,

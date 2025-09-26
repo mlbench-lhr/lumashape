@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const userEmail = decoded.email;
 
     const user = await User.findOne({ email: userEmail, isDeleted: false })
-      .select("username email isPublic company avatar")
+      .select("username email isPublic profilePic company avatar")
       .lean();
 
     if (!user) {
@@ -81,6 +81,7 @@ export async function GET(request: NextRequest) {
       user: {
         name: user.username,
         email: user.email,
+        profilePic: user.profilePic,
         status: user.isPublic ? "Public" : "Private",
         bio: user.company || "Workshop enthusiast and tool organization specialist",
         avatar: user.avatar,
@@ -97,8 +98,11 @@ export async function GET(request: NextRequest) {
         publishedTools: publishedTools.length,
       },
     };
+    console.log({ profileData });
 
     return NextResponse.json(profileData);
+
+
   } catch (err) {
     console.error("Error fetching profile data:", err);
     return NextResponse.json(
