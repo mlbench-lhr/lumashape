@@ -8,6 +8,7 @@ interface User {
   name: string;
   email: string;
   status: string;
+  isPublic: boolean;
   profilePic: string;
   bio: string;
   avatar?: string;
@@ -166,6 +167,7 @@ const Profile = () => {
                   email: user.email,
                   avatar: user.avatar || "",
                   profilePic: user.profilePic || "",
+                  isPublic: user.isPublic,
                 })
               );
 
