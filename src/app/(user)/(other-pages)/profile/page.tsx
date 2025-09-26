@@ -1,5 +1,6 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
+import { useRouter } from "next/navigation";
 import MyLayouts from "./MyLayouts/page";
 import MyToolContours from "./MyToolContours/page";
 
@@ -7,6 +8,7 @@ interface User {
   name: string;
   email: string;
   status: string;
+  profilePic: string;
   bio: string;
   avatar?: string;
   followers: number;
@@ -35,6 +37,34 @@ const Profile = () => {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  // Profile circle rendering
+  const renderProfileImage = () => {
+    if (user?.profilePic) {
+      return (
+        <img
+          src={user.profilePic}
+          alt="Profile"
+          className="w-40 h-40 rounded-full object-cover"
+        />
+      );
+    } else if (user?.avatar) {
+      return (
+        <img
+          src={user.avatar}
+          alt="Avatar"
+          className="w-16 h-16 rounded-full object-cover"
+        />
+      );
+    } else {
+      return (
+        <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white text-xl font-semibold">
+          {user?.name?.charAt(0).toUpperCase() || "M"}
+        </div>
+      );
+    }
+  };
 
   useEffect(() => {
     fetchProfileData();
@@ -98,17 +128,10 @@ const Profile = () => {
         {/* Profile Card */}
         <div className="bg-white rounded-lg shadow p-8 flex items-center space-x-8 min-h-[200px]">
           {/* Avatar */}
-          <div className="w-36 h-36 rounded-full bg-gray-300 flex items-center justify-center overflow-hidden">
-            {user.avatar ? (
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-gray-400 text-5xl">👤</span>
-            )}
+          <div className="w-36 h-36 rounded-full bg-primary flex items-center justify-center overflow-hidden text-5xl font-bold text-white">
+            {renderProfileImage()}
           </div>
+
 
           {/* Info */}
           <div className="flex-1">
@@ -134,7 +157,24 @@ const Profile = () => {
           </div>
 
           {/* Edit Profile Button */}
-          <button className="bg-primary text-white px-6 py-3 rounded-lg text-base font-semibold">
+          <button
+            onClick={() => {
+              // Save user details in localStorage
+              localStorage.setItem(
+                "edit-profile-data",
+                JSON.stringify({
+                  name: user.name,
+                  email: user.email,
+                  avatar: user.avatar || "",
+                  profilePic: user.profilePic || "",
+                })
+              );
+
+              // Redirect to edit profile page
+              router.push("/profile/edit");
+            }}
+            className="bg-primary text-white px-6 py-3 rounded-lg text-base font-semibold cursor-pointer"
+          >
             Edit Profile
           </button>
         </div>
@@ -166,26 +206,20 @@ const Profile = () => {
           <button
             onClick={() => setActiveTab("layouts")}
             className={`pb-2 font-medium flex items-center gap-2 ${activeTab === "layouts"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-600 hover:text-gray-800"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-600 hover:text-gray-800"
               }`}
           >
             My Published Layouts
-            <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
-              {counts.publishedLayouts}
-            </span>
           </button>
           <button
             onClick={() => setActiveTab("contours")}
             className={`pb-2 font-medium flex items-center gap-2 ${activeTab === "contours"
-                ? "text-blue-600 border-b-2 border-blue-600"
-                : "text-gray-600 hover:text-gray-800"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-600 hover:text-gray-800"
               }`}
           >
             My Published Tool Contours
-            <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
-              {counts.publishedTools}
-            </span>
           </button>
         </div>
 
