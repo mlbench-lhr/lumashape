@@ -170,7 +170,7 @@ const MyLayouts = () => {
 
             {/* Layouts Grid */}
             {!loading && layouts.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[10px] mt-6">
+                <div className="flex flex-wrap mt-4 justify-center sm:justify-start gap-4">
                     {layouts.map((layout) => (
                         <div
                             key={layout._id}

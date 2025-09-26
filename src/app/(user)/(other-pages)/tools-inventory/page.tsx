@@ -401,7 +401,7 @@ const MobileToolsInventory = () => {
 
             {filteredTools.length > 0 && (
               <div className="w-full max-w-[343px] sm:max-w-[1200px] mx-auto px-4 sm:px-0">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[10px]">
+                <div className="flex flex-wrap justify-center sm:justify-start gap-4">
                   {filteredTools.map((tool) => (
                     <div
                       key={tool._id}
@@ -413,7 +413,7 @@ const MobileToolsInventory = () => {
                           Published
                         </div>
                       )}
-                      
+          
                       <div className="relative inline-block" data-dropdown>
                         <div className="w-[258px] sm:w-[242px]">
                           <div className="relative w-full h-[150px]">
