@@ -7,6 +7,8 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 
 interface DecodedToken {
   userId: string;
+  email: string;
+  username: string;
 }
 
 export async function POST(req: NextRequest) {
