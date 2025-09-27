@@ -5,8 +5,8 @@ import NormalAppSidebar from "@/layout/NormalAppSideBar/AppSidebar";
 import DesignLayoutAppSidebar from "@/layout/IconOnlyAppSideBar/AppSideBar";
 import Backdrop from "@/layout/Backdrop";
 import HamburgerMenu from "@/components/ui/HamburgerMenu";
-import { usePathname } from "next/navigation";
-import React from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function AdminLayout({
   children,
@@ -15,6 +15,13 @@ export default function AdminLayout({
 }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!localStorage.getItem("auth-token")) {
+      router.push("/auth/login");
+    }
+  }, []);
 
   const hideSidebarRoutes = [
     "/annotations/cell-segmentation",
