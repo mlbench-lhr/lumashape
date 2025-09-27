@@ -65,13 +65,13 @@ const TrendingTab = () => {
     const fetchTrendingContent = async () => {
         try {
             setLoading(true);
-            
+
             // Fetch trending tools
             await fetchTrendingTools();
-            
+
             // Fetch trending layouts
             await fetchTrendingLayouts();
-            
+
         } catch (err) {
             console.error("Error fetching trending content:", err);
         } finally {
@@ -84,22 +84,22 @@ const TrendingTab = () => {
             const res = await fetch("/api/user/tool/getPublishedTools", {
                 headers: { Authorization: `Bearer ${getAuthToken()}` },
             });
-            
+
             if (!res.ok) throw new Error("Failed to fetch published tools");
-            
+
             const data = await res.json();
-            
+
             // Calculate trending score for each tool and get top 4
             const toolsWithScore = (data.tools || []).map((tool: TrendingTool) => ({
                 ...tool,
                 trendingScore: (tool.likes || 0) * 2 + (tool.downloads || 0) - (tool.dislikes || 0)
             }));
-            
+
             // Sort by trending score (likes * 2 + downloads - dislikes) and get top 4
             const top4Tools = toolsWithScore
                 .sort((a: TrendingTool, b: TrendingTool) => (b.trendingScore || 0) - (a.trendingScore || 0))
                 .slice(0, 4);
-            
+
             setTrendingTools(top4Tools);
         } catch (err) {
             console.error("Error fetching published tools:", err);
@@ -112,16 +112,16 @@ const TrendingTab = () => {
             const res = await fetch("/api/layouts/getPublishedLayouts", {
                 headers: { Authorization: `Bearer ${getAuthToken()}` },
             });
-            
+
             if (!res.ok) throw new Error("Failed to fetch published layouts");
-            
+
             const data = await res.json();
-            
+
             // Sort by downloads and get top 4
             const top4Layouts = (data.layouts || [])
                 .sort((a: TrendingLayout, b: TrendingLayout) => (b.downloads || 0) - (a.downloads || 0))
                 .slice(0, 4);
-            
+
             setTrendingLayouts(top4Layouts);
         } catch (err) {
             console.error("Error fetching published layouts:", err);
@@ -215,7 +215,7 @@ const TrendingTab = () => {
     const handleAddLayoutToWorkspace = async (layout: TrendingLayout) => {
         try {
             setActionLoading(`layout-add-${layout._id}`);
-            
+
             const res = await fetch("/api/layouts/addToWorkspace", {
                 method: "POST",
                 headers: {
@@ -238,22 +238,22 @@ const TrendingTab = () => {
 
             // Update the UI to reflect the successful addition
             setAddedLayouts(prev => new Set(prev).add(layout._id));
-            
+
             // Update the downloads count in the local state
-            setTrendingLayouts(prevLayouts => 
-                prevLayouts.map(l => 
-                    l._id === layout._id 
-                        ? { 
-                            ...l, 
+            setTrendingLayouts(prevLayouts =>
+                prevLayouts.map(l =>
+                    l._id === layout._id
+                        ? {
+                            ...l,
                             downloads: (l.downloads || 0) + 1,
                             userInteraction: { ...l.userInteraction, hasDownloaded: true }
-                          }
+                        }
                         : l
                 )
             );
 
             alert("Layout added to your workspace successfully!");
-            
+
         } catch (err) {
             console.error("Error adding layout to workspace:", err);
             alert("Failed to add layout to workspace. Please try again.");
@@ -296,7 +296,7 @@ const TrendingTab = () => {
     // Filter tools based on search term
     const filteredTools = trendingTools.filter(tool => {
         if (!searchTerm.trim()) return true;
-        
+
         const searchLower = searchTerm.toLowerCase().trim();
         return (
             tool.toolType.toLowerCase().includes(searchLower) ||
@@ -310,7 +310,7 @@ const TrendingTab = () => {
     // Filter layouts based on search term
     const filteredLayouts = trendingLayouts.filter(layout => {
         if (!searchTerm.trim()) return true;
-        
+
         const searchLower = searchTerm.toLowerCase().trim();
         return (
             layout.name.toLowerCase().includes(searchLower) ||
@@ -349,7 +349,7 @@ const TrendingTab = () => {
             {/* Trending Tools Section */}
             <div className="mb-8">
                 <h2 className="text-lg font-semibold mb-4">Trending Tools</h2>
-                
+
                 {loading ? (
                     <p className="text-center text-gray-500">Loading trending tools...</p>
                 ) : filteredTools.length === 0 ? (
@@ -358,7 +358,8 @@ const TrendingTab = () => {
                     </p>
                 ) : (
                     <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-0">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[10px]">
+                        {/* Tools grid */}
+                        <div className="flex flex-wrap justify-center sm:justify-start gap-4">
                             {filteredTools.map((tool) => (
                                 <div
                                     key={tool._id}
@@ -532,7 +533,7 @@ const TrendingTab = () => {
             {/* Trending Layouts Section */}
             <div className="mb-6">
                 <h2 className="text-lg font-semibold mb-4">Trending Layouts</h2>
-                
+
                 {loading ? (
                     <p className="text-center text-gray-500">Loading trending layouts...</p>
                 ) : filteredLayouts.length === 0 ? (
@@ -541,7 +542,7 @@ const TrendingTab = () => {
                     </p>
                 ) : (
                     <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-0">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[10px]">
+                        <div className="flex flex-wrap justify-center sm:justify-start gap-4">
                             {filteredLayouts.map((layout) => (
                                 <div
                                     key={layout._id}
@@ -606,13 +607,12 @@ const TrendingTab = () => {
                                                                 alt="add"
                                                             />
                                                         )}
-                                                        <span className={`text-sm font-medium ${
-                                                            isLayoutDownloaded(layout) 
-                                                                ? 'text-green-500' 
-                                                                : 'text-[#266ca8]'
-                                                        }`}>
-                                                            {actionLoading === `layout-add-${layout._id}` 
-                                                                ? "Adding..." 
+                                                        <span className={`text-sm font-medium ${isLayoutDownloaded(layout)
+                                                            ? 'text-green-500'
+                                                            : 'text-[#266ca8]'
+                                                            }`}>
+                                                            {actionLoading === `layout-add-${layout._id}`
+                                                                ? "Adding..."
                                                                 : isLayoutDownloaded(layout)
                                                                     ? "Added to Workspace"
                                                                     : "Add to My Workspace"

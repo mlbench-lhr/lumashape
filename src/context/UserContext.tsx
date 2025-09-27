@@ -98,11 +98,21 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
+    // Clear all auth tokens
     Cookies.remove("auth-token");
     localStorage.removeItem("auth-token");
-    router.push("/auth/login");
+    
+    // Clear any user-related data from localStorage
+    localStorage.removeItem("edit-profile-data");
+    localStorage.removeItem("toolUploadData");
+    localStorage.removeItem("layoutForm");
+    
+    // Reset state
     setToken("");
     setUser(null);
+    
+    // Force navigation to login page and replace history to prevent back navigation
+    router.replace("/auth/login");
   };
 
   const updateUserSubscription = (subscription: Partial<User>) => {

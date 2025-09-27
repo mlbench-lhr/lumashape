@@ -87,6 +87,7 @@ export async function GET(request: NextRequest) {
         avatar: user.avatar,
         followers: 43,
         following: 43,
+        isPublic: user.isPublic,
       },
       stats: {
         upvotes: totalUpvotes,
