@@ -1,12 +1,8 @@
 "use client";
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-// import { toast } from 'react-toastify';
-// import 'react-toastify/dist/ReactToastify.css';
 import { UserContext } from "@/context/UserContext";
-import { ChevronLeft } from "lucide-react";
 import Image from "next/image";
-// import Error from 'next/error';
 
 interface LoginResponse {
   message: string;
@@ -30,6 +26,19 @@ const SignInPage: React.FC = () => {
 
   const router = useRouter();
   const { login } = useContext(UserContext);
+
+  // Enforce back button always going to "/"
+  useEffect(() => {
+    // When back button is pressed from login, force redirect to "/"
+    const handlePopState = () => {
+      router.replace("/");
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [router]);
 
   //   // Login function using HTTP-only cookies (recommended)
   const loginWithCookies = async (
@@ -55,34 +64,6 @@ const SignInPage: React.FC = () => {
 
     return data;
   };
-
-  //   // Alternative: Login function using localStorage
-  //   const loginWithLocalStorage = async (email: string, password: string): Promise<LoginResponse> => {
-  //     const response = await fetch('/api/user/auth/login', {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       credentials: 'include',
-  //       body: JSON.stringify({ email, password }),
-  //     });
-
-  //     const data = await response.json();
-  //     const { token } = data
-  //     login(token);
-
-  //     if (!response.ok) {
-  //       throw new Error(data.message || 'Login failed');
-  //     }
-
-  //     // Store token in localStorage
-  //     if (data.token) {
-  //       localStorage.setItem('auth-token', data.token);
-  //       localStorage.setItem('user', JSON.stringify(data.user));
-  //     }
-
-  //     return data;
-  //   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

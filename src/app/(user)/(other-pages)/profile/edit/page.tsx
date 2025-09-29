@@ -14,6 +14,7 @@ export default function ProfilePage() {
   const [showSidebar, setShowSidebar] = useState(true);
   const [activeTab, setActiveTab] = useState("edit");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [profileData, setProfileData] = useState<{
     name: string;
     email: string;
@@ -131,11 +132,11 @@ export default function ProfilePage() {
           }}
         />
         <h1 className="text-lg font-semibold text-gray-800">
-          {showSidebar ? "Edit Profile" : 
-           activeTab === "edit" ? "Edit Profile" : 
-           activeTab === "password" ? "Change Password" : 
-           activeTab === "privacy" ? "Account Privacy" : 
-           activeTab === "logout" ? "Logout" : "Edit Profile"}
+          {showSidebar ? "Edit Profile" :
+            activeTab === "edit" ? "Edit Profile" :
+              activeTab === "password" ? "Change Password" :
+                activeTab === "privacy" ? "Account Privacy" :
+                  activeTab === "logout" ? "Logout" : "Edit Profile"}
         </h1>
       </div>
 
@@ -155,7 +156,7 @@ export default function ProfilePage() {
                 <p className="text-xs text-gray-500 mb-4">
                   {profileData?.email || "alexhavaidai123@gmail.com"}
                 </p>
-                
+
                 {/* Mobile Navigation */}
                 <div className="w-full flex flex-col">
                   <button
@@ -163,7 +164,7 @@ export default function ProfilePage() {
                       setActiveTab("edit");
                       setShowSidebar(false);
                     }}
-                    className="flex items-center justify-between w-full p-3 border-b border-gray-100"
+                    className="flex items-center font-semibold justify-between w-full p-3 border-b border-gray-100"
                   >
                     <span className="flex items-center gap-3">
                       <img
@@ -179,13 +180,13 @@ export default function ProfilePage() {
                       className="w-4 h-4 text-primary"
                     />
                   </button>
-                  
+
                   <button
                     onClick={() => {
                       setActiveTab("password");
                       setShowSidebar(false);
                     }}
-                    className="flex items-center justify-between w-full p-3 border-b border-gray-100"
+                    className="flex items-center font-semibold justify-between w-full p-3 border-b border-gray-100"
                   >
                     <span className="flex items-center gap-3">
                       <img
@@ -201,13 +202,13 @@ export default function ProfilePage() {
                       className="w-4 h-4 text-primary"
                     />
                   </button>
-                  
+
                   <button
                     onClick={() => {
                       setActiveTab("privacy");
                       setShowSidebar(false);
                     }}
-                    className="flex items-center justify-between w-full p-3 border-b border-gray-100"
+                    className="flex items-center font-semibold justify-between w-full p-3 border-b border-gray-100"
                   >
                     <span className="flex items-center gap-3">
                       <img
@@ -223,10 +224,10 @@ export default function ProfilePage() {
                       className="w-4 h-4 text-primary"
                     />
                   </button>
-                  
+
                   <button
                     onClick={() => setShowDeleteModal(true)}
-                    className="flex items-center justify-between w-full p-3 border-b border-gray-100 text-red-500"
+                    className="flex items-center font-semibold justify-between w-full p-3 border-b border-gray-100 text-red-500"
                   >
                     <span className="flex items-center gap-3">
                       <img
@@ -237,13 +238,10 @@ export default function ProfilePage() {
                       Delete Account
                     </span>
                   </button>
-                  
+
                   <button
-                    onClick={() => {
-                      setActiveTab("logout");
-                      setShowSidebar(false);
-                    }}
-                    className="flex items-center justify-between w-full p-3 text-gray-600"
+                    onClick={() => setShowLogoutModal(true)}
+                    className="flex items-center font-semibold justify-between w-full p-3 text-gray-600"
                   >
                     <span className="flex items-center gap-3">
                       <img
@@ -259,7 +257,7 @@ export default function ProfilePage() {
             </>
           ) : (
             // Show tab content as a full page when sidebar is hidden
-            <div className="p-4"> 
+            <div className="p-4">
               {renderTab()}
             </div>
           )}
@@ -285,7 +283,7 @@ export default function ProfilePage() {
             <nav className="flex flex-col gap-6 text-lg">
               <button
                 onClick={() => setActiveTab("edit")}
-                className={`flex items-center justify-between w-full ${activeTab === "edit"
+                className={`flex items-center justify-between font-semibold w-full text-sm sm:text-base md:text-lg ${activeTab === "edit"
                   ? "text-primary font-medium"
                   : "text-gray-600 hover:text-primary"
                   }`}
@@ -311,12 +309,12 @@ export default function ProfilePage() {
 
               <button
                 onClick={() => setActiveTab("password")}
-                className={`flex items-center justify-between w-full ${activeTab === "password"
+                className={`flex items-center justify-between font-semibold w-full text-sm sm:text-base md:text-lg ${activeTab === "password"
                   ? "text-primary font-medium"
                   : "text-gray-600 hover:text-primary"
                   }`}
               >
-                <span className="flex items-center gap-3">
+                <span className="flex items-center gap-3 min-w-0">
                   <img
                     src={
                       activeTab === "password"
@@ -324,20 +322,22 @@ export default function ProfilePage() {
                         : "/images/icons/profile/password.svg"
                     }
                     alt="Password"
-                    className="w-5 h-5"
+                    className="w-5 h-5 flex-shrink-0"
                   />
-                  Change Password
+                  <span className="truncate">Change Password</span>
                 </span>
                 <img
                   src="/images/icons/profile/arrow.svg"
                   alt="Arrow"
-                  className="w-4 h-4 text-primary"
+                  className="w-4 h-4 text-primary flex-shrink-0"
                 />
               </button>
 
+
+
               <button
                 onClick={() => setActiveTab("privacy")}
-                className={`flex items-center justify-between w-full ${activeTab === "privacy"
+                className={`flex items-center justify-between font-semibold w-full text-sm sm:text-base md:text-lg ${activeTab === "privacy"
                   ? "text-primary font-medium"
                   : "text-gray-600 hover:text-primary"
                   }`}
@@ -352,7 +352,7 @@ export default function ProfilePage() {
                     alt="Privacy"
                     className="w-5 h-5"
                   />
-                  Account Privacy
+                  <span className="truncate">Account Privacy</span>
                 </span>
                 <img
                   src="/images/icons/profile/arrow.svg"
@@ -363,7 +363,7 @@ export default function ProfilePage() {
 
               <button
                 onClick={() => setShowDeleteModal(true)}
-                className="flex items-center justify-between w-full text-red-500"
+                className="flex items-center justify-between font-semibold w-full text-sm sm:text-base md:text-lg text-red-500"
               >
                 <span className="flex items-center gap-3">
                   <img
@@ -376,8 +376,8 @@ export default function ProfilePage() {
               </button>
 
               <button
-                onClick={() => logout()}
-                className="flex items-center justify-between w-full text-gray-600 hover:text-primary"
+                onClick={() => setShowLogoutModal(true)}
+                className="flex items-center justify-between font-semibold w-full text-sm sm:text-base md:text-lg text-gray-600 hover:text-primary"
               >
                 <span className="flex items-center gap-3">
                   <img
@@ -430,6 +430,43 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full">
+            <div className="flex flex-col items-center p-6 pb-4">
+              <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center mb-6">
+                <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center border-2 border-white">
+                  <span className="text-white text-2xl font-bold">!</span>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold mb-4">Logout?</h2>
+              <p className="text-gray-600 text-center mb-6">
+                Are you sure you want to logout? You’ll need to log in again to access your account.
+              </p>
+              <div className="flex w-full gap-4">
+                <button
+                  onClick={() => setShowLogoutModal(false)}
+                  className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLogoutModal(false);
+                    logout(); // 👈 Call actual logout
+                  }}
+                  className="flex-1 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

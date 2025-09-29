@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
         name: user.username,
         email: user.email,
         profilePic: user.profilePic,
-        status: user.isPublic ? "Public" : "Private",
+        status: user.isPublic ? "Public" : "Anonymous",
         bio: user.company || "Workshop enthusiast and tool organization specialist",
         avatar: user.avatar,
         followers: 43,

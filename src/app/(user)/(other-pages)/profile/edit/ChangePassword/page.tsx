@@ -136,7 +136,7 @@ export default function ChangePassword() {
 
                     {/* Confirm New Password */}
                     <div>
-                        <label className="block text-md font-bold text-gray-700 mb-1">
+                        <label className="block text-md font-bold text-gray-700 mb-1 truncate">
                             Confirm New Password
                         </label>
                         <div className="relative">
