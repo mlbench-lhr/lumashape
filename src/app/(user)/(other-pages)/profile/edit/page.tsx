@@ -259,7 +259,7 @@ export default function ProfilePage() {
             </>
           ) : (
             // Show tab content as a full page when sidebar is hidden
-            <div className="p-4">
+            <div className="p-4"> 
               {renderTab()}
             </div>
           )}
