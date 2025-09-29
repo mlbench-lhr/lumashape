@@ -174,7 +174,7 @@ const Profile = () => {
               // Redirect to edit profile page
               router.push("/profile/edit");
             }}
-            className="bg-primary text-white px-2 py-2 sm:px-3 sm:py-2 md:px-4 md:py-2 rounded-lg text-xs sm:text-sm font-semibold cursor-pointer flex-shrink-0"
+            className="bg-primary text-white px-3 py-2 text-xs sm:px-5 sm:py-3 sm:text-sm md:px-8 md:py-4 md:text-base rounded-lg font-semibold cursor-pointer"
           >
             Edit Profile
           </button>
