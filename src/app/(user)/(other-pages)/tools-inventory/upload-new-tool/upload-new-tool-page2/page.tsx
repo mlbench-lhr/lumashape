@@ -69,8 +69,8 @@ const PAPERS: Paper[] = [
 ];
 
 const UploadNewToolPage2 = () => {
-  const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
-  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
+  const [selectedPaper, setSelectedPaper] = useState<Paper | undefined>(undefined);
+  const [selectedTool, setSelectedTool] = useState<Tool | undefined>(undefined);
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalDescription, setModalDescription] = useState("");

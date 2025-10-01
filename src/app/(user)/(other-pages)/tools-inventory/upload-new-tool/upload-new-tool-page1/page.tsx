@@ -67,7 +67,7 @@ declare global {
 }
 
 const UploadNewToolPage1 = () => {
-  const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
+  const [selectedPaper, setSelectedPaper] = useState<Paper | undefined>(undefined);
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalDescription, setModalDescription] = useState("");
