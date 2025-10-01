@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { DroppedTool } from './types';
 import { Client } from '@gradio/client';
 import * as htmlToImage from "html-to-image";
+import { useCart } from "@/context/CartContext";
+import { toast } from "react-toastify";
 
 interface HeaderProps {
     droppedTools: DroppedTool[];
@@ -53,6 +55,67 @@ const Header: React.FC<HeaderProps> = ({
     const [showDropdown, setShowDropdown] = useState(false);
     const [isDxfGenerating, setIsDxfGenerating] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const { addToCart } = useCart();
+
+    const handleAddToCart = async () => {
+        if (hasOverlaps) {
+            setSaveError("Cannot add layout with overlapping tools to cart. Please fix overlaps first.");
+            return;
+        }
+        if (droppedTools.length === 0) {
+            setSaveError("Cannot add empty layout to cart. Please add at least one tool.");
+            return;
+        }
+
+        setIsSaving(true);
+        setSaveError(null);
+
+        try {
+            const authToken = getAuthToken();
+            if (!authToken) throw new Error("Authentication required. Please log in again.");
+
+            let additionalData: LayoutFormData = {};
+            const sessionData = sessionStorage.getItem("layoutForm");
+            if (sessionData) {
+                try {
+                    additionalData = JSON.parse(sessionData) as LayoutFormData;
+                } catch (error) {
+                    console.error("Error parsing session data:", error);
+                }
+            }
+
+            // Capture and upload image
+            let imageUrl: string | null = null;
+            try {
+                const canvasBlob = await captureCanvasImage();
+                imageUrl = await uploadToDigitalOcean(canvasBlob);
+            } catch (imageError) {
+                console.warn("Failed to capture/upload image:", imageError);
+            }
+
+            // Create cart item
+            const layoutName = additionalData.layoutName || `Layout ${new Date().toLocaleDateString()}`;
+            const brandName = additionalData.selectedBrand || "";
+            const containerSize = `${additionalData.canvasWidth ?? canvasWidth}" × ${additionalData.canvasHeight ?? canvasHeight}"`;
+
+            // Add to cart
+            addToCart({
+                id: `layout-${Date.now()}`,
+                name: layoutName,
+                brand: brandName,
+                containerSize: containerSize,
+                price: 30, // Fixed price as shown in the image
+                snapshotUrl: imageUrl || undefined
+            });
+
+            toast.success("Layout added to cart successfully!");
+        } catch (error) {
+            console.error("Error adding to cart:", error);
+            setSaveError(error instanceof Error ? error.message : "Failed to add layout to cart");
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -591,7 +654,7 @@ const Header: React.FC<HeaderProps> = ({
         {
             icon: ShoppingCart,
             label: 'Add to cart',
-            action: downloadTextFile,
+            action: handleAddToCart,
             disabled: false
         },
     ];

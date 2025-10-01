@@ -150,33 +150,42 @@ const MyLayouts = () => {
     setOpenDropdown(prev => prev === id ? null : id);
   };
 
-  // Delete layout
+  // Add this function to handle layout deletion
   const deleteLayout = async (id: string) => {
     try {
-      setOpenDropdown(null);
-
       const token = localStorage.getItem("auth-token");
       if (!token) return;
 
-      const res = await fetch(`/api/layouts/${id}`, {
+      const res = await fetch(`/api/layouts?id=${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 
+          Authorization: `Bearer ${token}` 
+        },
       });
 
       if (!res.ok) throw new Error("Failed to delete layout");
-
-      // Update layouts state
+      
+      // Remove the deleted layout from the state
       setLayouts(prev => prev.filter(layout => layout._id !== id));
-
+      
     } catch (error) {
       console.error("Error deleting layout:", error);
     }
   };
 
-  // Handle layout actions
-  const handleEditLayout = (layout: Layout) => {
-    router.push(`/workspace/design?edit=${layout._id}`);
+  // Update the handleMenuClick function to handle delete action
+  const handleMenuClick = async (action: string, layout: Layout) => {
+    setOpenDropdown(null);
+
+    if (action === "Delete") {
+      if (window.confirm("Are you sure you want to delete this layout?")) {
+        deleteLayout(layout._id);
+      }
+    } else if (action === "Publish to profile") {
+      publishLayout(layout._id);
+    }
   };
+
 
   const publishLayout = async (id: string) => {
     try {
@@ -204,21 +213,6 @@ const MyLayouts = () => {
       );
     } catch (err) {
       console.error("Error publishing layout:", err);
-    }
-  };
-
-
-  const handleMenuClick = async (action: string, layout: Layout) => {
-    setOpenDropdown(null);
-
-    if (action === "Edit") {
-      handleEditLayout(layout);
-    } else if (action === "Delete") {
-      if (window.confirm("Are you sure you want to delete this layout?")) {
-        deleteLayout(layout._id);
-      }
-    } else if (action === "Publish to profile") {
-      publishLayout(layout._id);
     }
   };
 
@@ -314,8 +308,7 @@ const MyLayouts = () => {
                   {layouts.map((layout) => (
                     <div
                       key={layout._id}
-                      className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[248px] sm:w-[266px] sm:h-[248px] relative cursor-pointer"
-                      onClick={() => handleEditLayout(layout)}
+                      className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[248px] sm:w-[266px] sm:h-[248px] relative"
                     >
                       {/* Published Badge */}
                       {layout.published && (
