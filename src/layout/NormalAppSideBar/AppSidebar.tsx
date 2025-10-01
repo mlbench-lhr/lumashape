@@ -3,14 +3,13 @@ import React, {
   useEffect,
   useRef,
   useState,
-  useContext,
   useCallback,
 } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/context/SidebarContext";
-import { UserContext } from "@/context/UserContext";
+import { useUser } from "@/context/UserContext";
 import CloseButton from "@/components/ui/CloseButton";
 
 type NavItem = {
@@ -140,7 +139,7 @@ const NormalAppSidebar: React.FC = () => {
     toggleMobileSidebar,
   } = useSidebar();
   const pathname = usePathname();
-  const { user } = useContext(UserContext);
+  const { user } = useUser();
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";

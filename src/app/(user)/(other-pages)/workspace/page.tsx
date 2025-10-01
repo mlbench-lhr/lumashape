@@ -289,18 +289,6 @@ const MyLayouts = () => {
         {/* Layouts Display */}
         <div className={`flex items-center ${layouts.length === 0 ? 'justify-center min-h-[500px]' : 'justify-center sm:justify-start'}`}>
           <div className="flex flex-col items-center justify-center py-12">
-            {layouts.length === 0 && !loading && (
-              <>
-                <div className="flex flex-col justify-center items-center w-[204px] h-[204px] sm:w-[261px] sm:h-[261px] bg-[#e8e8e8] rounded-[150px] border-[#e8e8e8]">
-                  <div className="relative w-[90px] h-[90px] sm:w-[140px] sm:h-[140px]">
-                    <Image src="/images/icons/workspace/noLayouts.svg" fill style={{ objectFit: "contain" }} alt="no layouts" />
-                  </div>
-                </div>
-                <p className="text-gray-500 font-medium text-center mt-[19px]">
-                  {searchQuery ? `No layouts found for "${searchQuery}"` : 'No Layout Created Yet'}
-                </p>
-              </>
-            )}
 
             {layouts.length > 0 && (
               <div className="w-full max-w-[343px] sm:max-w-[1200px] mx-auto px-4 sm:px-0">

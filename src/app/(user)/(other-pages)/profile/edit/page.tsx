@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import EditProfile from "./EditProfile/page";
 import ChangePassword from "./ChangePassword/page";
@@ -8,7 +8,7 @@ import AccountPrivacy from "./AccountPrivacy/page";
 import LogoutTab from "./Logout/page";
 import { X } from "lucide-react";
 import { ArrowLeft } from "lucide-react";
-import { UserContext } from "@/context/UserContext";
+import { useUser } from "@/context/UserContext";
 
 export default function ProfilePage() {
   const [showSidebar, setShowSidebar] = useState(true);
@@ -23,7 +23,7 @@ export default function ProfilePage() {
   } | null>(null);
 
   const router = useRouter();
-  const { logout } = useContext(UserContext);
+  const { logout } = useUser();
 
   useEffect(() => {
     if (!localStorage.getItem("auth-token")) {

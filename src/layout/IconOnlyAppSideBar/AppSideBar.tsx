@@ -1,9 +1,9 @@
 "use client";
-import React, { useContext, useCallback } from "react";
+import React, { useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { UserContext } from "@/context/UserContext";
+import { useUser } from "@/context/UserContext";
 
 type NavItem = {
   name: string;
@@ -122,7 +122,7 @@ const navItems: NavItem[] = [
 
 const DesignLayoutAppSidebar: React.FC = () => {
   const pathname = usePathname();
-  const { user } = useContext(UserContext);
+  const { user } = useUser();
 
   const isActive = useCallback(
     (path: string) => {

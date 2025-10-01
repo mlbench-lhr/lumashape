@@ -51,8 +51,8 @@ const EditTool = () => {
   const router = useRouter();
   const toolId = params.id as string;
 
-  const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
-  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
+  const [selectedPaper, setSelectedPaper] = useState<Paper | undefined>(undefined);
+  const [selectedTool, setSelectedTool] = useState<Tool | undefined>(undefined);
   const [pendingUrl, setPendingUrl] = useState<string | null>(null);
   const [toolOptions, setToolOptions] = useState(false);
   const [showModal, setShowModal] = useState(false);

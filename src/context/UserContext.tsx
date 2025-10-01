@@ -34,6 +34,7 @@ export interface Subscription {
 interface UserContextType {
   user: User | null;
   subscription: Subscription | null;
+  login: (token: string) => void;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
   setSubscription: React.Dispatch<React.SetStateAction<Subscription | null>>;
   logout: () => void;
@@ -119,6 +120,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const value: UserContextType = {
     user,
     subscription,
+    login: (token: string) => {
+      localStorage.setItem("auth-token", token);
+      Cookies.set("auth-token", token, { expires: 7 });
+      refreshUser();
+      refreshSubscription();
+    },
     setUser,
     setSubscription,
     logout,

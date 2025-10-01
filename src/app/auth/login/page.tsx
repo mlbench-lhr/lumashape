@@ -1,7 +1,7 @@
 "use client";
-import React, { useContext, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { UserContext } from "@/context/UserContext";
+import { useUser } from "@/context/UserContext";
 import Image from "next/image";
 
 interface LoginResponse {
@@ -25,7 +25,7 @@ const SignInPage: React.FC = () => {
   const [success, setSuccess] = useState("");
 
   const router = useRouter();
-  const { login } = useContext(UserContext);
+  const { login } = useUser();
 
   // Enforce back button always going to "/"
   useEffect(() => {
