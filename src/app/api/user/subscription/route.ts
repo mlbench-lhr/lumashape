@@ -5,6 +5,16 @@ import User from '@/lib/models/User'
 
 const JWT_SECRET = process.env.JWT_SECRET as string
 
+// Define proper JWT payload interface
+interface JWTPayload {
+  _id?: string
+  id?: string
+  userId?: string
+  email: string
+  iat?: number
+  exp?: number
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Verify authentication
@@ -17,10 +27,10 @@ export async function POST(req: NextRequest) {
     }
 
     const token = authHeader.substring(7)
-    let decoded: any
+    let decoded: JWTPayload
 
     try {
-      decoded = jwt.verify(token, JWT_SECRET)
+      decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
     } catch (error) {
       return NextResponse.json(
         { error: 'Invalid token' },
@@ -90,10 +100,10 @@ export async function GET(req: NextRequest) {
     }
 
     const token = authHeader.substring(7)
-    let decoded: any
+    let decoded: JWTPayload
 
     try {
-      decoded = jwt.verify(token, JWT_SECRET)
+      decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
     } catch (error) {
       return NextResponse.json(
         { error: 'Invalid token' },

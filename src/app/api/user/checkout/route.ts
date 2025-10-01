@@ -8,6 +8,16 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 const JWT_SECRET = process.env.JWT_SECRET as string
 
+// Define proper JWT payload interface
+interface JWTPayload {
+  _id?: string
+  id?: string
+  userId?: string
+  email: string
+  iat?: number
+  exp?: number
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Verify authentication
@@ -20,10 +30,10 @@ export async function POST(req: NextRequest) {
     }
 
     const token = authHeader.substring(7)
-    let decoded: any
+    let decoded: JWTPayload
 
     try {
-      decoded = jwt.verify(token, JWT_SECRET)
+      decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
     } catch (error) {
       return NextResponse.json(
         { error: 'Invalid token' },
@@ -43,6 +53,15 @@ export async function POST(req: NextRequest) {
 
     const origin = req.headers.get('origin') || 'http://localhost:3000'
 
+    // Ensure all metadata values are strings (Stripe requirement)
+    const userId = decoded._id || decoded.id || decoded.userId
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID not found in token' },
+        { status: 400 }
+      )
+    }
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -56,8 +75,8 @@ export async function POST(req: NextRequest) {
       cancel_url: `${origin}/#pricing`,
       customer_email: decoded.email,
       metadata: {
-        user_id: decoded._id || decoded.id,
-        plan_name: plan_name,
+        user_id: userId,
+        plan_name: plan_name || '',
         user_email: decoded.email,
       },
     })
