@@ -106,7 +106,7 @@ const bilingPlans: DataItem[] = [
   {
     id: 3,
     desc: 'For Professionals',
-    title: 'Coming Soon...',
+    title: 'Premium',
     price: '$100/Month',
     price_id: process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID!,
     plan_name: 'Premium',
@@ -163,10 +163,6 @@ function Pricing() {
       if (plan_name === 'Free') {
         // Handle free trial - redirect to signup/login
         router.push('/auth/signup')
-        return
-      }
-
-      if (plan_name === 'Coming Soon...') {
         return
       }
 
