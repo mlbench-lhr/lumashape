@@ -93,19 +93,52 @@ const Header: React.FC<HeaderProps> = ({
                 console.warn("Failed to capture/upload image:", imageError);
             }
 
-            // Create cart item
+            // Create cart item with complete layout data
             const layoutName = additionalData.layoutName || `Layout ${new Date().toLocaleDateString()}`;
             const brandName = additionalData.selectedBrand || "";
             const containerSize = `${additionalData.canvasWidth ?? canvasWidth}" × ${additionalData.canvasHeight ?? canvasHeight}"`;
 
-            // Add to cart
-            addToCart({
+            // Prepare layout data to save with cart item
+            const layoutData = {
+                canvas: {
+                    width: additionalData.canvasWidth ?? canvasWidth,
+                    height: additionalData.canvasHeight ?? canvasHeight,
+                    unit: unit,
+                    thickness: thickness,
+                },
+                tools: droppedTools.map(tool => ({
+                    id: tool.id,
+                    name: tool.name,
+                    x: tool.x,
+                    y: tool.y,
+                    rotation: tool.rotation,
+                    flipHorizontal: tool.flipHorizontal,
+                    flipVertical: tool.flipVertical,
+                    thickness: tool.thickness,
+                    unit: tool.unit,
+                    opacity: tool.opacity,
+                    smooth: tool.smooth,
+                    image: tool.image,
+                    groupId: tool.groupId || null,
+                })),
+            };
+
+            // Add to cart with layout data
+            await addToCart({
                 id: `layout-${Date.now()}`,
                 name: layoutName,
                 brand: brandName,
                 containerSize: containerSize,
                 price: 30, // Fixed price as shown in the image
-                snapshotUrl: imageUrl || undefined
+                snapshotUrl: imageUrl || undefined,
+                layoutData: {
+                    ...layoutData,
+                    tools: layoutData.tools.map(tool => ({
+                        ...tool,
+                        image: tool.image ?? '', // ensure image is always a string
+                        groupId: tool.groupId ?? undefined, // convert null to undefined
+                    }))
+                }, // Include complete layout data
             });
 
             toast.success("Layout added to cart successfully!");
