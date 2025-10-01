@@ -53,42 +53,40 @@ export async function POST(req: NextRequest) {
     // Update user with subscription details
     user.subscriptionId = subscription.id
     
-    // Fix for status type error - ensure it matches the enum in User model
-    if (subscription.status === 'active' || 
-        subscription.status === 'canceled' || 
-        subscription.status === 'past_due' || 
-        subscription.status === 'trialing' || 
-        subscription.status === 'incomplete') {
-      user.subscriptionStatus = subscription.status
-    } else {
-      // Default to null for any other status
-      user.subscriptionStatus = null
-    }
+    // Type-safe status
+    const subscriptionStatus = 
+      subscription.status === 'active' || 
+      subscription.status === 'canceled' || 
+      subscription.status === 'past_due' || 
+      subscription.status === 'trialing' || 
+      subscription.status === 'incomplete' 
+        ? subscription.status 
+        : null
     
-    // Fix for plan type error - ensure it matches the enum in User model
-    if (planName === 'Pro' || planName === 'Premium') {
-      user.subscriptionPlan = planName
-    } else {
-      user.subscriptionPlan = 'Free'
-    }
+    user.subscriptionStatus = subscriptionStatus
     
-    // Fix for subscriptionPeriodEnd - use the correct property access
-    // The property exists in the Stripe API but TypeScript doesn't recognize it
-    const periodEnd = (subscription as any).current_period_end
+    // Type-safe plan name
+    const typedPlanName: 'Free' | 'Pro' | 'Premium' = 
+      planName === 'Premium' ? 'Premium' : 
+      planName === 'Pro' ? 'Pro' : 'Free'
+    
+    user.subscriptionPlan = typedPlanName
+    
+    // Type-safe period end
+    const periodEnd = subscription['current_period_end' as keyof typeof subscription]
     if (periodEnd && typeof periodEnd === 'number') {
       user.subscriptionPeriodEnd = new Date(periodEnd * 1000)
     } else {
-      // Use undefined instead of null to match the IUser interface
       user.subscriptionPeriodEnd = undefined
     }
     
     await user.save()
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
-    console.error('Update subscription error:', error.message)
+  } catch (error) {
+    console.error('Update subscription error:')
     return NextResponse.json(
-      { error: `Failed to update subscription: ${error.message}` },
+      { error: `Failed to update subscription`},
       { status: 500 }
     )
   }

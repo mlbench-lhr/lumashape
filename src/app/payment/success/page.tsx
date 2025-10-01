@@ -1,23 +1,29 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useUser } from '@/context/UserContext'
 import axios from 'axios'
 
 export default function PaymentSuccess() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { refreshUser } = useUser()
   const [loading, setLoading] = useState(true)
-  
+  const [isClient, setIsClient] = useState(false)  // State to check if it's on the client side
+
   useEffect(() => {
-    const sessionId = searchParams.get('session_id')
-    
+    setIsClient(true)  // Indicate that we're now on the client-side
+  }, [])
+
+  useEffect(() => {
+    if (!isClient) return // Only proceed if on the client
+
+    const sessionId = new URLSearchParams(window.location.search).get('session_id')
+
     async function verifyPayment() {
       try {
         setLoading(true)
-        
+
         if (sessionId) {
           // Get auth token
           const authToken = localStorage.getItem('auth-token')
@@ -34,10 +40,10 @@ export default function PaymentSuccess() {
             )
           }
         }
-        
+
         // Refresh user data to get updated subscription info
         await refreshUser()
-        
+
         // Redirect to dashboard after 3 seconds
         setTimeout(() => {
           router.push('/workspace')
@@ -48,12 +54,12 @@ export default function PaymentSuccess() {
         setLoading(false)
       }
     }
-    
+
     if (sessionId) {
       verifyPayment()
     }
-  }, [searchParams, refreshUser, router])
-  
+  }, [isClient, refreshUser, router])  // Added `isClient` dependency to trigger only after client-side
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full p-8 bg-white shadow-lg rounded-lg text-center">

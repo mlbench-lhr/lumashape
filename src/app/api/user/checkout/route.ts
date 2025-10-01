@@ -61,6 +61,11 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        // Ensure plan_name is a valid value
+        const typedPlanName: 'Free' | 'Pro' | 'Premium' = 
+            plan_name === 'Premium' ? 'Premium' : 
+            plan_name === 'Pro' ? 'Pro' : 'Free'
+
         // Create checkout session
         console.log('Creating checkout session with price_id:', price_id)
         try {
@@ -77,22 +82,32 @@ export async function POST(req: NextRequest) {
                 cancel_url: `${DOMAIN}/payment/cancel`,
                 metadata: {
                     userId: String(user._id),
-                    plan: plan_name,
+                    plan: typedPlanName,
                 },
             })
 
             return NextResponse.json({ sessionId: session.id, url: session.url })
-        } catch (sessionError: any) {
-            console.error('Error creating session:', sessionError.message)
+        } catch (sessionError) {
+            // Type-safe error handling
+            const errorMessage = sessionError instanceof Error 
+                ? sessionError.message 
+                : 'Unknown error occurred';
+                
+            console.error('Error creating session:', errorMessage)
             return NextResponse.json(
-                { error: `Failed to create checkout session: ${sessionError.message}` },
+                { error: `Failed to create checkout session: ${errorMessage}` },
                 { status: 500 }
             )
         }
-    } catch (error: any) {
-        console.error('Checkout error:', error.message)
+    } catch (error) {
+        // Type-safe error handling
+        const errorMessage = error instanceof Error 
+            ? error.message 
+            : 'Unknown error occurred';
+            
+        console.error('Checkout error:', errorMessage)
         return NextResponse.json(
-            { error: `Failed to create checkout session: ${error.message}` },
+            { error: `Failed to create checkout session: ${errorMessage}` },
             { status: 500 }
         )
     }
