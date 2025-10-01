@@ -1,39 +1,48 @@
 "use client";
-import React, { createContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useState, useEffect, ReactNode, useContext } from "react";
 import Cookies from "js-cookie";
 import axios from "axios";
 import { usePathname, useRouter } from "next/navigation";
 
-// 1. Define types
+// Define User interface with all fields
 export interface User {
   _id: string;
   username: string;
   name: string;
   email: string;
   image?: string;
-  plan?: string | null;
-  description?: string | null;
-  charges?: number | null;
-  expiry_date?: Date | null;
+  avatar?: string;
+  avatarPublicId?: string;
+  profilePic?: string;
   phone?: string | null;
   company?: string | null;
-  avatar?: string | null;
-  avatarPublicId?: string;
+  description?: string | null;
+  isVerified: boolean;
+  isPublic?: boolean;
+  // Subscription fields
+  stripeCustomerId?: string;
+  subscriptionId?: string;
+  subscriptionPlan?: 'Free' | 'Pro' | 'Premium' | null;
+  subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete' | null;
+  subscriptionPeriodEnd?: string | null;
 }
 
-
+// Define UserContext interface
 interface UserContextType {
   user: User | null;
   login: (token: string) => void;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  refreshSubscription: () => Promise<void>;
+  isSubscribed: () => boolean;
+  isPremium: () => boolean;
 }
 
-// 2. Create context
+// Create context
 export const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// 3. Provider component
+// Provider component
 interface UserProviderProps {
   children: ReactNode;
 }
@@ -61,6 +70,46 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   };
 
+  // Function to refresh subscription data
+  const refreshSubscription = async () => {
+    try {
+      const token = localStorage.getItem("auth-token");
+      if (!token) return;
+
+      const response = await axios.get("/api/user/subscription", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.data.success && user) {
+        setUser({
+          ...user,
+          subscriptionPlan: response.data.subscriptionPlan,
+          subscriptionStatus: response.data.subscriptionStatus,
+          subscriptionPeriodEnd: response.data.subscriptionPeriodEnd,
+        });
+      }
+    } catch (error) {
+      console.error("Error refreshing subscription:", error);
+    }
+  };
+
+  // Function to check if user is subscribed
+  const isSubscribed = () => {
+    return user?.subscriptionStatus === 'active' && 
+           (user?.subscriptionPlan === 'Pro' || user?.subscriptionPlan === 'Premium');
+  };
+
+  // Function to check if user has premium subscription
+  const isPremium = () => {
+    return user?.subscriptionStatus === 'active' && user?.subscriptionPlan === 'Premium';
+  };
+
+  // Function to login
+  const login = (token: string) => {
+    localStorage.setItem("auth-token", token);
+    Cookies.set("auth-token", token, { expires: 7 });
+    refreshUser();
+  };
 
   // Function to logout
   const logout = () => {
@@ -70,7 +119,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     router.push("/auth/login");
   };
 
-  // Load user data on mount and token change
+  // Load user data on mount
   useEffect(() => {
     const token = localStorage.getItem("auth-token");
     if (token) {
@@ -78,23 +127,21 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   }, []);
 
-
   const value: UserContextType = {
     user,
-    login: (token: string) => {
-      localStorage.setItem("auth-token", token);
-      Cookies.set("auth-token", token, { expires: 7 });
-      refreshUser();
-    },
+    login,
     setUser,
     logout,
     refreshUser,
+    refreshSubscription,
+    isSubscribed,
+    isPremium,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };
 
-// 4. Custom hook
+// Custom hook to use UserContext
 export const useUser = (): UserContextType => {
   const context = useContext(UserContext);
   if (!context) {
@@ -102,11 +149,3 @@ export const useUser = (): UserContextType => {
   }
   return context;
 };
-
-function useContext(UserContext: React.Context<UserContextType | undefined>): UserContextType {
-  const context = React.useContext(UserContext);
-  if (!context) {
-    throw new Error("useUser must be used within a UserProvider");
-  }
-  return context;
-}

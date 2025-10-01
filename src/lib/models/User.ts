@@ -17,6 +17,12 @@ export interface IUser extends Document {
   deletedAt?: Date
   isVerified: boolean
   isPublic?: boolean
+  // Subscription fields
+  stripeCustomerId?: string
+  subscriptionId?: string
+  subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete' | null
+  subscriptionPlan?: 'Free' | 'Pro' | 'Premium' | null
+  subscriptionPeriodEnd?: Date
   createdAt: Date
   updatedAt: Date
 
@@ -91,6 +97,29 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // Subscription fields
+    stripeCustomerId: {
+      type: String,
+      default: null,
+    },
+    subscriptionId: {
+      type: String,
+      default: null,
+    },
+    subscriptionStatus: {
+      type: String,
+      enum: ['active', 'canceled', 'past_due', 'trialing', 'incomplete', null],
+      default: null,
+    },
+    subscriptionPlan: {
+      type: String,
+      enum: ['Free', 'Pro', 'Premium', null],
+      default: 'Free',
+    },
+    subscriptionPeriodEnd: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -121,4 +150,4 @@ UserSchema.methods.comparePassword = async function (
 const User: Model<IUser> =
   mongoose.models.User || mongoose.model<IUser>('User', UserSchema)
 
-export default User 
+export default User
