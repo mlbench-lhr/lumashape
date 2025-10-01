@@ -1,10 +1,17 @@
 'use client'
 import Image from 'next/image'
-import React from 'react'
+import React, { useState } from 'react'
 import clsx from 'clsx'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Text from '../ui/Text'
+import { loadStripe } from '@stripe/stripe-js'
+import axios from 'axios'
+
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
+)
+
 type included = {
   id: number
   text: string
@@ -15,6 +22,8 @@ type DataItem = {
   desc: string
   title: string
   price: string
+  price_id: string
+  plan_name: string
   include: included[]
   buttonText: string
   height: number
@@ -33,6 +42,8 @@ const bilingPlans: DataItem[] = [
     desc: '',
     title: 'Free Trial',
     price: 'Free',
+    price_id: '',
+    plan_name: 'Free',
     include: [
       {
         id: 1,
@@ -62,6 +73,8 @@ const bilingPlans: DataItem[] = [
     desc: 'For Small Teams',
     title: 'Pro',
     price: '$20/Month',
+    price_id: process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID!,
+    plan_name: 'Pro',
     include: [
       {
         id: 1,
@@ -95,6 +108,8 @@ const bilingPlans: DataItem[] = [
     desc: 'For Professionals',
     title: 'Coming Soon...',
     price: '$100/Month',
+    price_id: process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID!,
+    plan_name: 'Premium',
     include: [
       {
         id: 1,
@@ -114,14 +129,12 @@ const bilingPlans: DataItem[] = [
       },
       {
         id: 5,
-        text:
-          'Exclusive Customer Support',
+        text: 'Exclusive Customer Support',
       },
       {
         id: 6,
         text: 'And more…',
       },
-      
     ],
     buttonText: 'Get Started',
     height: 70,
@@ -137,6 +150,58 @@ const bilingPlans: DataItem[] = [
 
 function Pricing() {
   const router = useRouter()
+  const [processingPlanId, setProcessingPlanId] = useState<number | null>(null)
+
+  const handleSubscribe = async (
+    price_id: string,
+    plan_name: string,
+    planId: number,
+  ) => {
+    setProcessingPlanId(planId)
+    
+    try {
+      if (plan_name === 'Free') {
+        // Handle free trial - redirect to signup/login
+        router.push('/auth/signup')
+        return
+      }
+
+      if (plan_name === 'Coming Soon...') {
+        return
+      }
+
+      // Check if user is authenticated
+      const authToken = localStorage.getItem('auth-token')
+      if (!authToken) {
+        // Redirect to login if not authenticated
+        router.push('/auth/login')
+        return
+      }
+
+      // Proceed with Stripe checkout
+      const res = await axios.post('/api/user/checkout', {
+        price_id: price_id,
+        plan_name: plan_name,
+      }, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!res.data.sessionId) throw new Error('Missing sessionId from API')
+
+      const stripe = await stripePromise
+      if (!stripe) throw new Error('Stripe failed to initialize')
+
+      await stripe.redirectToCheckout({ sessionId: res.data.sessionId })
+    } catch (error) {
+      console.error('Checkout Error:', error)
+      // You might want to show an error toast here
+    } finally {
+      setProcessingPlanId(null)
+    }
+  }
 
   return (
     <div
@@ -240,26 +305,21 @@ function Pricing() {
                   </div>
                 ))}
               </div>
-               {item.title !== 'Free Trial' && (
               <button
-                className="mt-4 py-2 px-4 rounded-full text-center font-semibold"
+                className={`mt-4 py-2 px-4 rounded-full text-center font-semibold ${
+                  processingPlanId === item.id || item.title === 'Coming Soon...'
+                    ? 'cursor-not-allowed opacity-70'
+                    : 'cursor-pointer'
+                }`}
                 style={{
                   color: item.buttonTextColor,
                   background: item.buttonColor,
-                  cursor:
-                    item.title === 'Coming Soon...' ? 'not-allowed' : 'pointer',
-                  opacity: item.title === 'Coming Soon...' ? 0.6 : 1,
                 }}
-                disabled={item.title === 'Coming Soon...'}
-                // onClick={() => {
-                //   if (item.title !== 'Coming Soon...') {
-                //     router.push('/user')
-                //   }
-                // }}
+                disabled={processingPlanId === item.id || item.title === 'Coming Soon...'}
+                onClick={() => handleSubscribe(item.price_id, item.plan_name, item.id)}
               >
-                {item.buttonText}
+                {processingPlanId === item.id ? 'Processing...' : item.buttonText}
               </button>
-               )}
             </motion.div>
           ))}
         </div>
