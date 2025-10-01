@@ -70,17 +70,38 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 
   // Get subscription details - access the subscription data from the response
   const subscriptionResponse = await stripe.subscriptions.retrieve(subscriptionId)
-  const subscription = subscriptionResponse as Stripe.Subscription
+  const subscription = subscriptionResponse
 
   const planName = session.metadata?.plan || 'Pro'
+  
+  // Type-safe plan name
+  const typedPlanName: 'Free' | 'Pro' | 'Premium' = 
+    planName === 'Premium' ? 'Premium' : 
+    planName === 'Pro' ? 'Pro' : 'Free'
+
+  // Type-safe status
+  const subscriptionStatus = 
+    subscription.status === 'active' || 
+    subscription.status === 'canceled' || 
+    subscription.status === 'past_due' || 
+    subscription.status === 'trialing' || 
+    subscription.status === 'incomplete' 
+      ? subscription.status 
+      : null
+
+  // Type-safe period end
+  const periodEnd = subscription['current_period_end' as keyof typeof subscription]
+  const subscriptionPeriodEnd = periodEnd && typeof periodEnd === 'number' 
+    ? new Date(periodEnd * 1000) 
+    : undefined
 
   await User.findOneAndUpdate(
     { stripeCustomerId: customerId },
     {
       subscriptionId: subscriptionId,
-      subscriptionStatus: subscription.status,
-      subscriptionPlan: planName,
-      subscriptionPeriodEnd: new Date((subscription as any).current_period_end * 1000),
+      subscriptionStatus: subscriptionStatus,
+      subscriptionPlan: typedPlanName,
+      subscriptionPeriodEnd: subscriptionPeriodEnd,
     }
   )
 }
@@ -88,19 +109,37 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string
   const priceId = subscription.items.data[0]?.price.id
-  let planName = 'Pro'
+  
+  // Type-safe plan name
+  let typedPlanName: 'Free' | 'Pro' | 'Premium' = 'Pro'
   if (priceId === process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID) {
-    planName = 'Premium'
+    typedPlanName = 'Premium'
   } else if (priceId === process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID) {
-    planName = 'Pro'
+    typedPlanName = 'Pro'
   }
+  
+  // Type-safe status
+  const subscriptionStatus = 
+    subscription.status === 'active' || 
+    subscription.status === 'canceled' || 
+    subscription.status === 'past_due' || 
+    subscription.status === 'trialing' || 
+    subscription.status === 'incomplete' 
+      ? subscription.status 
+      : null
+
+  // Type-safe period end
+  const periodEnd = subscription['current_period_end' as keyof typeof subscription]
+  const subscriptionPeriodEnd = periodEnd && typeof periodEnd === 'number' 
+    ? new Date(periodEnd * 1000) 
+    : undefined
   
   await User.findOneAndUpdate(
     { stripeCustomerId: customerId },
     {
-      subscriptionStatus: subscription.status,
-      subscriptionPlan: planName,
-      subscriptionPeriodEnd: new Date((subscription as any).current_period_end * 1000),
+      subscriptionStatus: subscriptionStatus,
+      subscriptionPlan: typedPlanName,
+      subscriptionPeriodEnd: subscriptionPeriodEnd,
     }
   )
 }
