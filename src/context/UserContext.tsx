@@ -14,8 +14,6 @@ export interface User {
   plan?: string | null;
   description?: string | null;
   charges?: number | null;
-  subscription_id?: string | null;
-  hasSubscribed?: string;
   expiry_date?: Date | null;
   phone?: string | null;
   company?: string | null;
@@ -23,23 +21,13 @@ export interface User {
   avatarPublicId?: string;
 }
 
-export interface Subscription {
-  plan_name?: string | null;
-  hasSubscribed?: string;
-  expiry_date?: Date | null;
-  charges?: number;
-  subscription_id?: string | null;
-}
 
 interface UserContextType {
   user: User | null;
-  subscription: Subscription | null;
   login: (token: string) => void;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
-  setSubscription: React.Dispatch<React.SetStateAction<Subscription | null>>;
   logout: () => void;
   refreshUser: () => Promise<void>;
-  refreshSubscription: () => Promise<void>;
 }
 
 // 2. Create context
@@ -52,7 +40,6 @@ interface UserProviderProps {
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -74,30 +61,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   };
 
-  // Function to refresh subscription data
-  const refreshSubscription = async () => {
-    try {
-      const token = localStorage.getItem("auth-token");
-      if (!token) return;
-
-      const response = await axios.get("/api/user/subscription", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.data.subscription) {
-        setSubscription(response.data.subscription);
-      }
-    } catch (error) {
-      console.error("Error refreshing subscription:", error);
-    }
-  };
 
   // Function to logout
   const logout = () => {
     localStorage.removeItem("auth-token");
     Cookies.remove("auth-token");
     setUser(null);
-    setSubscription(null);
     router.push("/auth/login");
   };
 
@@ -106,31 +75,20 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const token = localStorage.getItem("auth-token");
     if (token) {
       refreshUser();
-      refreshSubscription();
     }
   }, []);
 
-  // Auto-refresh subscription when user changes
-  useEffect(() => {
-    if (user) {
-      refreshSubscription();
-    }
-  }, [user]);
 
   const value: UserContextType = {
     user,
-    subscription,
     login: (token: string) => {
       localStorage.setItem("auth-token", token);
       Cookies.set("auth-token", token, { expires: 7 });
       refreshUser();
-      refreshSubscription();
     },
     setUser,
-    setSubscription,
     logout,
     refreshUser,
-    refreshSubscription,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
