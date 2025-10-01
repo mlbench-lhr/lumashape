@@ -135,7 +135,7 @@ const SignInPage: React.FC = () => {
       {/* Centered Sign-In Form with Go Back */}
       <div className="w-full flex flex-col justify-center items-center px-4 py-6 overflow-y-auto">
         {/* Sign-In Form Card */}
-        <div className="w-[323px] sm:w-[449px] min-h-[400px] mx-auto bg-white border border-[#ededed] p-6 lg:p-8">
+        <div className="w-[323px] h-[461px] sm:w-[449px] sm:h-[533px] mx-auto bg-white border border-[#ededed] p-6 lg:p-8">
           <div className="mx-auto flex flex-col items-center justify-center">
             <div className="mb-6 relative">
               {/* Go Back Button - positioned absolutely on the left */}
