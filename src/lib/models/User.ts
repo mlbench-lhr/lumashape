@@ -1,114 +1,125 @@
-import mongoose, { Document, Model, Schema } from 'mongoose'
-import bcrypt from 'bcryptjs'
+import mongoose, { Document, Schema } from 'mongoose'
 
-// 1. Define the interface for a User document
 export interface IUser extends Document {
+  _id: string
   username: string
+  name: string
   email: string
   password: string
-  resetPasswordOTP?: string
-  resetPasswordExpires?: Date
-  avatar?: string
+  image?: string
+  plan?: string | null
+  description?: string | null
+  charges?: number | null
+  subscription_id?: string | null
+  hasSubscribed?: string
+  expiry_date?: Date | null
+  phone?: string | null
+  company?: string | null
+  avatar?: string | null
   avatarPublicId?: string
-  phone?: string
-  company?: string
-  isDeleted: boolean
-  deletedAt?: Date
   isVerified: boolean
+  verificationToken?: string
+  verificationTokenExpires?: Date
+  resetPasswordToken?: string
+  resetPasswordExpires?: Date
   createdAt: Date
   updatedAt: Date
-
-  comparePassword(candidatePassword: string): Promise<boolean>
 }
 
-// 2. Define the schema
-const UserSchema: Schema<IUser> = new mongoose.Schema(
+const UserSchema = new Schema<IUser>(
   {
     username: {
       type: String,
-      required: [true, 'Please provide a username'],
+      required: [true, 'Username is required'],
       unique: true,
       trim: true,
-      minlength: [3, 'Username must be at least 3 characters'],
-      maxlength: [20, 'Username cannot be more than 20 characters'],
+      minlength: [3, 'Username must be at least 3 characters long'],
+      maxlength: [30, 'Username cannot exceed 30 characters'],
+    },
+    name: {
+      type: String,
+      required: [true, 'Name is required'],
+      trim: true,
+      maxlength: [50, 'Name cannot exceed 50 characters'],
     },
     email: {
       type: String,
-      required: [true, 'Please provide an email'],
+      required: [true, 'Email is required'],
       unique: true,
       lowercase: true,
       trim: true,
       match: [
-        /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
-        'Please provide a valid email',
+        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+        'Please enter a valid email address',
       ],
     },
     password: {
       type: String,
-      minlength: [6, 'Password must be at least 6 characters'],
-      select: false,
+      required: [true, 'Password is required'],
+      minlength: [6, 'Password must be at least 6 characters long'],
     },
-    resetPasswordOTP: {
+    image: {
       type: String,
-      select: false,
+      default: null,
     },
-    resetPasswordExpires: {
+    plan: {
+      type: String,
+      default: null,
+    },
+    description: {
+      type: String,
+      default: null,
+    },
+    charges: {
+      type: Number,
+      default: null,
+    },
+    subscription_id: {
+      type: String,
+      default: null,
+    },
+    hasSubscribed: {
+      type: String,
+      enum: ['yes', 'no', 'trial'],
+      default: 'no',
+    },
+    expiry_date: {
       type: Date,
-      select: false,
-    },
-    avatar: {
-      type: String,
-    },
-    avatarPublicId: {
-      type: String,
+      default: null,
     },
     phone: {
       type: String,
+      default: null,
     },
     company: {
       type: String,
-      trim: true,
+      default: null,
     },
-    isDeleted: {
-      type: Boolean,
-      default: false,
+    avatar: {
+      type: String,
+      default: null,
     },
-    deletedAt: {
-      type: Date,
+    avatarPublicId: {
+      type: String,
       default: null,
     },
     isVerified: {
       type: Boolean,
       default: false,
     },
+    verificationToken: String,
+    verificationTokenExpires: Date,
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
   },
   {
     timestamps: true,
   }
 )
 
-// 3. Hash password before saving
-UserSchema.pre<IUser>('save', async function (next) {
-  if (!this.isModified('password')) return next()
+// Create indexes for better performance
+UserSchema.index({ subscription_id: 1 })
 
-  try {
-    const salt = await bcrypt.genSalt(12)
-    this.password = await bcrypt.hash(this.password, salt)
-    next()
-  } catch (error) {
-    next(error as Error)
-  }
-})
-
-// 4. Add password comparison method
-UserSchema.methods.comparePassword = async function (
-  candidatePassword: string
-): Promise<boolean> {
-  return bcrypt.compare(candidatePassword, this.password)
-}
-
-// 5. Export the model
-const User: Model<IUser> =
-  mongoose.models.User || mongoose.model<IUser>('User', UserSchema)
+const User = mongoose.models.User || mongoose.model<IUser>('User', UserSchema)
 
 export default User

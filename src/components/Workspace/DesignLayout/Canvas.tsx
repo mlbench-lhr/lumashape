@@ -1,6 +1,7 @@
+// Updated Canvas.tsx - Clean tool rendering without borders
 import React from 'react';
 import { DroppedTool, Tool } from './types';
-import { RefreshCw, X } from 'lucide-react';
+import { RefreshCw, X, Move, Maximize, AlertTriangle, Check } from 'lucide-react';
 import { useCanvas } from './useCanvas';
 
 interface CanvasProps {
@@ -8,141 +9,363 @@ interface CanvasProps {
   setDroppedTools: React.Dispatch<React.SetStateAction<DroppedTool[]>>;
   selectedTool: string | null;
   setSelectedTool: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedTools: string[];
+  setSelectedTools: React.Dispatch<React.SetStateAction<string[]>>;
   onSave?: (tools: DroppedTool[]) => void;
-  defaultWidth: number;
-  defaultLength: number;
-  defaultThickness: number;
+  canvasWidth: number;
+  canvasHeight: number;
   unit: 'mm' | 'inches';
-  onCanvasDimensionsChange?: (dimensions: { width: number; height: number; maxWidth: number; maxHeight: number; unit: 'mm' | 'inches' }) => void;
   activeTool: 'cursor' | 'hand' | 'box';
+  onOverlapChange?: (hasOverlaps: boolean) => void;
 }
 
 const Canvas: React.FC<CanvasProps> = (props) => {
   const {
     droppedTools,
     selectedTool,
+    selectedTools,
+    canvasWidth,
+    canvasHeight,
+    unit,
+    activeTool,
   } = props;
 
   const {
     canvasRef,
+    canvasContainerRef,
+    selectionBox,
+    viewport,
+    hasOverlaps,
+    overlappingTools,
     getToolDimensions,
     getShadowOffset,
+    getCanvasStyle,
+    getViewportTransform,
     handleDragOver,
     handleDrop,
     handleToolMouseDown,
     handleMouseMove,
     handleMouseUp,
     handleCanvasClick,
+    handleCanvasMouseDown,
     handleDeleteTool,
+    handleDeleteSelectedTools,
+    autoFixOverlaps,
     getCanvasCursor,
     getToolCursor,
+    fitToView,
+    centerCanvas,
   } = useCanvas(props);
 
-  return (
-    <div className="flex-1 p-6">
+  // Render selection box
+  const renderSelectionBox = () => {
+    if (!selectionBox?.isSelecting) return null;
+
+    const minX = Math.min(selectionBox.startX, selectionBox.currentX);
+    const minY = Math.min(selectionBox.startY, selectionBox.currentY);
+    const width = Math.abs(selectionBox.currentX - selectionBox.startX);
+    const height = Math.abs(selectionBox.currentY - selectionBox.startY);
+
+    return (
       <div
-        ref={canvasRef}
-        className="border-2 border-dashed border-gray-300 h-full relative bg-gray-50 rounded-lg"
-        style={{ cursor: getCanvasCursor() }}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
+        className="absolute border-2 border-blue-500 bg-blue-100 bg-opacity-20 pointer-events-none z-30"
+        style={{
+          left: minX,
+          top: minY,
+          width,
+          height,
+        }}
+      />
+    );
+  };
+
+  // Render overlap notification
+  const renderOverlapNotification = () => {
+    if (!hasOverlaps) return null;
+
+    return (
+      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-50">
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 shadow-lg max-w-sm">
+          <div className="flex items-start space-x-3">
+            <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-red-800">
+                Note: The layout that you have selected is invalid
+              </p>
+              <p className="text-xs text-red-600 mt-1">
+                {overlappingTools.length} tool{overlappingTools.length > 1 ? 's are' : ' is'} overlapping
+              </p>
+              <button
+                onClick={autoFixOverlaps}
+                className="mt-2 inline-flex items-center px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded transition-colors"
+              >
+                <Check className="w-3 h-3 mr-1" />
+                Auto-fix positions
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  React.useEffect(() => {
+    if (props.onOverlapChange) {
+      props.onOverlapChange(hasOverlaps);
+    }
+  }, [hasOverlaps, props.onOverlapChange]);
+
+  // Handle keyboard shortcuts
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedTools.length > 0) {
+          e.preventDefault();
+          handleDeleteSelectedTools();
+        }
+      }
+      if (e.code === 'Space' && e.target === document.body) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedTools, handleDeleteSelectedTools]);
+
+  return (
+    <div className="flex-1 relative bg-gray-100 overflow-hidden">
+      {/* Overlap Notification */}
+      {renderOverlapNotification()}
+
+      {/* Viewport Controls */}
+      <div className="absolute top-4 right-4 z-40 flex flex-col gap-2 bg-white rounded-lg shadow-lg p-2">
+        <button
+          onClick={fitToView}
+          className="p-2 rounded hover:bg-gray-100 transition-colors"
+          title="Fit to view"
+        >
+          <Maximize className="w-4 h-4" />
+        </button>
+        <button
+          onClick={centerCanvas}
+          className="p-2 rounded hover:bg-gray-100 transition-colors"
+          title="Center canvas"
+        >
+          <Move className="w-4 h-4" />
+        </button>
+        <div className="text-xs text-center text-gray-500 px-2">
+          {Math.round(viewport.zoom * 100)}%
+        </div>
+      </div>
+
+      {/* Canvas Container */}
+      <div
+        ref={canvasContainerRef}
+        className="absolute inset-0 overflow-hidden"
+        style={{
+          cursor: getCanvasCursor()
+        }}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onMouseDown={handleCanvasMouseDown}
         onMouseLeave={handleMouseUp}
-        onClick={handleCanvasClick}
       >
-        {/* Dropped Tools */}
-        {droppedTools.map(tool => {
-          const { toolWidth, toolHeight } = getToolDimensions(tool);
-          const shadowOffset = getShadowOffset(tool);
+        {/* Canvas with viewport transform */}
+        <div
+          ref={canvasRef}
+          data-canvas="true"   // 🔥 Add this
+          className="absolute border-2 border-dashed border-gray-300 bg-white rounded-lg shadow-lg"
+          style={{
+            ...getCanvasStyle(),
+            ...getViewportTransform(),
+          }}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          onClick={handleCanvasClick}
+        >
 
-          return (
-            <div
-              key={tool.id}
-              className={`absolute select-none group ${selectedTool === tool.id ? 'ring-2 ring-blue-500' : ''}`}
-              style={{
-                left: tool.x,
-                top: tool.y,
-                transform: `rotate(${tool.rotation}deg) scaleX(${tool.flipHorizontal ? -1 : 1}) scaleY(${tool.flipVertical ? -1 : 1})`,
-                width: `${toolWidth}px`,
-                height: `${toolHeight}px`,
-                cursor: getToolCursor(tool.id),
-              }}
-              onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
-            >
-              <div className="relative w-full h-full">
-                {tool.image && (
-                  <div className="relative w-full h-full">
-                    {/* 3D Thickness Effect - More layers for thicker materials */}
-                    {Array.from({ length: Math.max(2, Math.floor(shadowOffset / 4)) }, (_, i) => (
+          {/* Canvas dimensions indicator */}
+          <div className="absolute -top-8 left-0 text-sm text-gray-600 font-medium bg-white px-2 py-1 rounded shadow-sm">
+            Canvas: {canvasWidth} × {canvasHeight} {unit}
+          </div>
+
+          {/* UPDATED: Clean Tool Rendering - No Borders */}
+          {droppedTools.map(tool => {
+            const { toolWidth, toolHeight } = getToolDimensions(tool);
+            const isSelected = selectedTools.includes(tool.id);
+            const isPrimarySelection = selectedTool === tool.id;
+            const isOverlapping = overlappingTools.includes(tool.id);
+
+            // Calculate opacity and blur values
+            const opacity = (tool.opacity || 100) / 100;
+            const blurAmount = (tool.smooth || 0) / 10;
+
+            return (
+              <div
+                key={tool.id}
+                className={`absolute select-none group ${isSelected ? 'z-20' : 'z-10'
+                  }`}
+                style={{
+                  left: tool.x,
+                  top: tool.y,
+                  transform: `rotate(${tool.rotation}deg) scaleX(${tool.flipHorizontal ? -1 : 1}) scaleY(${tool.flipVertical ? -1 : 1})`,
+                  width: `${toolWidth}px`,
+                  height: `${toolHeight}px`,
+                  cursor: getToolCursor(tool.id),
+                }}
+                onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
+              >
+                <div className="relative w-full h-full">
+                  {tool.image && (
+                    <div className="relative w-full h-full">
+                      {/* CLEAN: Main tool image without borders or 3D effects */}
                       <img
-                        key={`depth-${i}`}
                         src={tool.image}
-                        alt=""
-                        className="absolute w-full h-full object-cover rounded"
+                        alt={tool.name}
+                        onLoad={(e) => {
+                          const img = e.currentTarget;
+                          if (!tool.metadata) tool.metadata = {};
+                          tool.metadata.naturalWidth = img.naturalWidth;
+                          tool.metadata.naturalHeight = img.naturalHeight;
+                        }}
+                        className={`relative w-full h-full object-contain transition-all duration-200 ${isOverlapping ? 'brightness-75 saturate-150' : ''
+                          }`}
                         style={{
-                          left: `${i * 2}px`,
-                          top: `${i * 2}px`,
-                          filter: `brightness(${0.6 - i * 0.08}) saturate(0.7)`,
-                          zIndex: -i,
-                          opacity: 0.9 - (i * 0.15)
+                          opacity: opacity,
+                          filter: `blur(${blurAmount}px) ${isSelected
+                            ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)) brightness(1.05)'
+                            : ''
+                            }`,
                         }}
                         draggable={false}
                       />
-                    ))}
+                    </div>
+                  )}
 
-                    {/* Main tool image on top */}
-                    <img
-                      src={tool.image}
-                      alt={tool.name}
-                      className="relative w-full h-full object-cover rounded z-10"
+                  {/* CLEAN: Subtle selection indicator - glow only */}
+                  {isSelected && (
+                    <div
+                      className="absolute inset-0 pointer-events-none rounded-sm"
                       style={{
-                        boxSizing: 'border-box'
+                        boxShadow: isPrimarySelection
+                          ? '0 0 0 2px rgba(59, 130, 246, 0.8), 0 0 16px rgba(59, 130, 246, 0.4)'
+                          : '0 0 0 1px rgba(59, 130, 246, 0.6), 0 0 8px rgba(59, 130, 246, 0.2)',
                       }}
-                      draggable={false}
                     />
+                  )}
+
+                  {/* Minimal overlap indicator */}
+                  {isOverlapping && (
+                    <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center z-30">
+                      <AlertTriangle className="w-2.5 h-2.5" />
+                    </div>
+                  )}
+
+                  {/* Delete button - only when selected */}
+                  {isSelected && (
+                    <button
+                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-30 shadow-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteTool(tool.id);
+                      }}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+
+                  {/* Multi-select indicator */}
+                  {isSelected && selectedTools.length > 1 && (
+                    <div className="absolute -top-1 -left-1 bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold z-30">
+                      {isPrimarySelection ? '1' : selectedTools.indexOf(tool.id) + 1}
+                    </div>
+                  )}
+
+                  {/* ENHANCED: Tool info tooltip */}
+                  <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-95 text-white text-xs px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 backdrop-blur-sm shadow-lg">
+                    <div className="text-center space-y-1">
+                      <div className="font-medium text-blue-200">{tool.name}</div>
+                      <div className="text-gray-400">
+                        {`Display: ${Math.round(toolWidth)} × ${Math.round(toolHeight)}px`}
+                      </div>
+                      {isOverlapping && (
+                        <div className="text-red-300 font-medium">
+                          {`⚠ Overlapping`}
+                        </div>
+                      )}
+                      {isSelected && selectedTools.length > 1 && (
+                        <div className="text-blue-300">
+                          {`${selectedTools.length} tools selected`}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
-
-                {/* Delete button - only show when tool is selected */}
-                {selectedTool === tool.id && (
-                  <button
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteTool(tool.id);
-                    }}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-
-                {/* Enhanced tool info with individual tool dimensions */}
-                <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">
-                  {tool.name}
-                  <br />
-                  <span className="text-gray-300">
-                    {tool.width} × {tool.length} × <span className="text-yellow-300 font-semibold">{tool.thickness}</span> {tool.unit}
-                  </span>
                 </div>
               </div>
+            );
+          })}
+
+          {/* Selection Box */}
+          {renderSelectionBox()}
+
+          {/* Empty canvas message */}
+          {droppedTools.length === 0 && (
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+              <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-500 text-sm">Drag tools from the sidebar to start designing</p>
+              <p className="text-gray-400 text-xs mt-1">
+                {`Canvas Size: ${canvasWidth} × ${canvasHeight} ${unit}`}
+              </p>
+              <p className="text-gray-400 text-xs mt-1">
+                {`Tools display at real-world scale based on diagonal measurements`}
+              </p>
+              <p className="text-gray-400 text-xs mt-1">
+                Use <span className="font-semibold">Cursor</span> to select • <span className="font-semibold">Hand</span> to pan
+              </p>
+              <p className="text-gray-400 text-xs mt-1">
+                Hold <span className="font-semibold">Ctrl/Cmd</span> to multi-select • <span className="font-semibold">Scroll</span> to zoom
+              </p>
             </div>
-          );
-        })}
+          )}
+        </div>
 
-        {/* Center refresh icon */}
-        {droppedTools.length === 0 && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
-            <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-gray-500 text-sm">Drag tools from the sidebar to start designing</p>
-            <p className="text-gray-400 text-xs mt-1">
-              Use <span className="font-semibold">Cursor</span> tool to select,
-              <span className="font-semibold"> Hand</span> tool to move
-            </p>
+        {/* Zoom indicator */}
+        <div className="absolute bottom-4 left-4 bg-white bg-opacity-90 rounded-lg px-3 py-2 text-sm text-gray-600 shadow-lg">
+          {`Zoom: ${Math.round(viewport.zoom * 100)}%`}
+          {activeTool === 'hand' && (
+            <div className="text-xs text-gray-500 mt-1">
+              {`Drag to pan • Scroll to zoom`}
+            </div>
+          )}
+        </div>
+
+        {/* Layout Status Indicator */}
+        <div className="absolute bottom-4 right-4 bg-white bg-opacity-90 rounded-lg px-3 py-2 text-sm shadow-lg">
+          <div className={`flex items-center space-x-2 ${hasOverlaps ? 'text-red-600' : 'text-green-600'}`}>
+            {hasOverlaps ? (
+              <>
+                <AlertTriangle className="w-4 h-4" />
+                <span className="font-medium">Layout Invalid</span>
+              </>
+            ) : (
+              <>
+                <Check className="w-4 h-4" />
+                <span className="font-medium">Layout Valid</span>
+              </>
+            )}
           </div>
-        )}
-
-        <div className="absolute inset-4 border-2 border-transparent rounded-lg transition-colors duration-200 pointer-events-none" />
+          {hasOverlaps && (
+            <div className="text-xs text-gray-600 mt-1">
+              {overlappingTools.length} overlapping tool{overlappingTools.length > 1 ? 's' : ''}
+            </div>
+          )}
+          {droppedTools.length > 0 && (
+            <div className="text-xs text-gray-500 mt-1">
+              {droppedTools.length} tool{droppedTools.length > 1 ? 's' : ''} • Real-world scale
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

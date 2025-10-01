@@ -21,7 +21,17 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log("body: ", body);
 
-    const { paper, brand, type, imageUrl, description, purchase_link } = body;
+    const {
+      paper,
+      brand,
+      type,
+      imageUrl,
+      annotatedImageUrl,
+      outlinesImageUrl,
+      description,
+      purchase_link,
+      serverResponse
+    } = body;
 
     if (!paper || !brand || !type || !imageUrl) {
       return NextResponse.json(
@@ -37,10 +47,25 @@ export async function POST(req: Request) {
       toolType: type,
       description: description || "",
       purchaseLink: purchase_link || "",
+      dxfLink: serverResponse.dxf_link || "",
       backgroundImg: imageUrl,
+      annotatedImg: annotatedImageUrl || "",
+      outlinesImg: outlinesImageUrl || "",
+      diagonalInches: serverResponse?.height_in_inches ?? undefined,
+      scaleFactor: serverResponse?.scale_info ?? undefined,
+      published: false,
+
+      // New fields initialized
+      likes: 0,
+      dislikes: 0,
+      downloads: 0,
+      publishedDate: null,
     });
 
-    console.log("tool: ", tool);
+
+
+    console.log("Tool object before save:", tool);
+    console.log(`Server Response while saving tool : `, serverResponse);
 
     await tool.save();
 

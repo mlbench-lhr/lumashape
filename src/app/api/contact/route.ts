@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
       <p style="margin-top: 60px;">
         <a href="https://www.lumashape.com" style="color: #000000; text-decoration: none;">www.lumashape.com</a> 
         <span style="color: #000000;"> | </span>     
-        <a href="mailto:support@company.com" style="color: #000000;">support@company.com</a>
+        <a href="mailto:support@lumashape.com" style="color: #000000;">support@lumashape.com</a>
       </p>
 
       <div style="text-align: start; margin-top: 10px;">

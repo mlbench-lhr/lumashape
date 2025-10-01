@@ -1,54 +1,119 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 interface ControlBarProps {
-  width: number;
-  setWidth: (width: number) => void;
-  length: number;
-  setLength: (length: number) => void;
+  canvasWidth: number;
+  setCanvasWidth: (width: number) => void;
+  canvasHeight: number;
+  setCanvasHeight: (height: number) => void;
   thickness: number;
   setThickness: (thickness: number) => void;
   unit: 'mm' | 'inches';
   setUnit: (unit: 'mm' | 'inches') => void;
-  maxWidth?: number;
-  maxHeight?: number;
   activeTool: 'cursor' | 'hand' | 'box';
   setActiveTool: (tool: 'cursor' | 'hand' | 'box') => void;
-  selectedToolId?: string | null; // Add this to show which tool is being edited
+  selectedToolId?: string | null;
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({
-  width,
-  setWidth,
-  length,
-  setLength,
+  canvasWidth,
+  setCanvasWidth,
+  canvasHeight,
+  setCanvasHeight,
   thickness,
   setThickness,
   unit,
   setUnit,
-  maxWidth = Infinity,
-  maxHeight = Infinity,
   activeTool,
   setActiveTool,
-  selectedToolId
 }) => {
+  const [hasLoadedFromSession, setHasLoadedFromSession] = useState(false);
 
-  // Helper function to handle constrained input changes
-  const handleLengthChange = (value: number) => {
-    setLength(value);
+  // Load initial values from sessionStorage only once on first load
+  useEffect(() => {
+    if (!hasLoadedFromSession) {
+      const savedData = sessionStorage.getItem('layoutForm');
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
+
+          // Load units first
+          if (parsed.units && (parsed.units === 'mm' || parsed.units === 'inches')) {
+            setUnit(parsed.units);
+          }
+
+          // Load canvas dimensions - map from width/length to canvasWidth/canvasHeight
+          if (parsed.width !== undefined && !isNaN(Number(parsed.width))) {
+            setCanvasWidth(Number(parsed.width));
+          }
+
+          if (parsed.length !== undefined && !isNaN(Number(parsed.length))) {
+            setCanvasHeight(Number(parsed.length));
+          }
+
+          // Also check for existing canvasWidth/canvasHeight (for when returning from design layout)
+          if (parsed.canvasWidth !== undefined && !isNaN(Number(parsed.canvasWidth))) {
+            setCanvasWidth(Number(parsed.canvasWidth));
+          }
+
+          if (parsed.canvasHeight !== undefined && !isNaN(Number(parsed.canvasHeight))) {
+            setCanvasHeight(Number(parsed.canvasHeight));
+          }
+
+          if (parsed.thickness !== undefined && !isNaN(Number(parsed.thickness))) {
+            setThickness(Number(parsed.thickness));
+          }
+        } catch (error) {
+          console.error('Error parsing sessionStorage data:', error);
+        }
+      }
+      setHasLoadedFromSession(true);
+    }
+  }, [hasLoadedFromSession, setCanvasWidth, setCanvasHeight, setThickness, setUnit]);
+
+  // Save to sessionStorage whenever values change
+  useEffect(() => {
+    if (hasLoadedFromSession) {
+      const savedData = sessionStorage.getItem('layoutForm');
+      let existingData = {};
+      
+      if (savedData) {
+        try {
+          existingData = JSON.parse(savedData);
+        } catch (error) {
+          console.error('Error parsing existing sessionStorage data:', error);
+        }
+      }
+
+      const dataToSave = {
+        ...existingData,
+        units: unit,
+        width: canvasWidth, // Keep original width field
+        length: canvasHeight, // Keep original length field  
+        canvasWidth: canvasWidth,
+        canvasHeight: canvasHeight,
+        thickness: thickness
+      };
+      sessionStorage.setItem('layoutForm', JSON.stringify(dataToSave));
+    }
+  }, [hasLoadedFromSession, unit, canvasWidth, canvasHeight, thickness]);
+
+  const handleHeightChange = (value: number) => {
+    if (value > 0) {
+      setCanvasHeight(value);
+    }
   };
 
   const handleWidthChange = (value: number) => {
-    const constrainedValue = Math.max(0.1, Math.min(value, maxWidth));
-    setWidth(constrainedValue);
+    if (value > 0) {
+      setCanvasWidth(value);
+    }
   };
 
   return (
-    <div className="bg-primary text-white px-4 py-3 flex items-center justify-between">
-      <div className="flex items-center space-x-6">
-        {/* Editing Indicator */}
-
+    <div className="bg-primary text-white px-4 py-2 flex items-center justify-between">
+      <div className="flex items-center space-x-11">
         {/* Unit Selector */}
         <div className="flex items-center space-x-2">
           <label className="text-sm font-medium">Unit</label>
@@ -62,50 +127,33 @@ const ControlBar: React.FC<ControlBarProps> = ({
           </select>
         </div>
 
-        {/* Length */}
+        {/* Canvas Height */}
         <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium">Length:</label>
+          <label className="text-sm font-medium">Height:</label>
           <input
             type="number"
-            value={length}
-            onChange={(e) => handleLengthChange(Number(e.target.value))}
-            min="0.1"
-            step="0.1"
+            value={canvasHeight}
+            onChange={(e) => handleHeightChange(Number(e.target.value))}
             className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400"
-            disabled={!selectedToolId}
           />
-          <span className="text-sm">{unit}</span>
-          {maxHeight !== Infinity && (
-            <span className="text-xs text-gray-400">
-              (max: {maxHeight.toFixed(1)})
-            </span>
-          )}
+          <span className="text-sm inline-block w-12">{unit}</span>
         </div>
 
-        {/* Width */}
+        {/* Canvas Width */}
         <div className="flex items-center space-x-2">
           <label className="text-sm font-medium">Width:</label>
           <input
             type="number"
-            value={width}
+            value={canvasWidth}
             onChange={(e) => handleWidthChange(Number(e.target.value))}
-            min="0.1"
-            max={maxWidth !== Infinity ? maxWidth : undefined}
-            step="0.1"
             className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400"
-            disabled={!selectedToolId}
           />
-          <span className="text-sm">{unit}</span>
-          {maxWidth !== Infinity && (
-            <span className="text-xs text-gray-400">
-              (max: {maxWidth.toFixed(1)})
-            </span>
-          )}
+          <span className="text-sm inline-block w-12">{unit}</span>
         </div>
 
         {/* Tools */}
         <div className="flex items-center space-x-1">
-          <button 
+          <button
             className={`p-1 rounded ${activeTool === 'cursor' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
             onClick={() => setActiveTool('cursor')}
           >
@@ -117,7 +165,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
               className="w-full h-full object-cover"
             />
           </button>
-          <button 
+          <button
             className={`p-1 rounded ${activeTool === 'hand' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
             onClick={() => setActiveTool('hand')}
           >
@@ -129,18 +177,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
               className="w-full h-full object-cover"
             />
           </button>
-          {/* <button 
-            className={`p-1 rounded ${activeTool === 'box' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
-            onClick={() => setActiveTool('box')}
-          >
-            <Image
-              src={"/images/workspace/box.svg"}
-              alt="Box"
-              width={20}
-              height={20}
-              className="w-full h-full object-cover"
-            />
-          </button> */}
         </div>
 
         {/* Thickness */}
@@ -150,7 +186,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
             value={thickness}
             onChange={(e) => setThickness(Number(e.target.value))}
             className="bg-white text-gray-900 px-2 py-1 w-32 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400"
-            disabled={!selectedToolId}
           >
             {unit === 'inches' ? (
               <>

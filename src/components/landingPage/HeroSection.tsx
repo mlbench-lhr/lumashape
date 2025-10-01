@@ -21,7 +21,7 @@ function HeroSection() {
   const handleClick = () => {
     const token = getCookie("auth-token");
     if (token) {
-      router.push("/tools-inventory");
+      router.push("/workspace");
     } else {
       router.push("/auth/login");
     }

@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
       username,
       email,
       password,
+      profilePic: null,
     });
 
     // Save the new user to the database

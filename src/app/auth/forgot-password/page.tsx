@@ -232,7 +232,7 @@ export default function ForgotPasswordScreen() {
         <button
           onClick={handleVerify}
           disabled={isButtonDisabled()}
-          className="w-full bg-[#266ca8] text-white py-3 px-4 font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center rounded-[8px]"
+          className="w-full bg-[#266ca8] text-white py-3 px-4 font-medium disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center rounded-[8px]"
         >
           {isLoading && (
             <svg
