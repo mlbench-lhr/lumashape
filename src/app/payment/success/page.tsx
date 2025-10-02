@@ -23,7 +23,6 @@ export default function PaymentSuccess() {
     async function verifyPayment() {
       try {
         setLoading(true)
-
         if (sessionId) {
           // Get auth token
           const authToken = localStorage.getItem('auth-token')
