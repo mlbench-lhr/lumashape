@@ -6,7 +6,7 @@ import User from '@/lib/models/User'
 
 const JWT_SECRET = process.env.JWT_SECRET!
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY!
-const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN || 'http://localhost:3000'
+const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN || 'https://lumashape.vercel.app'
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
     apiVersion: '2025-08-27.basil',
