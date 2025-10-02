@@ -78,8 +78,8 @@ export async function POST(req: NextRequest) {
                     },
                 ],
                 mode: 'subscription',
-                success_url: `${DOMAIN}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${DOMAIN}/payment/cancel`,
+                success_url: `/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `/payment/cancel`,
                 metadata: {
                     userId: String(user._id),
                     plan: typedPlanName,
