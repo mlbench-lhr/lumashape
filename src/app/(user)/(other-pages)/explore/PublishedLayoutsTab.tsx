@@ -279,18 +279,6 @@ const PublishedLayoutsTab = () => {
                 workspace and customize as needed.
             </p>
 
-            {/* Results count */}
-            {!loading && (
-                <div className="mb-4 text-sm text-gray-600">
-                    Showing {filteredLayouts.length} of {publishedLayouts.length} layouts
-                    {(searchTerm || selectedBrand || selectedContainerType) && (
-                        <span className="ml-2 text-blue-600">
-                            (filtered)
-                        </span>
-                    )}
-                </div>
-            )}
-
             {loading ? (
                 <p className="text-center text-gray-500">Loading layouts...</p>
             ) : filteredLayouts.length === 0 ? (
@@ -310,7 +298,7 @@ const PublishedLayoutsTab = () => {
                     )}
                 </div>
             ) : (
-                <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-0">
+                <div className="w-full max-w-[1200px]">
                     <div className="flex flex-wrap justify-center sm:justify-start gap-4">
                         {filteredLayouts.map((layout) => (
                             <div

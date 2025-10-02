@@ -357,7 +357,7 @@ const TrendingTab = () => {
                         {searchTerm ? "No trending tools match your search." : "No trending tools available yet."}
                     </p>
                 ) : (
-                    <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-0">
+                    <div className="w-full max-w-[1200px]">
                         {/* Tools grid */}
                         <div className="flex flex-wrap justify-center sm:justify-start gap-4">
                             {filteredTools.map((tool) => (
@@ -541,7 +541,7 @@ const TrendingTab = () => {
                         {searchTerm ? "No trending layouts match your search." : "No trending layouts available yet."}
                     </p>
                 ) : (
-                    <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-0">
+                    <div className="w-full max-w-[1200px]">
                         <div className="flex flex-wrap justify-center sm:justify-start gap-4">
                             {filteredLayouts.map((layout) => (
                                 <div
