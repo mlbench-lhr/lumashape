@@ -257,18 +257,6 @@ const PublishedToolsTab = () => {
                 your tool inventory and reuse them in your own layouts.
             </p>
 
-            {/* Results count */}
-            {!loading && (
-                <div className="mb-4 text-sm text-gray-600">
-                    Showing {filteredTools.length} of {publishedTools.length} tools
-                    {(searchTerm || selectedToolType || selectedBrand) && (
-                        <span className="ml-2 text-blue-600">
-                            (filtered)
-                        </span>
-                    )}
-                </div>
-            )}
-
             {/* Published Tools Grid */}
             {loading ? (
                 <p className="text-center text-gray-500">Loading tools...</p>
@@ -289,7 +277,7 @@ const PublishedToolsTab = () => {
                     )}
                 </div>
             ) : (
-                <div className="w-full max-w-[1200px] mx-auto px-4 sm:px-0">
+                <div className="w-full max-w-[1200px]">
                     <div className="flex flex-wrap justify-center sm:justify-start gap-4">
                         {filteredTools.map((tool) => (
                             <div
