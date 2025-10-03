@@ -174,20 +174,77 @@ const Header: React.FC<HeaderProps> = ({
         }
     };
 
-    // Helper function to convert pixel position to inches
-    const convertPositionToInches = (pixelPosition: number, canvasDimension: number): number => {
-        const canvasInInches = unit === 'mm' ? mmToInches(canvasDimension) : canvasDimension;
+    // Helper function to convert pixel position to inches with bottom-left origin
+    const convertPositionToInches = (
+        pixelPosition: number,
+        canvasDimension: number,
+        isX: boolean = true
+    ): number => {
+        // Choose logical canvas size in inches for axis
+        const canvasInchesX = unit === 'mm' ? mmToInches(canvasWidth) : canvasWidth;
+        const canvasInchesY = unit === 'mm' ? mmToInches(canvasHeight) : canvasHeight;
 
-        // Get the actual canvas element to determine the pixel-to-inch ratio
+        // Read actual rendered canvas size and remove zoom to get base CSS pixels
         const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLDivElement;
+        const DPI = 96;
+
+        let baseWidthPx = canvasInchesX * DPI;
+        let baseHeightPx = canvasInchesY * DPI;
+
         if (canvasElement) {
-            const canvasRect = canvasElement.getBoundingClientRect();
-            const pixelsPerInch = canvasRect.width / canvasInInches;
-            return pixelPosition / pixelsPerInch;
+            const rect = canvasElement.getBoundingClientRect();
+            // Get viewport zoom from the canvas transform
+            const transform = canvasElement.style.transform;
+            const scaleMatch = transform.match(/scale\(([^)]+)\)/);
+            const zoom = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+            
+            baseWidthPx = rect.width / zoom;
+            baseHeightPx = rect.height / zoom;
         }
 
-        // Fallback calculation if canvas element not found
-        return pixelPosition / 96;
+        // Pixels per inch for each axis
+        const ppiX = baseWidthPx / canvasInchesX;
+        const ppiY = baseHeightPx / canvasInchesY;
+
+        // Convert position
+        let inches = isX ? pixelPosition / ppiX : pixelPosition / ppiY;
+
+        // Bottom-left origin for Y
+        if (!isX) inches = canvasInchesY - inches;
+
+        return Number(inches.toFixed(2));
+    };
+
+    // Helper function to get tool dimensions (replicated from useCanvas)
+    const getToolDimensions = (tool: DroppedTool) => {
+        const DPI = 96;
+        const inchesToPx = (inches: number) => inches * DPI;
+
+        if (tool.metadata?.diagonalInches) {
+            const toolHeightPx = inchesToPx(tool.metadata.diagonalInches);
+            let aspectRatio = 1.6;
+
+            if (
+                tool.metadata?.naturalWidth &&
+                tool.metadata?.naturalHeight &&
+                tool.metadata.naturalWidth > 0 &&
+                tool.metadata.naturalHeight > 0
+            ) {
+                aspectRatio = tool.metadata.naturalWidth / tool.metadata.naturalHeight;
+            }
+
+            const toolWidthPx = toolHeightPx * aspectRatio;
+
+            return {
+                toolWidth: Math.max(20, toolWidthPx),
+                toolHeight: Math.max(20, toolHeightPx),
+            };
+        }
+
+        return {
+            toolWidth: tool.width || 50,
+            toolHeight: tool.length || 50,
+        };
     };
 
     // Fetch tool DXF file as blob
@@ -216,6 +273,7 @@ const Header: React.FC<HeaderProps> = ({
     };
 
     // Generate DXF file using Gradio
+    // Update the generateDxfFile function
     const generateDxfFile = async () => {
         if (droppedTools.length === 0) {
             setSaveError("Cannot generate DXF with no tools. Please add at least one tool.");
@@ -229,12 +287,14 @@ const Header: React.FC<HeaderProps> = ({
             // Get metadata
             let layoutName = "Tool Layout";
             let brand = "";
+            let containerType = "Drawer";
             const sessionData = sessionStorage.getItem("layoutForm");
             if (sessionData) {
                 try {
                     const layoutForm = JSON.parse(sessionData) as LayoutFormData;
                     layoutName = layoutForm.layoutName || "Tool Layout";
                     brand = layoutForm.selectedBrand || "";
+                    containerType = layoutForm.containerType || "Drawer";
                 } catch (err) {
                     console.error("Error parsing session data:", err);
                 }
@@ -248,100 +308,111 @@ const Header: React.FC<HeaderProps> = ({
             const authToken = localStorage.getItem("auth-token");
             if (!authToken) throw new Error("Missing auth token");
 
-            // Prepare tool data and fetch DXF blobs
-            const toolData = [];
-            const dxfBlobs = [];
+            // Prepare tools array for the API request
+            const tools = [];
 
+            // Inside the generateDxfFile function where we prepare tools for the API
             for (const droppedTool of droppedTools) {
                 // Get the original tool ID
-                const toolIdToFetch = droppedTool.metadata?.originalId || droppedTool.id.split('-').slice(0, -1).join('-');
-
-                // Convert positions to inches
-                const xInches = convertPositionToInches(droppedTool.x, canvasWidth);
-                const yInches = convertPositionToInches(droppedTool.y, canvasHeight);
-
-                console.log(`Processing tool: ${droppedTool.name}, Original ID: ${toolIdToFetch}, Position: (${xInches}, ${yInches})`);
-
-                // Prepare tool information
-                toolData.push({
-                    name: droppedTool.name,
-                    x: xInches,
-                    y: yInches,
-                    rotation: droppedTool.rotation || 0,
+                const toolId = droppedTool.metadata?.originalId || droppedTool.id.split('-').slice(0, -1).join('-');
+    
+                // Get tool dimensions to calculate bottom-left position
+                const { toolHeight } = getToolDimensions(droppedTool);
+    
+                // Convert positions to inches using the same logic as Canvas tooltip
+                // X position stays the same (left edge)
+                const xInches = convertPositionToInches(droppedTool.x, canvasWidth, true);
+                // Y position uses bottom edge of tool (tool.y + toolHeight) for bottom-left origin
+                const yInches = convertPositionToInches(droppedTool.y + toolHeight, canvasHeight, false);
+    
+                // Get tool data
+                const toolRes = await fetch(`/api/user/tool/getTool?toolId=${toolId}`, {
+                    headers: { Authorization: `Bearer ${authToken}` },
                 });
-
-                // Fetch DXF blob
-                const dxfBlob = await fetchToolDxfBlob(toolIdToFetch, authToken);
-                dxfBlobs.push(dxfBlob);
-            }
-
-            // Connect to Gradio client
-            const client = await Client.connect("lumashape/generate_industrial_layout");
-
-            // Prepare inputs for Gradio API
-            const inputs = [
-                canvasWidthInches,      // canvas_width
-                canvasHeightInches,     // canvas_height  
-                canvasThicknessInches,  // canvas_thickness
-                layoutName,             // layout_name
-                brand,                  // brand
-                dxfBlobs,              // dxf_files array
-                toolData.map(t => t.name),     // tool_names array
-                toolData.map(t => t.x),        // tool_x_positions array
-                toolData.map(t => t.y),        // tool_y_positions array
-                toolData.map(t => t.rotation), // tool_rotations array
-            ];
-
-            console.log("Sending to Gradio:", {
-                canvas: { width: canvasWidthInches, height: canvasHeightInches, thickness: canvasThicknessInches },
-                layout: { name: layoutName, brand },
-                toolCount: toolData.length
-            });
-
-            // Call Gradio API endpoint
-            const response = await client.predict("/generate_industrial_layout", inputs);
-            console.log("Gradio Response:", response);
-
-            if (!response?.data) {
-                throw new Error("Invalid response from Gradio API");
-            }
-
-            // Handle the response - Gradio typically returns file URLs
-            let downloadUrl: string;
-
-            if (Array.isArray(response.data)) {
-                // If response is an array, find the download URL
-                const fileResult = response.data.find(item =>
-                    typeof item === 'string' && (item.includes('.dxf') || item.includes('download'))
-                );
-
-                if (!fileResult) {
-                    throw new Error("No DXF download URL found in response");
+    
+                if (!toolRes.ok) {
+                    throw new Error(`Failed to fetch tool data for ID: ${toolId}`);
                 }
+    
+                const { tool } = await toolRes.json();
+    
+                if (!tool?.dxfLink) {
+                    throw new Error(`Tool ${toolId} has no DXF link`);
+                }
+    
+                // Add tool to the array with properly calculated positions
+                tools.push({
+                    tool_id: toolId,
+                    name: droppedTool.name,
+                    brand: tool.brand || "Brand",
+                    dxf_link: tool.dxfLink,
+                    position_inches: { x: xInches, y: yInches },
+                    rotation_degrees: droppedTool.rotation || 0,
+                    height_diagonal_inches: tool.heightDiagonal || 5.0,
+                    thickness_inches: droppedTool.thickness || 0.5,
+                    flip_horizontal: droppedTool.flipHorizontal || false,
+                    flip_vertical: droppedTool.flipVertical || false,
+                    opacity: droppedTool.opacity || 100,
+                    smooth: droppedTool.smooth || 0
+                });
+            }
 
-                downloadUrl = fileResult;
-            } else if (typeof response.data === 'string') {
-                downloadUrl = response.data;
-            } else {
-                throw new Error("Unexpected response format from Gradio API");
+            // Prepare the request data
+            const requestData = {
+                canvas_information: {
+                    width_inches: canvasWidthInches,
+                    height_inches: canvasHeightInches,
+                    thickness_inches: canvasThicknessInches,
+                    has_overlaps: hasOverlaps,
+                },
+                layout_metadata: {
+                    layout_name: layoutName,
+                    brand: brand,
+                    container_type: containerType,
+                },
+                tools: tools,
+                output_filename: `${layoutName.replace(/\s+/g, "_")}-layout.dxf`,
+                upload_to_s3: true,
+            };
+
+            console.log("Sending to Canvas DXF API:", requestData);
+
+            // Update the fetch call to use our proxy API
+            const response = await fetch(
+                "/api/dxf-proxy",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(requestData),
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.error || "Failed to generate DXF file");
             }
 
             // Download the file
-            const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-            const filename = `${layoutName.replace(/\s+/g, "_")}-layout-${timestamp}.dxf`;
+            if (data.s3_url) {
+                const link = document.createElement("a");
+                link.href = data.s3_url;
+                link.download = data.output_filename || requestData.output_filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
 
-            // Create download link
-            const link = document.createElement("a");
-            link.href = downloadUrl;
-            link.download = filename;
-            link.target = "_blank"; // Open in new tab as fallback
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            setShowDropdown(false);
-            console.log("DXF file downloaded successfully");
-
+                setShowDropdown(false);
+                console.log("DXF file downloaded successfully");
+            } else {
+                throw new Error("No download URL provided in the response");
+            }
         } catch (err) {
             console.error("Error generating DXF:", err);
             setSaveError(err instanceof Error ? err.message : "Failed to generate DXF file");

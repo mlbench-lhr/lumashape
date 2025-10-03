@@ -512,7 +512,7 @@ const EditTool = () => {
                       src={backgroundUrl}
                       alt="Tool background"
                       fill
-                      className="object-cover rounded-t-[21px]"
+                      className="object-contain rounded-t-[21px]"
                       onError={(e) => {
                         console.error("Image failed to load:", backgroundUrl);
                         // Optionally set a fallback or clear the backgroundUrl

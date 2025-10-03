@@ -15,7 +15,7 @@ const data: { left: DataItem[]; right: DataItem[] } = {
   left: [
     {
       id: 1,
-      image: '/images/icons/LandingPage/howItWorks/Preview.jpg',
+      image: '/images/logo/lumashape.svg',
     },
     {
       id: 3,

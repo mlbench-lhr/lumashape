@@ -39,10 +39,7 @@ function Footer() {
               as="p1"
               className="font-medium text-secondary-light max-w-[420px] md:mt-10 mt-8"
             >
-              Effortlessly create precise DXF files for manufacturing custom
-              tool drawer inserts with AI-powered automation. Simplify your
-              workflow and take tool organization to the next level. Start your
-              free trial today!
+              Design, share, and order tool inserts in a connected ecosystem.
             </Text>
             <div className="flex gap-6 max-w-[190px] items-center mt-8 md:mt-10">
               <div>
