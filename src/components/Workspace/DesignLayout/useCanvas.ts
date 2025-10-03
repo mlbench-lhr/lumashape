@@ -430,6 +430,12 @@ export const useCanvas = ({
     e.preventDefault();
     e.stopPropagation();
 
+    // Check for middle mouse button - enable panning
+    if (e.button === 1) {
+      startPan(e);
+      return;
+    }
+
     if (activeTool === 'cursor') {
       // Handle tool selection
       if (e.ctrlKey || e.metaKey) {
@@ -482,6 +488,13 @@ export const useCanvas = ({
   }, [activeTool, selectedTool, selectedTools, setSelectedTool, setSelectedTools, startPan, screenToCanvas, droppedTools]);
 
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
+    // Check for middle mouse button - enable panning regardless of active tool
+    if (e.button === 1) {
+      e.preventDefault();
+      startPan(e);
+      return;
+    }
+
     if (activeTool === 'hand') {
       // Hand tool: start panning
       startPan(e);
@@ -667,13 +680,14 @@ export const useCanvas = ({
   }, [activeTool, isPanning, isDraggingSelection]);
 
   const getToolCursor = useCallback((toolId: string) => {
+    if (isPanning) return 'grabbing';
     if (activeTool === 'hand') return 'grab';
     if (activeTool === 'cursor') {
       if (isDraggingSelection && selectedTools.includes(toolId)) return 'grabbing';
       return 'move';
     }
     return 'default';
-  }, [activeTool, isDraggingSelection, selectedTools]);
+  }, [activeTool, isDraggingSelection, selectedTools, isPanning]);
 
   // Fit canvas to view
   const fitToView = useCallback(() => {

@@ -480,3 +480,19 @@ export const updateToolAppearance = (
     )
   );
 };
+
+// Smooth rotation functionality for rotation wheel
+export const setToolRotation = (
+  toolId: string,
+  droppedTools: DroppedTool[],
+  updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
+  rotation: number
+): void => {
+  updateDroppedTools(prev =>
+    prev.map(tool =>
+      tool.id === toolId
+        ? { ...tool, rotation: ((rotation % 360) + 360) % 360 }
+        : tool
+    )
+  );
+};

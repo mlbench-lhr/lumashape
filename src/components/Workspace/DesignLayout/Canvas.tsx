@@ -3,6 +3,10 @@ import React from 'react';
 import { DroppedTool, Tool } from './types';
 import { RefreshCw, X, Move, Maximize, AlertTriangle, Check } from 'lucide-react';
 import { useCanvas } from './useCanvas';
+import RotationWheel from './RotationWheel';
+
+// conversion helper
+const mmToInches = (mm: number) => mm / 25.4;
 
 interface CanvasProps {
   droppedTools: DroppedTool[];
@@ -56,6 +60,45 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     fitToView,
     centerCanvas,
   } = useCanvas(props);
+
+  // Helper function to convert pixel position to inches with bottom-left origin
+  const convertPositionToInches = (
+    pixelPosition: number,
+    canvasDimension: number,
+    isX: boolean = true
+  ): number => {
+    // Choose logical canvas size in inches for axis
+    const canvasInchesX = props.unit === 'mm' ? mmToInches(props.canvasWidth) : props.canvasWidth;
+    const canvasInchesY = props.unit === 'mm' ? mmToInches(props.canvasHeight) : props.canvasHeight;
+
+    // Read actual rendered canvas size and remove zoom to get base CSS pixels
+    const el = canvasRef.current;
+    const zoom = viewport?.zoom ?? 1;
+
+    // Fallback DPI for non-DOM cases
+    const DPI = 96;
+
+    let baseWidthPx = canvasInchesX * DPI;
+    let baseHeightPx = canvasInchesY * DPI;
+
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      baseWidthPx = rect.width / zoom;
+      baseHeightPx = rect.height / zoom;
+    }
+
+    // Pixels per inch for each axis
+    const ppiX = baseWidthPx / canvasInchesX;
+    const ppiY = baseHeightPx / canvasInchesY;
+
+    // Convert position
+    let inches = isX ? pixelPosition / ppiX : pixelPosition / ppiY;
+
+    // Bottom-left origin for Y
+    if (!isX) inches = canvasInchesY - inches;
+
+    return Number(inches.toFixed(2));
+  };
 
   // Render selection box
   const renderSelectionBox = () => {
@@ -170,11 +213,12 @@ const Canvas: React.FC<CanvasProps> = (props) => {
         onMouseUp={handleMouseUp}
         onMouseDown={handleCanvasMouseDown}
         onMouseLeave={handleMouseUp}
+        onContextMenu={(e) => e.preventDefault()} // Prevent context menu on right click
       >
         {/* Canvas with viewport transform */}
         <div
           ref={canvasRef}
-          data-canvas="true"   // 🔥 Add this
+          data-canvas="true"
           className="absolute border-2 border-dashed border-gray-300 bg-white rounded-lg shadow-lg"
           style={{
             ...getCanvasStyle(),
@@ -200,6 +244,10 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             // Calculate opacity and blur values
             const opacity = (tool.opacity || 100) / 100;
             const blurAmount = (tool.smooth || 0) / 10;
+
+            // Calculate position in inches (from bottom-left corner of the TOOL)
+            const positionXInches = convertPositionToInches(tool.x, canvasWidth, true);
+            const positionYInches = convertPositionToInches(tool.y + toolHeight, canvasHeight, false);
 
             return (
               <div
@@ -282,12 +330,32 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     </div>
                   )}
 
+                  {/* Rotation Wheel - show only for primary selected tool */}
+                  {isPrimarySelection && (
+                    <RotationWheel
+                      toolId={tool.id}
+                      currentRotation={tool.rotation}
+                      onRotationChange={(toolId, rotation) => {
+                        props.setDroppedTools(prevTools =>
+                          prevTools.map(t =>
+                            t.id === toolId ? { ...t, rotation } : t
+                          )
+                        );
+                      }}
+                      toolWidth={toolWidth}
+                      toolHeight={toolHeight}
+                    />
+                  )}
+
                   {/* ENHANCED: Tool info tooltip */}
                   <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-95 text-white text-xs px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 backdrop-blur-sm shadow-lg">
                     <div className="text-center space-y-1">
                       <div className="font-medium text-blue-200">{tool.name}</div>
                       <div className="text-gray-400">
                         {`Display: ${Math.round(toolWidth)} × ${Math.round(toolHeight)}px`}
+                      </div>
+                      <div className="text-green-300">
+                        {`Position: (${positionXInches}", ${positionYInches}")`}
                       </div>
                       {isOverlapping && (
                         <div className="text-red-300 font-medium">
@@ -321,7 +389,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 {`Tools display at real-world scale based on diagonal measurements`}
               </p>
               <p className="text-gray-400 text-xs mt-1">
-                Use <span className="font-semibold">Cursor</span> to select • <span className="font-semibold">Hand</span> to pan
+                Use <span className="font-semibold">Cursor</span> to select • <span className="font-semibold">Hand</span> to pan • <span className="font-semibold">Middle Mouse</span> to pan
               </p>
               <p className="text-gray-400 text-xs mt-1">
                 Hold <span className="font-semibold">Ctrl/Cmd</span> to multi-select • <span className="font-semibold">Scroll</span> to zoom
