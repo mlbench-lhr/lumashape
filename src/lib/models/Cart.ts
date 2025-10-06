@@ -123,7 +123,7 @@ const CartSchema: Schema<ICart> = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      index: true,
+      // Removed index: true to avoid duplicate index warning
     },
     items: {
       type: [CartItemSchema],
@@ -135,7 +135,7 @@ const CartSchema: Schema<ICart> = new mongoose.Schema(
   }
 )
 
-// Create indexes for better performance
+// Create indexes
 CartSchema.index({ userEmail: 1 })
 CartSchema.index({ 'items.id': 1 })
 

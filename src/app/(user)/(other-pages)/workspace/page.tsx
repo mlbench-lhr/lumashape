@@ -183,6 +183,8 @@ const MyLayouts = () => {
       }
     } else if (action === "Publish to profile") {
       publishLayout(layout._id);
+    } else if (action === "Edit") {
+      router.push(`/workspace/edit-layout/${layout._id}`);
     }
   };
 
