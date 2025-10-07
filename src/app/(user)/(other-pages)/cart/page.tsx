@@ -165,114 +165,97 @@ const Cart = () => {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Cart Items */}
           <div className="flex-1">
-            <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+            <div className="bg-white rounded-2xl shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center">
-                  <input 
-                    type="checkbox" 
-                    className="w-5 h-5 mr-2"
+                <label className="flex items-center gap-3 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5 rounded border-2 border-gray-300 accent-[#2E6C99]"
                     checked={cartItems.length > 0 && cartItems.every(item => item.selected)}
                     onChange={(e) => toggleSelectAll(e.target.checked)}
                   />
-                  <span className="font-medium">Select All ({cartItems.length} items)</span>
-                </div>
-                {loading && (
-                  <div className="text-sm text-gray-500">Updating...</div>
-                )}
+                  <span className="text-lg font-medium">Select All</span>
+                </label>
+                {loading && <div className="text-sm text-gray-500">Updating...</div>}
               </div>
-              
-              {cartItems.map(item => (
-                <div key={item.id} className="border-t py-4">
-                  <div className="flex items-center">
-                    <input 
-                      type="checkbox" 
-                      className="w-5 h-5 mr-4"
-                      checked={item.selected}
-                      onChange={(e) => toggleSelected(item.id, e.target.checked)}
-                    />
-                    
-                    <div className="flex flex-1 items-center">
-                      {/* Layout Image */}
-                      <div className="relative w-24 h-24 bg-gray-100 mr-4 rounded-lg overflow-hidden">
-                        {item.snapshotUrl ? (
-                          <Image 
-                            src={item.snapshotUrl} 
-                            alt={item.name}
-                            fill
-                            className="object-contain"
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center h-full">
-                            <Image 
-                              src="/images/icons/workspace/noLayouts.svg" 
-                              alt="Layout" 
-                              width={40} 
-                              height={40} 
-                            />
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Layout Details */}
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{item.name}</h3>
-                        <p className="text-sm text-gray-600">Container Size: {item.containerSize}</p>
-                        {item.brand && (
-                          <p className="text-sm text-gray-500">Brand: {item.brand}</p>
-                        )}
-                        {item.layoutData && (
-                          <p className="text-xs text-gray-400">
-                            Tools: {item.layoutData.tools.length} | 
-                            Canvas: {item.layoutData.canvas.width}×{item.layoutData.canvas.height} {item.layoutData.canvas.unit}
-                          </p>
-                        )}
-                      </div>
-                      
-                      {/* Quantity Controls */}
-                      <div className="flex items-center border rounded-md mr-4">
-                        <button 
-                          className="px-2 py-1 hover:bg-gray-50 disabled:opacity-50"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          disabled={item.quantity <= 1 || loading}
-                        >
-                          <Minus size={16} />
-                        </button>
-                        <span className="px-3 min-w-[2rem] text-center">{item.quantity}</span>
-                        <button 
-                          className="px-2 py-1 hover:bg-gray-50 disabled:opacity-50"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+
+              {cartItems.map(item => {
+                const selectedStyles = item.selected
+                  ? 'bg-[#EEF6FF]'
+                  : 'bg-white border border-gray-200';
+                return (
+                  <div key={item.id} className={`rounded-xl p-4 mb-4 ${selectedStyles}`}>
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        className="w-5 h-5 mr-4 rounded border-2 border-gray-300 accent-[#2E6C99]"
+                        checked={item.selected}
+                        onChange={(e) => toggleSelected(item.id, e.target.checked)}
+                      />
+
+                      <div className="flex flex-1 items-center">
+                        {/* Layout Image */}
+                        <div className="relative w-32 h-32 bg-white mr-6 rounded-md border border-gray-200">
+                          {item.snapshotUrl ? (
+                            <Image src={item.snapshotUrl} alt={item.name} fill className="object-contain" />
+                          ) : (
+                            <div className="flex items-center justify-center h-full">
+                              <Image src="/images/icons/workspace/noLayouts.svg" alt="Layout" width={40} height={40} />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Layout Details */}
+                        <div className="flex-1">
+                          <h3 className="text-xl font-semibold">{item.name}</h3>
+                          <p className="text-base text-gray-700">Container Size : {item.containerSize}</p>
+                        </div>
+
+                        {/* Quantity Controls as circles */}
+                        <div className="flex items-center gap-4 mr-6">
+                          <button
+                            className="w-10 h-10 rounded-full border border-[#2E6C99] text-[#2E6C99] flex items-center justify-center disabled:opacity-50"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            disabled={loading}
+                            aria-label="Increase"
+                          >
+                            <Plus size={18} />
+                          </button>
+                          <span className="text-lg font-medium min-w-[1.5rem] text-center">{item.quantity}</span>
+                          <button
+                            className="w-10 h-10 rounded-full border border-[#2E6C99] text-[#2E6C99] flex items-center justify-center disabled:opacity-50"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            disabled={item.quantity <= 1 || loading}
+                            aria-label="Decrease"
+                          >
+                            <Minus size={18} />
+                          </button>
+                        </div>
+
+                        {/* Trash button as blue circle */}
+                        <button
+                          className="w-10 h-10 rounded-full bg-[#EAF2FB] text-[#2E6C99] flex items-center justify-center hover:bg-[#DFEAF8] disabled:opacity-50"
+                          onClick={() => removeFromCart(item.id)}
                           disabled={loading}
+                          aria-label="Remove"
                         >
-                          <Plus size={16} />
+                          <Trash2 size={18} />
                         </button>
                       </div>
-                      
-                      {/* Price */}
-                      <div className="w-20 text-right font-semibold">
-                        ${(item.price * item.quantity).toFixed(2)}
-                      </div>
-                      
-                      {/* Remove Button */}
-                      <button 
-                        className="ml-4 text-gray-400 hover:text-red-500 disabled:opacity-50"
-                        onClick={() => removeFromCart(item.id)}
-                        disabled={loading}
+                    </div>
+
+                    {/* Inspect Layout moved to far right */}
+                    <div className="flex justify-end">
+                      <Link
+                        href={`/inspect-layout/${item.id}`}
+                        className="text-[#2E6C99] text-base underline whitespace-nowrap"
                       >
-                        <Trash2 size={18} />
-                      </button>
+                        Inspect Layout
+                      </Link>
                     </div>
                   </div>
-                  
-                  <div className="mt-2 ml-9">
-                    <Link 
-                      href={`/inspect-layout/${item.id}`}
-                      className="text-primary text-sm hover:underline"
-                    >
-                      Inspect Layout
-                    </Link>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
           
@@ -286,7 +269,7 @@ const Cart = () => {
               </p>
               
               {/* Selected Layout Summary */}
-              <div className="bg-blue-50 p-4 rounded-lg mb-6">
+              <div className="bg-blue-50 p-4 mb-6">
                 <h3 className="font-semibold mb-2">Layout Details</h3>
                 
                 {cartItems.filter(item => item.selected).length === 0 ? (
@@ -324,7 +307,7 @@ const Cart = () => {
               </div>
               
               {/* Price Breakdown */}
-              <div className="border-b pb-4 mb-4">
+              <div className="pb-4 mb-4">
                 <div className="flex justify-between mb-2">
                   <span className="text-gray-600">Layout Base Price</span>
                   <span>${totalPrice.toFixed(2)}</span>
