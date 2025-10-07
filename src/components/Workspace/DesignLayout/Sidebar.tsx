@@ -35,7 +35,12 @@ interface SidebarProps {
     canRedo?: boolean;
     onUndo?: () => void;
     onRedo?: () => void;
+    // Add canvas properties for shape creation
+    canvasWidth?: number;
+    canvasHeight?: number;
+    unit?: 'mm' | 'inches';
 }
+
 
 // Database tool interface
 // Database tool interface
@@ -72,7 +77,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     canUndo = false,
     canRedo = false,
     onUndo = () => { },
-    onRedo = () => { }
+    onRedo = () => { },
+    canvasWidth,
+    canvasHeight,
+    unit
 }) => {
 
     const [activeTab, setActiveTab] = useState<'inventory' | 'edit'>('inventory');
@@ -121,7 +129,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             version: __v
         };
     };
-
 
     // Parse scale info from processing data
     const parseScaleInfo = (processingData: string) => {
@@ -347,9 +354,9 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     const handleCreateShape = useCallback((shapeType: 'circle' | 'square') => {
         const position = { x: 200, y: 150 };
-        createShape(droppedTools, setDroppedTools, shapeType, position);
+        createShape(droppedTools, setDroppedTools, shapeType, position, canvasWidth, canvasHeight, unit);
         onHistoryChange?.();
-    }, [droppedTools, setDroppedTools, onHistoryChange]);
+    }, [droppedTools, setDroppedTools, onHistoryChange, canvasWidth, canvasHeight, unit]);
 
     const handleAppearanceChange = useCallback((property: 'opacity' | 'smooth', value: number) => {
         if (selectedTool) {

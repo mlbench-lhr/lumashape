@@ -437,8 +437,19 @@ export const createShape = (
   droppedTools: DroppedTool[],
   updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
   shapeType: 'circle' | 'square',
-  position: { x: number; y: number }
+  position: { x: number; y: number },
+  canvasWidth?: number,
+  canvasHeight?: number,
+  unit?: 'mm' | 'inches'
 ): void => {
+  // Calculate 4x4 inches in the appropriate unit
+  const sizeInInches = 4;
+  const sizeInMm = sizeInInches * 25.4; // Convert to mm
+  
+  // Use the canvas unit or default to inches
+  const targetUnit = unit || 'inches';
+  const targetSize = targetUnit === 'inches' ? sizeInInches : sizeInMm;
+
   const newShape: DroppedTool = {
     id: `${shapeType}_${Date.now()}`,
     name: shapeType.charAt(0).toUpperCase() + shapeType.slice(1),
@@ -450,12 +461,17 @@ export const createShape = (
     rotation: 0,
     flipHorizontal: false,
     flipVertical: false,
-    width: 50,
-    length: 50,
-    thickness: 5,
-    unit: 'mm',
+    width: targetSize,
+    length: targetSize,
+    thickness: targetUnit === 'inches' ? 0.5 : 12.7,
+    unit: targetUnit,
     opacity: 100,
-    smooth: 100
+    smooth: 100,
+    metadata: {
+      diagonalInches: sizeInInches * Math.sqrt(2), // Diagonal of a 4x4 square
+      naturalWidth: 100,
+      naturalHeight: 100,
+    }
   };
 
   updateDroppedTools(prev => [...prev, newShape]);

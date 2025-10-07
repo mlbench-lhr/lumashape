@@ -44,6 +44,19 @@ export const useCanvas = ({
   const [isDraggingSelection, setIsDraggingSelection] = useState(false);
   const [initialPositions, setInitialPositions] = useState<Record<string, { x: number; y: number }>>({});
 
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeHandle, setResizeHandle] = useState<'nw' | 'ne' | 'sw' | 'se' | null>(null);
+  const [resizingToolId, setResizingToolId] = useState<string | null>(null);
+  const [initialResizeData, setInitialResizeData] = useState<{
+    toolWidth: number;
+    toolHeight: number;
+    toolX: number;
+    toolY: number;
+    mouseX: number;
+    mouseY: number;
+  } | null>(null);
+
+
   // Overlap detection state
   const [hasOverlaps, setHasOverlaps] = useState(false);
   const [overlappingTools, setOverlappingTools] = useState<string[]>([]);
@@ -426,6 +439,118 @@ export const useCanvas = ({
     }
   }, [getToolDimensions, unit, setDroppedTools, screenToCanvas, constrainToCanvas, findNonOverlappingPosition, droppedTools]);
 
+  const handleResizeStart = useCallback((e: React.MouseEvent, toolId: string, handle: 'nw' | 'ne' | 'sw' | 'se') => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const tool = droppedTools.find(t => t.id === toolId);
+    if (!tool) return;
+
+    const { toolWidth, toolHeight } = getToolDimensions(tool);
+    
+    setIsResizing(true);
+    setResizeHandle(handle);
+    setResizingToolId(toolId);
+    setInitialResizeData({
+      toolWidth,
+      toolHeight,
+      toolX: tool.x,
+      toolY: tool.y,
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+    });
+  }, [droppedTools, getToolDimensions]);
+
+  // Handle resize during mouse move
+  const handleResize = useCallback((e: React.MouseEvent) => {
+    if (!isResizing || !resizeHandle || !resizingToolId || !initialResizeData) return;
+
+    const deltaX = e.clientX - initialResizeData.mouseX;
+    const deltaY = e.clientY - initialResizeData.mouseY;
+
+    // Calculate new dimensions based on handle
+    let newWidth = initialResizeData.toolWidth;
+    let newHeight = initialResizeData.toolHeight;
+    let newX = initialResizeData.toolX;
+    let newY = initialResizeData.toolY;
+
+    const aspectRatio = initialResizeData.toolWidth / initialResizeData.toolHeight;
+
+    switch (resizeHandle) {
+      case 'se': // Bottom-right
+        newWidth = Math.max(20, initialResizeData.toolWidth + deltaX / viewport.zoom);
+        newHeight = newWidth / aspectRatio; // Maintain aspect ratio
+        break;
+      case 'sw': // Bottom-left
+        newWidth = Math.max(20, initialResizeData.toolWidth - deltaX / viewport.zoom);
+        newHeight = newWidth / aspectRatio;
+        newX = initialResizeData.toolX + (initialResizeData.toolWidth - newWidth);
+        break;
+      case 'ne': // Top-right
+        newWidth = Math.max(20, initialResizeData.toolWidth + deltaX / viewport.zoom);
+        newHeight = newWidth / aspectRatio;
+        newY = initialResizeData.toolY + (initialResizeData.toolHeight - newHeight);
+        break;
+      case 'nw': // Top-left
+        newWidth = Math.max(20, initialResizeData.toolWidth - deltaX / viewport.zoom);
+        newHeight = newWidth / aspectRatio;
+        newX = initialResizeData.toolX + (initialResizeData.toolWidth - newWidth);
+        newY = initialResizeData.toolY + (initialResizeData.toolHeight - newHeight);
+        break;
+    }
+
+    // Update the tool dimensions
+    setDroppedTools(prev => prev.map(tool => {
+      if (tool.id === resizingToolId) {
+        // Calculate new size in the tool's unit
+        const DPI = 96;
+        const canvasInchesX = unit === 'mm' ? (canvasWidth / 25.4) : canvasWidth;
+        const canvasInchesY = unit === 'mm' ? (canvasHeight / 25.4) : canvasHeight;
+        
+        const el = canvasRef.current;
+        let baseWidthPx = canvasInchesX * DPI;
+        let baseHeightPx = canvasInchesY * DPI;
+
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          baseWidthPx = rect.width / viewport.zoom;
+          baseHeightPx = rect.height / viewport.zoom;
+        }
+
+        const ppiX = baseWidthPx / canvasInchesX;
+        const ppiY = baseHeightPx / canvasInchesY;
+
+        // Convert pixel dimensions back to tool units
+        const newWidthInInches = newWidth / ppiX;
+        const newHeightInInches = newHeight / ppiY;
+        
+        const newWidthInUnits = tool.unit === 'mm' ? newWidthInInches * 25.4 : newWidthInInches;
+        const newHeightInUnits = tool.unit === 'mm' ? newHeightInInches * 25.4 : newHeightInInches;
+
+        return {
+          ...tool,
+          x: newX,
+          y: newY,
+          width: newWidthInUnits,
+          length: newHeightInUnits,
+          metadata: {
+            ...tool.metadata,
+            diagonalInches: Math.sqrt(newWidthInInches * newWidthInInches + newHeightInInches * newHeightInInches),
+          }
+        };
+      }
+      return tool;
+    }));
+  }, [isResizing, resizeHandle, resizingToolId, initialResizeData, setDroppedTools, viewport.zoom, unit, canvasWidth, canvasHeight, canvasRef]);
+
+  // Handle resize end
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+    setResizeHandle(null);
+    setResizingToolId(null);
+    setInitialResizeData(null);
+  }, []);
+
   const handleToolMouseDown = useCallback((e: React.MouseEvent, toolId: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -518,6 +643,13 @@ export const useCanvas = ({
   }, [activeTool, setSelectedTools, setSelectedTool, startPan, screenToCanvas]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+
+     // Handle resizing first
+    if (isResizing) {
+      handleResize(e);
+      return;
+    }
+
     // Handle viewport panning (only when not dragging tools)
     if (isPanning && (activeTool === 'hand' || !isDraggingSelection)) {
       updatePan(e);
@@ -601,6 +733,10 @@ export const useCanvas = ({
   ]);
 
   const handleMouseUp = useCallback(() => {
+     if (isResizing) {
+      handleResizeEnd();
+      return;
+    }
     endPan();
     setDragOffset(null);
     setIsDraggingSelection(false);
@@ -760,6 +896,7 @@ export const useCanvas = ({
     handleToolMouseDown,
     handleMouseMove,
     handleMouseUp,
+    handleResizeStart,
     handleCanvasClick,
     handleCanvasMouseDown,
     handleDeleteTool,
