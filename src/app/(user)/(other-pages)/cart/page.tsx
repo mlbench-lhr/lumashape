@@ -137,7 +137,7 @@ const Cart = () => {
       </div>
       
       {cartItems.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="text-center py-12 pt-24">
           <div className="mb-4">
             <Image 
               src="/images/icons/workspace/noLayouts.svg" 
