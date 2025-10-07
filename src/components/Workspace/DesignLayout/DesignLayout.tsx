@@ -173,6 +173,9 @@ function DesignLayout() {
             selectedTools={selectedTools}
             activeTool={activeTool}
             setDroppedTools={updateDroppedTools}
+            canvasWidth={canvasWidth}
+            canvasHeight={canvasHeight}
+            unit={unit}
           />
         </div>
       </div>

@@ -1,9 +1,11 @@
 // Updated Canvas.tsx - Clean tool rendering without borders
 import React from 'react';
+import { useCallback } from 'react';
 import { DroppedTool, Tool } from './types';
 import { RefreshCw, X, Move, Maximize, AlertTriangle, Check } from 'lucide-react';
 import { useCanvas } from './useCanvas';
 import RotationWheel from './RotationWheel';
+import ResizeHandles from './ResizeHandles';
 
 // conversion helper
 const mmToInches = (mm: number) => mm / 25.4;
@@ -42,7 +44,6 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     hasOverlaps,
     overlappingTools,
     getToolDimensions,
-    getShadowOffset,
     getCanvasStyle,
     getViewportTransform,
     handleDragOver,
@@ -50,6 +51,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     handleToolMouseDown,
     handleMouseMove,
     handleMouseUp,
+    handleResizeStart,
     handleCanvasClick,
     handleCanvasMouseDown,
     handleDeleteTool,
@@ -99,6 +101,16 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 
     return Number(inches.toFixed(2));
   };
+
+  const handleResize = useCallback((toolId: string, newWidth: number, newHeight: number) => {
+    props.setDroppedTools(prevTools =>
+      prevTools.map(tool =>
+        tool.id === toolId
+          ? { ...tool, width: newWidth, length: newHeight }
+          : tool
+      )
+    );
+  }, [props.setDroppedTools]);
 
   // Render selection box
   const renderSelectionBox = () => {
@@ -240,6 +252,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             const isSelected = selectedTools.includes(tool.id);
             const isPrimarySelection = selectedTool === tool.id;
             const isOverlapping = overlappingTools.includes(tool.id);
+            const isShape = tool.brand === 'SHAPE';
 
             // Calculate opacity and blur values
             const opacity = (tool.opacity || 100) / 100;
@@ -347,6 +360,39 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     />
                   )}
 
+                  {/* Resize handles - only for selected shapes */}
+                  {isSelected && isShape && (
+                    <ResizeHandles
+                      tool={tool}
+                      toolWidth={toolWidth}
+                      toolHeight={toolHeight}
+                      onResize={handleResize}
+                    />
+                  )}
+
+                  {/* Resize handles - only for shapes and when selected */}
+                  {isSelected && tool.brand === 'SHAPE' && (
+                    <>
+                      {/* Corner resize handles */}
+                      <div
+                        className="absolute -top-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-nw-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onMouseDown={(e) => handleResizeStart(e, tool.id, 'nw')}
+                      />
+                      <div
+                        className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-ne-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onMouseDown={(e) => handleResizeStart(e, tool.id, 'ne')}
+                      />
+                      <div
+                        className="absolute -bottom-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-sw-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onMouseDown={(e) => handleResizeStart(e, tool.id, 'sw')}
+                      />
+                      <div
+                        className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-se-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onMouseDown={(e) => handleResizeStart(e, tool.id, 'se')}
+                      />
+                    </>
+                  )}
+
                   {/* ENHANCED: Tool info tooltip */}
                   <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-95 text-white text-xs px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 backdrop-blur-sm shadow-lg">
                     <div className="text-center space-y-1">
@@ -354,6 +400,11 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                       <div className="text-gray-400">
                         {`Display: ${Math.round(toolWidth)} × ${Math.round(toolHeight)}px`}
                       </div>
+                      {isShape && (
+                        <div className="text-yellow-300">
+                          {`Size: ${tool.width?.toFixed(1)} × ${tool.length?.toFixed(1)} ${tool.unit}`}
+                        </div>
+                      )}
                       <div className="text-green-300">
                         {`Position: (${positionXInches}", ${positionYInches}")`}
                       </div>
