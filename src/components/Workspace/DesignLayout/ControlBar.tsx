@@ -14,6 +14,10 @@ interface ControlBarProps {
   activeTool: 'cursor' | 'hand' | 'box';
   setActiveTool: (tool: 'cursor' | 'hand' | 'box') => void;
   selectedToolId?: string | null;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({
@@ -27,6 +31,10 @@ const ControlBar: React.FC<ControlBarProps> = ({
   setUnit,
   activeTool,
   setActiveTool,
+  canUndo = false,
+  canRedo = false,
+  onUndo = () => { },
+  onRedo = () => { },
 }) => {
   const [hasLoadedFromSession, setHasLoadedFromSession] = useState(false);
 
@@ -77,7 +85,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
     if (hasLoadedFromSession) {
       const savedData = sessionStorage.getItem('layoutForm');
       let existingData = {};
-      
+
       if (savedData) {
         try {
           existingData = JSON.parse(savedData);
@@ -151,6 +159,44 @@ const ControlBar: React.FC<ControlBarProps> = ({
           <span className="text-sm inline-block w-12">{unit}</span>
         </div>
 
+        {/* Undo/Redo Controls */}
+        <div className="flex items-center space-x-1">
+          <button
+            className={`p-1 rounded transition-colors ${canUndo
+                ? 'hover:bg-blue-500 cursor-pointer'
+                : 'cursor-not-allowed opacity-50'
+              }`}
+            onClick={onUndo}
+            disabled={!canUndo}
+            title="Undo"
+          >
+            <Image
+              src={"/images/workspace/undo.svg"}
+              alt="Undo"
+              width={20}
+              height={20}
+              className="w-full h-full object-cover"
+            />
+          </button>
+          <button
+            className={`p-1 rounded transition-colors ${canRedo
+                ? 'hover:bg-blue-500 cursor-pointer'
+                : 'cursor-not-allowed opacity-50'
+              }`}
+            onClick={onRedo}
+            disabled={!canRedo}
+            title="Redo"
+          >
+            <Image
+              src={"/images/workspace/redo.svg"}
+              alt="Redo"
+              width={20}
+              height={20}
+              className="w-full h-full object-cover"
+            />
+          </button>
+        </div>
+
         {/* Tools */}
         <div className="flex items-center space-x-1">
           <button
@@ -178,6 +224,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
             />
           </button>
         </div>
+
 
         {/* Thickness */}
         <div className="flex items-center space-x-2">

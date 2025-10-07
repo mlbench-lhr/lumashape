@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MoreHorizontal, RefreshCw, Save, AlertTriangle, CheckCircle, Download, FileText, Image as ImageIcon, File, ShoppingCart } from 'lucide-react';
 import Image from 'next/image';
 import { DroppedTool } from './types';
-import { Client } from '@gradio/client';
 import * as htmlToImage from "html-to-image";
 import { useCart } from "@/context/CartContext";
 import { toast } from "react-toastify";
@@ -27,13 +26,6 @@ interface LayoutFormData {
     canvasHeight?: number;
     thickness?: number;
 }
-
-// Gradio API response types
-type GradioLayoutResponse = {
-    success: boolean;
-    dxf_download_link?: string;
-    error?: string;
-};
 
 // conversion helper
 const mmToInches = (mm: number) => mm / 25.4;
@@ -251,31 +243,6 @@ const Header: React.FC<HeaderProps> = ({
             toolWidth: tool.width || 50,
             toolHeight: tool.length || 50,
         };
-    };
-
-    // Fetch tool DXF file as blob
-    const fetchToolDxfBlob = async (toolId: string, authToken: string): Promise<Blob> => {
-        const toolRes = await fetch(`/api/user/tool/getTool?toolId=${toolId}`, {
-            headers: { Authorization: `Bearer ${authToken}` },
-        });
-
-        if (!toolRes.ok) {
-            throw new Error(`Failed to fetch tool data for ID: ${toolId}`);
-        }
-
-        const { tool } = await toolRes.json();
-
-        if (!tool?.dxfLink) {
-            throw new Error(`Tool ${toolId} has no DXF link`);
-        }
-
-        // Fetch DXF file from S3
-        const dxfRes = await fetch(tool.dxfLink);
-        if (!dxfRes.ok) {
-            throw new Error(`Failed to download DXF from ${tool.dxfLink}`);
-        }
-
-        return await dxfRes.blob();
     };
 
     // Generate DXF file using Gradio

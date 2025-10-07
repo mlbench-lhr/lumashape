@@ -462,18 +462,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             )
         },
         {
-            icon: "/images/workspace/undo.svg",
-            label: 'undo',
-            action: handleUndo,
-            disabled: !canUndo
-        },
-        {
-            icon: "/images/workspace/redo.svg",
-            label: 'redo',
-            action: handleRedo,
-            disabled: !canRedo
-        },
-        {
             icon: "/images/workspace/copy.svg",
             label: 'copy',
             action: handleCopy,
