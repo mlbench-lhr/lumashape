@@ -134,11 +134,6 @@ const Cart = () => {
     <div className="container mx-auto py-8 px-4">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-bold">Cart</h1>
-        {user && (
-          <p className="text-sm text-gray-600">
-            Logged in as: <span className="font-medium">{user.email}</span>
-          </p>
-        )}
       </div>
       
       {cartItems.length === 0 ? (
