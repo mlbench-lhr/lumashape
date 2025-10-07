@@ -292,8 +292,6 @@ const Header: React.FC<HeaderProps> = ({
         try {
             // Get metadata
             let layoutName = "Tool Layout";
-            let brand = "";
-            let containerType = "Drawer";
             const sessionData = sessionStorage.getItem("layoutForm");
             if (sessionData) {
                 try {
@@ -371,8 +369,6 @@ const Header: React.FC<HeaderProps> = ({
                 },
                 layout_metadata: {
                     layout_name: layoutName,
-                    brand: brand,
-                    container_type: containerType,
                 },
                 tools: tools,
                 output_filename: `${layoutName.replace(/\s+/g, "_")}-layout.dxf`,
