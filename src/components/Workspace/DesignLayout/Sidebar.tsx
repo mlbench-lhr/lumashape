@@ -534,7 +534,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
             </div>
 
-
             {/* Alignment Section */}
             <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Alignment</h3>

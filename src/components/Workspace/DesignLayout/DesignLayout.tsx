@@ -147,6 +147,10 @@ function DesignLayout() {
         activeTool={activeTool}
         setActiveTool={setActiveTool}
         selectedToolId={selectedTool}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
       />
       <div className="flex flex-1 overflow-hidden min-h-0">
         <Canvas
@@ -169,10 +173,6 @@ function DesignLayout() {
             selectedTools={selectedTools}
             activeTool={activeTool}
             setDroppedTools={updateDroppedTools}
-            onUndo={handleUndo}
-            onRedo={handleRedo}
-            canUndo={canUndo}
-            canRedo={canRedo}
           />
         </div>
       </div>
