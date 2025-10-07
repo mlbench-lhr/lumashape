@@ -468,7 +468,7 @@ const PublishedLayoutsTab = () => {
                         {filteredLayouts.map((layout) => (
                             <div
                                 key={layout._id}
-                                className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[330px] sm:w-[266px] sm:h-[330px] relative"
+                                className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[300px] sm:w-[266px] sm:h-[300px] relative"
                             >
                                 {/* Layout Image */}
                                 <div className="w-[258px] sm:w-[242px]">
@@ -560,7 +560,7 @@ const PublishedLayoutsTab = () => {
                                     </div>
 
                                     {/* Layout details */}
-                                    <div className="w-full h-[150px] flex flex-col justify-between p-2">
+                                    <div className="w-full h-[120px] flex flex-col justify-between p-2">
                                         <div className="space-y-1">
                                             {/* Layout Name */}
                                             <h3 className="font-bold text-[16px] leading-tight">
@@ -571,20 +571,6 @@ const PublishedLayoutsTab = () => {
                                             <p className="text-[12px] text-[#b3b3b3] font-medium">
                                                 {`Custom (${layout.metadata?.width || layout.canvas?.width}" × ${layout.metadata?.length || layout.canvas?.height}")`}
                                             </p>
-                                        </div>
-
-                                        <div className="space-y-1">
-                                            {/* Brand (right aligned) */}
-                                            <div className="flex justify-between mt-2 text-[12px] font-medium">
-                                                <span className="text-[#808080]">Brand:</span>
-                                                <span>{layout.metadata?.selectedBrand || layout.brand}</span>
-                                            </div>
-
-                                            {/* Container Type (right aligned) */}
-                                            <div className="flex justify-between text-[12px] font-medium">
-                                                <span className="text-[#808080]">Container Type:</span>
-                                                <span>{layout.metadata?.containerType}</span>
-                                            </div>
                                         </div>
 
                                         {/* Created By */}

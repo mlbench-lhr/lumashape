@@ -34,7 +34,9 @@ interface TrendingLayout {
     published?: boolean;
     createdBy?: { username?: string; email?: string };
     publishedDate?: string;
-    userInteraction?: { hasDownloaded: boolean };
+    userInteraction?: UserInteraction;
+    likes?: number;
+    dislikes?: number;
     downloads?: number;
     downloadedByUsers?: string[];
     metadata?: {
@@ -172,6 +174,49 @@ const TrendingTab = () => {
         }
     };
 
+    // Handle like/dislike actions for layouts
+    const handleLayoutInteraction = async (layoutId: string, action: 'like' | 'dislike') => {
+        try {
+            setActionLoading(`${action}-${layoutId}`);
+            const token = getAuthToken();
+
+            const res = await fetch("/api/layouts/interactions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ layoutId, action })
+            });
+
+            if (!res.ok) {
+                const error = await res.json();
+                throw new Error(error.error || `Failed to ${action} layout`);
+            }
+
+            const data = await res.json();
+
+            // Update local state to reflect the change
+            setTrendingLayouts(prev => prev.map(layout =>
+                layout._id === layoutId
+                    ? {
+                        ...layout,
+                        likes: data.layout.likes,
+                        dislikes: data.layout.dislikes,
+                        userInteraction: data.userInteraction
+                    }
+                    : layout
+            ));
+
+            console.log(data.message);
+        } catch (error) {
+            console.error(`Error ${action}ing layout:`, error);
+            alert(`Failed to ${action} layout. Please try again.`);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
     // Handle add tool to inventory
     const handleAddToInventory = async (tool: TrendingTool) => {
         try {
@@ -246,7 +291,11 @@ const TrendingTab = () => {
                         ? {
                             ...l,
                             downloads: (l.downloads || 0) + 1,
-                            userInteraction: { ...l.userInteraction, hasDownloaded: true }
+                            userInteraction: { 
+                                hasLiked: l.userInteraction?.hasLiked || false,
+                                hasDisliked: l.userInteraction?.hasDisliked || false,
+                                hasDownloaded: true 
+                            }
                         }
                         : l
                 )
@@ -363,7 +412,7 @@ const TrendingTab = () => {
                             {filteredTools.map((tool) => (
                                 <div
                                     key={tool._id}
-                                    className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[280px] sm:w-[266px] sm:h-[280px] relative"
+                                    className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[240px] sm:w-[266px] sm:h-[280px] relative"
                                 >
                                     {/* Tool Image */}
                                     <div className="w-[258px] sm:w-[242px]">
@@ -579,7 +628,7 @@ const TrendingTab = () => {
                                                     e.stopPropagation();
                                                     toggleDropdown(`layout-${layout._id}`);
                                                 }}
-                                                disabled={actionLoading === `layout-add-${layout._id}`}
+                                                disabled={actionLoading === `layout-${layout._id}`}
                                             >
                                                 <MoreVertical className="w-4 h-4 text-[#266ca8]" />
                                             </button>
@@ -601,22 +650,14 @@ const TrendingTab = () => {
                                                             <Check className="w-4 h-4 text-green-500" />
                                                         ) : (
                                                             <Image
-                                                                src="/images/icons/edit.svg"
+                                                                src="/images/icons/add.svg"
                                                                 width={16}
                                                                 height={16}
                                                                 alt="add"
                                                             />
                                                         )}
-                                                        <span className={`text-sm font-medium ${isLayoutDownloaded(layout)
-                                                            ? 'text-green-500'
-                                                            : 'text-[#266ca8]'
-                                                            }`}>
-                                                            {actionLoading === `layout-add-${layout._id}`
-                                                                ? "Adding..."
-                                                                : isLayoutDownloaded(layout)
-                                                                    ? "Added to Workspace"
-                                                                    : "Add to My Workspace"
-                                                            }
+                                                        <span className="text-[#808080] text-sm font-medium">
+                                                            {isLayoutDownloaded(layout) ? "Added to My Workspace" : "Add to My Workspace"}
                                                         </span>
                                                     </button>
                                                     <button
@@ -624,7 +665,7 @@ const TrendingTab = () => {
                                                         className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-50"
                                                     >
                                                         <Image
-                                                            src="/images/icons/share.svg"
+                                                            src="/images/icons/explore.svg"
                                                             width={16}
                                                             height={16}
                                                             alt="explore"
@@ -651,20 +692,6 @@ const TrendingTab = () => {
                                                 </p>
                                             </div>
 
-                                            <div className="space-y-1">
-                                                {/* Brand (right aligned) */}
-                                                <div className="flex justify-between mt-2 text-[12px] font-medium">
-                                                    <span className="text-[#808080]">Brand:</span>
-                                                    <span>{layout.metadata?.selectedBrand || layout.brand}</span>
-                                                </div>
-
-                                                {/* Container Type (right aligned) */}
-                                                <div className="flex justify-between text-[12px] font-medium">
-                                                    <span className="text-[#808080]">Container Type:</span>
-                                                    <span>{layout.metadata?.containerType}</span>
-                                                </div>
-                                            </div>
-
                                             {/* Created By */}
                                             {layout.createdBy && (
                                                 <div className="text-[12px] font-medium mt-2 flex items-center gap-2">
@@ -678,6 +705,58 @@ const TrendingTab = () => {
                                                     </span>
                                                 </div>
                                             )}
+
+                                            {/* Stats Row - Like/Dislike/Download */}
+                                            <div className="flex items-center justify-between mt-2">
+                                                {/* Left Stats - Like/Dislike/Download */}
+                                                <div className="flex items-center gap-4">
+                                                    <button
+                                                        onClick={() => handleLayoutInteraction(layout._id, 'like')}
+                                                        disabled={actionLoading === `like-${layout._id}`}
+                                                        className={`flex items-center gap-1 hover:bg-gray-100 px-1 py-1 rounded transition-colors disabled:opacity-50 ${layout.userInteraction?.hasLiked ? 'text-blue-600' : 'text-gray-400 hover:text-blue-500'
+                                                            }`}
+                                                    >
+                                                        <ThumbsUp
+                                                            className={`w-3 h-3 ${layout.userInteraction?.hasLiked ? 'fill-current text-blue-600' : ''
+                                                                }`}
+                                                        />
+                                                        <span className="text-[11px]">
+                                                            {layout.likes || 0}
+                                                        </span>
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleLayoutInteraction(layout._id, 'dislike')}
+                                                        disabled={actionLoading === `dislike-${layout._id}`}
+                                                        className={`flex items-center gap-1 hover:bg-gray-100 px-1 py-1 rounded transition-colors disabled:opacity-50 ${layout.userInteraction?.hasDisliked ? 'text-blue-600' : 'text-gray-400 hover:text-blue-500'
+                                                            }`}
+                                                    >
+                                                        <ThumbsDown
+                                                            className={`w-3 h-3 ${layout.userInteraction?.hasDisliked ? 'fill-current text-blue-600' : ''
+                                                                }`}
+                                                        />
+                                                        <span className="text-[11px]">
+                                                            {layout.dislikes || 0}
+                                                        </span>
+                                                    </button>
+                                                    <div className="flex items-center gap-1">
+                                                        <Download className="w-3 h-3 text-gray-400" />
+                                                        <span className="text-[11px] text-[#b3b3b3]">
+                                                            {layout.downloads || 0}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Right Date */}
+                                                <span className="text-[12px] text-[#b3b3b3]">
+                                                    {layout.publishedDate
+                                                        ? new Date(layout.publishedDate).toLocaleDateString("en-US", {
+                                                            month: "short",
+                                                            day: "numeric",
+                                                            year: "numeric",
+                                                        })
+                                                        : ""}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
