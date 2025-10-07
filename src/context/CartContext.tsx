@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useUser } from "./UserContext";
 
 // Define the cart item interface based on layout structure
@@ -80,8 +80,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     return localStorage.getItem("auth-token");
   };
 
-  // Sync cart from database
-  const syncCart = async () => {
+  // Memoize syncCart to prevent unnecessary re-renders
+  const syncCart = useCallback(async () => {
     try {
       setLoading(true);
       const token = getAuthToken();
@@ -117,9 +117,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // No dependencies needed since we're using getAuthToken inside
 
-  // Load cart when component mounts or when auth token changes
+  // Load cart when component mounts or when user changes
   useEffect(() => {
     const token = getAuthToken();
     if (token) {
@@ -130,16 +130,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       setCartItems([]);
       setTotalPrice(0);
     }
-  }, [user]); // Keep user dependency to trigger when user loads/changes
-
-  // Also sync cart on mount regardless of user state
-  useEffect(() => {
-    const token = getAuthToken();
-    if (token) {
-      console.log('Component mounted with auth token, syncing cart');
-      syncCart();
-    }
-  }, []); // Run once on mount
+  }, [user, syncCart]); // Include syncCart in dependencies
 
   // Calculate total price whenever cart items change
   useEffect(() => {

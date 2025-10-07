@@ -60,12 +60,13 @@ const Cart = () => {
     return () => clearTimeout(timeout);
   }, [user]);
 
-  // Ensure cart is synced when component mounts or user changes
-  useEffect(() => {
-    if (user) {
-      syncCart();
-    }
-  }, [user, syncCart]);
+  // Remove the problematic useEffect that was causing infinite calls
+  // The CartContext already handles syncing when user changes
+  // useEffect(() => {
+  //   if (user) {
+  //     syncCart();
+  //   }
+  // }, [user, syncCart]);
 
   const handleSubmitOrder = () => {
     if (!isAuthenticated()) {
