@@ -47,6 +47,10 @@ export interface LayoutAttrs {
   downloads: number;
   publishedDate?: Date | null;
   downloadedByUsers: string[];
+  likes: number;
+  dislikes: number;
+  likedByUsers: string[];
+  dislikedByUsers: string[];
 }
 
 export interface LayoutMethods {
@@ -137,6 +141,10 @@ const LayoutSchema = new mongoose.Schema<LayoutDocument, LayoutModel>(
     downloads: { type: Number, default: 0 },
     publishedDate: { type: Date, default: null },
     downloadedByUsers: [{ type: String, trim: true, lowercase: true }],
+    likes: { type: Number, default: 0 },
+    dislikes: { type: Number, default: 0 },
+    likedByUsers: [{ type: String, trim: true, lowercase: true }],
+    dislikedByUsers: [{ type: String, trim: true, lowercase: true }],
 
     originalLayoutId: {
       type: mongoose.Schema.Types.ObjectId,

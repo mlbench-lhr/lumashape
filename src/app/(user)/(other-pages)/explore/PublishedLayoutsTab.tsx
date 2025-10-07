@@ -1,9 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { MoreVertical, Download, Check } from "lucide-react";
+import { MoreVertical, Download, Check, ChevronDown, ThumbsUp, ThumbsDown } from "lucide-react";
 
 interface UserInteraction {
+    hasLiked: boolean;
+    hasDisliked: boolean;
     hasDownloaded: boolean;
 }
 
@@ -17,8 +19,16 @@ interface LayoutWithInteraction {
     createdBy?: { username?: string; email?: string };
     publishedDate?: string;
     userInteraction?: UserInteraction;
+    likes?: number;
+    dislikes?: number;
     downloads?: number;
     downloadedByUsers?: string[];
+    canvas?: {
+        width: number;
+        height: number;
+        unit: "mm" | "inches";
+        thickness: number;
+    };
     metadata?: {
         containerType?: string;
         layoutName?: string;
@@ -27,6 +37,11 @@ interface LayoutWithInteraction {
         length: number;
         units: string;
     };
+    tools?: Array<{
+        id: string;
+        name: string;
+        thickness?: number;
+    }>;
 }
 
 const PublishedLayoutsTab = () => {
@@ -36,20 +51,34 @@ const PublishedLayoutsTab = () => {
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [addedLayouts, setAddedLayouts] = useState<Set<string>>(new Set());
-    
+
     // Filter states
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedBrand, setSelectedBrand] = useState("");
     const [selectedContainerType, setSelectedContainerType] = useState("");
 
+    // New filter states
+    const [selectedThickness, setSelectedThickness] = useState("");
+    const [selectedUnit, setSelectedUnit] = useState("");
+    const [selectedLength, setSelectedLength] = useState("");
+    const [selectedWidth, setSelectedWidth] = useState("");
+    const [selectedToolType, setSelectedToolType] = useState("");
+    const [selectedToolBrand, setSelectedToolBrand] = useState("");
+
+    // Dynamic options for dropdowns
+    const [availableToolTypes, setAvailableToolTypes] = useState<string[]>([]);
+    const [availableToolBrands, setAvailableToolBrands] = useState<string[]>([]);
+
     useEffect(() => {
         fetchPublishedLayouts();
     }, []);
 
-    // Apply filters whenever search term or filters change
     useEffect(() => {
         applyFilters();
-    }, [publishedLayouts, searchTerm, selectedBrand, selectedContainerType]);
+        extractDynamicOptions();
+    }, [publishedLayouts, searchTerm, selectedBrand, selectedContainerType,
+        selectedThickness, selectedUnit, selectedLength, selectedWidth,
+        selectedToolType, selectedToolBrand]);
 
     const getAuthToken = () => localStorage.getItem("auth-token") || "";
 
@@ -69,13 +98,28 @@ const PublishedLayoutsTab = () => {
         }
     };
 
+    const extractDynamicOptions = () => {
+        const toolTypes = new Set<string>();
+        const toolBrands = new Set<string>();
+
+        publishedLayouts.forEach(layout => {
+            layout.tools?.forEach(tool => {
+                if (tool.name) toolTypes.add(tool.name);
+            });
+            if (layout.brand) toolBrands.add(layout.brand);
+        });
+
+        setAvailableToolTypes(Array.from(toolTypes).sort());
+        setAvailableToolBrands(Array.from(toolBrands).sort());
+    };
+
     const applyFilters = () => {
         let filtered = [...publishedLayouts];
 
-        // Apply search filter
+        // Search filter
         if (searchTerm.trim()) {
             const term = searchTerm.toLowerCase();
-            filtered = filtered.filter(layout => 
+            filtered = filtered.filter(layout =>
                 (layout.metadata?.layoutName || layout.name).toLowerCase().includes(term) ||
                 (layout.metadata?.selectedBrand || layout.brand || '').toLowerCase().includes(term) ||
                 (layout.metadata?.containerType || '').toLowerCase().includes(term) ||
@@ -83,39 +127,115 @@ const PublishedLayoutsTab = () => {
             );
         }
 
-        // Apply brand filter
+        // Brand filter
         if (selectedBrand && selectedBrand !== "Container Brand") {
-            filtered = filtered.filter(layout => 
+            filtered = filtered.filter(layout =>
                 (layout.metadata?.selectedBrand || layout.brand) === selectedBrand
             );
         }
 
-        // Apply container type filter
+        // Container type filter
         if (selectedContainerType && selectedContainerType !== "Container Type") {
-            filtered = filtered.filter(layout => 
+            filtered = filtered.filter(layout =>
                 layout.metadata?.containerType === selectedContainerType
+            );
+        }
+
+        // Thickness filter
+        if (selectedThickness) {
+            const thickness = parseFloat(selectedThickness);
+            filtered = filtered.filter(layout =>
+                layout.canvas?.thickness === thickness
+            );
+        }
+
+        // Unit filter
+        if (selectedUnit) {
+            filtered = filtered.filter(layout =>
+                layout.canvas?.unit === selectedUnit
+            );
+        }
+
+        // Length filter
+        if (selectedLength) {
+            const length = parseFloat(selectedLength);
+            filtered = filtered.filter(layout =>
+                (layout.canvas?.height || layout.metadata?.length) === length
+            );
+        }
+
+        // Width filter
+        if (selectedWidth) {
+            const width = parseFloat(selectedWidth);
+            filtered = filtered.filter(layout =>
+                (layout.canvas?.width || layout.metadata?.width) === width
+            );
+        }
+
+        // Tool Type filter
+        if (selectedToolType) {
+            filtered = filtered.filter(layout =>
+                layout.tools?.some(tool => tool.name === selectedToolType)
+            );
+        }
+
+        // Tool Brand filter
+        if (selectedToolBrand) {
+            filtered = filtered.filter(layout =>
+                layout.brand === selectedToolBrand
             );
         }
 
         setFilteredLayouts(filtered);
     };
 
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(e.target.value);
-    };
+    // Handle like/dislike interactions
+    const handleInteraction = async (layoutId: string, action: 'like' | 'dislike') => {
+        try {
+            setActionLoading(`${action}-${layoutId}`);
+            const token = getAuthToken();
 
-    const handleBrandChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedBrand(e.target.value);
-    };
+            const res = await fetch("/api/layouts/interactions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ layoutId, action })
+            });
 
-    const handleContainerTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedContainerType(e.target.value);
+            if (!res.ok) {
+                const error = await res.json();
+                throw new Error(error.error || `Failed to ${action} layout`);
+            }
+
+            const data = await res.json();
+
+            // Update local state to reflect the change
+            setPublishedLayouts(prev => prev.map(layout =>
+                layout._id === layoutId
+                    ? {
+                        ...layout,
+                        likes: data.layout.likes,
+                        dislikes: data.layout.dislikes,
+                        userInteraction: data.userInteraction
+                    }
+                    : layout
+            ));
+
+            console.log(data.message);
+        } catch (error) {
+            console.error(`Error ${action}ing layout:`, error);
+            alert(`Failed to ${action} layout. Please try again.`);
+        } finally {
+            setActionLoading(null);
+        }
     };
 
     const addToWorkspace = async (layout: LayoutWithInteraction) => {
         try {
             setActionLoading(layout._id);
-            
+
             const res = await fetch("/api/layouts/addToWorkspace", {
                 method: "POST",
                 headers: {
@@ -137,21 +257,25 @@ const PublishedLayoutsTab = () => {
             }
 
             setAddedLayouts(prev => new Set(prev).add(layout._id));
-            
-            setPublishedLayouts(prevLayouts => 
-                prevLayouts.map(l => 
-                    l._id === layout._id 
+
+            setPublishedLayouts(prevLayouts =>
+                prevLayouts.map(l =>
+                    l._id === layout._id
                         ? { 
                             ...l, 
                             downloads: (l.downloads || 0) + 1,
-                            userInteraction: { ...l.userInteraction, hasDownloaded: true }
+                            userInteraction: { 
+                                hasLiked: l.userInteraction?.hasLiked || false,
+                                hasDisliked: l.userInteraction?.hasDisliked || false,
+                                hasDownloaded: true 
+                            }
                           }
                         : l
                 )
             );
 
             alert("Layout added to your workspace successfully!");
-            
+
         } catch (err) {
             console.error("Error adding layout to workspace:", err);
             alert("Failed to add layout to workspace. Please try again.");
@@ -182,95 +306,136 @@ const PublishedLayoutsTab = () => {
         setSearchTerm("");
         setSelectedBrand("");
         setSelectedContainerType("");
+        setSelectedThickness("");
+        setSelectedUnit("");
+        setSelectedLength("");
+        setSelectedWidth("");
+        setSelectedToolType("");
+        setSelectedToolBrand("");
     };
+
+    const hasActiveFilters = searchTerm || selectedBrand || selectedContainerType ||
+        selectedThickness || selectedUnit || selectedLength || selectedWidth ||
+        selectedToolType || selectedToolBrand;
 
     return (
         <div>
-            {/* Top Row: Search + Filters */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-                {/* Search Bar */}
-                <div className="relative w-full max-w-md">
-                    <img
-                        src="images/icons/explore/search_icon.svg"
-                        alt="search"
-                        className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500"
-                    />
-                    <input
-                        type="text"
-                        placeholder="Search Keyword"
-                        value={searchTerm}
-                        onChange={handleSearchChange}
-                        className="w-full pl-10 pr-4 py-2 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
-                </div>
-
-                {/* Dropdown Filters */}
-                <div className="flex flex-wrap gap-3">
-                    <div className="relative">
-                        <select 
-                            className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none"
-                            value={selectedBrand}
-                            onChange={handleBrandChange}
-                        >
-                            <option value="">Container Brand</option>
-                            <option value="BOSCH">BOSCH</option>
-                            <option value="Milwaukee">Milwaukee</option>
-                            <option value="Makita">Makita</option>
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                            <svg
-                                className="w-4 h-4 text-blue-500"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M19 9l-7 7-7-7"
-                                />
-                            </svg>
-                        </div>
+            {/* Filter Section */}
+            <div className="mb-6">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-wrap">
+                    {/* Search Bar */}
+                    <div className="relative w-full lg:w-[300px] xl:w-[350px]">
+                        <img
+                            src="images/icons/explore/search_icon.svg"
+                            alt="search"
+                            className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500"
+                        />
+                        <input
+                            type="text"
+                            placeholder="Search Keyword"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        />
                     </div>
 
-                    <div className="relative">
-                        <select 
-                            className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none"
-                            value={selectedContainerType}
-                            onChange={handleContainerTypeChange}
-                        >
-                            <option value="">Container Type</option>
-                            <option value="Drawer">Drawer</option>
-                            <option value="Box">Box</option>
-                            <option value="Case">Case</option>
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                            <svg
-                                className="w-4 h-4 text-blue-500"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                    {/* First Row of Filters */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        {/* Thickness */}
+                        <div className="relative">
+                            <select
+                                className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[120px]"
+                                value={selectedThickness}
+                                onChange={(e) => setSelectedThickness(e.target.value)}
                             >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M19 9l-7 7-7-7"
-                                />
-                            </svg>
+                                <option value="">Thickness</option>
+                                <option value="3">0.5</option>
+                                <option value="4">1.0</option>
+                                <option value="5">1.5</option>
+                            </select>
+                            <img
+                                src="/images/icons/explore/published_layouts/thickness.svg"
+                                alt="thickness"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4"
+                            />
+                        </div>
+
+                        {/* Unit */}
+                        <div className="relative">
+                            <select
+                                className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[100px]"
+                                value={selectedUnit}
+                                onChange={(e) => setSelectedUnit(e.target.value)}
+                            >
+                                <option value="">Unit</option>
+                                <option value="mm">mm</option>
+                                <option value="inches">inches</option>
+                            </select>
+                            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
+                        </div>
+
+                        {/* Length */}
+                        <div className="relative">
+                            <input
+                                type="number"
+                                placeholder="L 50mm"
+                                value={selectedLength}
+                                onChange={(e) => setSelectedLength(e.target.value)}
+                                className="appearance-none py-2 pl-3 pr-10 border rounded-md text-gray-700 focus:outline-none w-[120px]"
+                            />
+                            <img
+                                src="/images/icons/explore/published_layouts/length.svg"
+                                alt="length"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6"
+                            />
+                        </div>
+
+                        {/* Width */}
+                        <div className="relative">
+                            <input
+                                type="number"
+                                placeholder="W 14mm"
+                                value={selectedWidth}
+                                onChange={(e) => setSelectedWidth(e.target.value)}
+                                className="appearance-none py-2 pl-3 pr-10 border rounded-md text-gray-700 focus:outline-none w-[120px]"
+                            />
+                            <img
+                                src="/images/icons/explore/published_layouts/width.svg"
+                                alt="width"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6"
+                            />
+                        </div>
+
+                        {/* Contains Tool Type */}
+                        <div className="relative">
+                            <select
+                                className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[180px]"
+                                value={selectedToolType}
+                                onChange={(e) => setSelectedToolType(e.target.value)}
+                            >
+                                <option value="">Contains Tool Type</option>
+                                {availableToolTypes.map(type => (
+                                    <option key={type} value={type}>{type}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
+                        </div>
+
+                        {/* Contains Tool Brand */}
+                        <div className="relative">
+                            <select
+                                className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[180px]"
+                                value={selectedToolBrand}
+                                onChange={(e) => setSelectedToolBrand(e.target.value)}
+                            >
+                                <option value="">Contains Tool Brand</option>
+                                {availableToolBrands.map(brand => (
+                                    <option key={brand} value={brand}>{brand}</option>
+                                ))}
+                            </select>
+                            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
                         </div>
                     </div>
-
-                    {/* Clear Filters Button */}
-                    {(searchTerm || selectedBrand || selectedContainerType) && (
-                        <button
-                            onClick={clearFilters}
-                            className="px-3 py-2 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50 focus:outline-none"
-                        >
-                            Clear Filters
-                        </button>
-                    )}
                 </div>
             </div>
 
@@ -303,7 +468,7 @@ const PublishedLayoutsTab = () => {
                         {filteredLayouts.map((layout) => (
                             <div
                                 key={layout._id}
-                                className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[300px] sm:w-[266px] sm:h-[300px] relative"
+                                className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[330px] sm:w-[266px] sm:h-[330px] relative"
                             >
                                 {/* Layout Image */}
                                 <div className="w-[258px] sm:w-[242px]">
@@ -364,13 +529,12 @@ const PublishedLayoutsTab = () => {
                                                             alt="add"
                                                         />
                                                     )}
-                                                    <span className={`text-sm font-medium ${
-                                                        isLayoutDownloaded(layout) 
-                                                            ? 'text-green-500' 
-                                                            : 'text-[#266ca8]'
-                                                    }`}>
-                                                        {actionLoading === layout._id 
-                                                            ? "Adding..." 
+                                                    <span className={`text-sm font-medium ${isLayoutDownloaded(layout)
+                                                        ? 'text-green-500'
+                                                        : 'text-[#266ca8]'
+                                                        }`}>
+                                                        {actionLoading === layout._id
+                                                            ? "Adding..."
                                                             : isLayoutDownloaded(layout)
                                                                 ? "Added to Workspace"
                                                                 : "Add to My Workspace"
@@ -396,7 +560,7 @@ const PublishedLayoutsTab = () => {
                                     </div>
 
                                     {/* Layout details */}
-                                    <div className="w-full h-[120px] flex flex-col justify-between p-2">
+                                    <div className="w-full h-[150px] flex flex-col justify-between p-2">
                                         <div className="space-y-1">
                                             {/* Layout Name */}
                                             <h3 className="font-bold text-[16px] leading-tight">
@@ -405,7 +569,7 @@ const PublishedLayoutsTab = () => {
 
                                             {/* Dimensions */}
                                             <p className="text-[12px] text-[#b3b3b3] font-medium">
-                                                {`Custom (${layout.metadata?.width}" × ${layout.metadata?.length}")`}
+                                                {`Custom (${layout.metadata?.width || layout.canvas?.width}" × ${layout.metadata?.length || layout.canvas?.height}")`}
                                             </p>
                                         </div>
 
@@ -436,6 +600,58 @@ const PublishedLayoutsTab = () => {
                                                 </span>
                                             </div>
                                         )}
+
+                                        {/* Stats Row */}
+                                        <div className="flex items-center justify-between mt-2">
+                                            {/* Left Stats - Like/Dislike/Download */}
+                                            <div className="flex items-center gap-4">
+                                                <button
+                                                    onClick={() => handleInteraction(layout._id, 'like')}
+                                                    disabled={actionLoading === `like-${layout._id}`}
+                                                    className={`flex items-center gap-1 hover:bg-gray-100 px-1 py-1 rounded transition-colors disabled:opacity-50 ${layout.userInteraction?.hasLiked ? 'text-blue-600' : 'text-gray-400 hover:text-blue-500'
+                                                        }`}
+                                                >
+                                                    <ThumbsUp
+                                                        className={`w-3 h-3 ${layout.userInteraction?.hasLiked ? 'fill-current text-blue-600' : ''
+                                                            }`}
+                                                    />
+                                                    <span className="text-[11px]">
+                                                        {layout.likes || 0}
+                                                    </span>
+                                                </button>
+                                                <button
+                                                    onClick={() => handleInteraction(layout._id, 'dislike')}
+                                                    disabled={actionLoading === `dislike-${layout._id}`}
+                                                    className={`flex items-center gap-1 hover:bg-gray-100 px-1 py-1 rounded transition-colors disabled:opacity-50 ${layout.userInteraction?.hasDisliked ? 'text-blue-600' : 'text-gray-400 hover:text-blue-500'
+                                                        }`}
+                                                >
+                                                    <ThumbsDown
+                                                        className={`w-3 h-3 ${layout.userInteraction?.hasDisliked ? 'fill-current text-blue-600' : ''
+                                                            }`}
+                                                    />
+                                                    <span className="text-[11px]">
+                                                        {layout.dislikes || 0}
+                                                    </span>
+                                                </button>
+                                                <div className="flex items-center gap-1">
+                                                    <Download className="w-3 h-3 text-gray-400" />
+                                                    <span className="text-[11px] text-[#b3b3b3]">
+                                                        {layout.downloads || 0}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Right Date */}
+                                            <span className="text-[12px] text-[#b3b3b3]">
+                                                {layout.publishedDate
+                                                    ? new Date(layout.publishedDate).toLocaleDateString("en-US", {
+                                                        month: "short",
+                                                        day: "numeric",
+                                                        year: "numeric",
+                                                    })
+                                                    : ""}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -9,7 +9,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/context/SidebarContext";
-import { useUser } from "@/context/UserContext";
+import { useUser, User } from "@/context/UserContext";
 import CloseButton from "@/components/ui/CloseButton";
 
 type NavItem = {
@@ -19,11 +19,6 @@ type NavItem = {
   path?: string;
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
-
-interface User {
-  username: string;
-  email: string;
-}
 
 const navItems: NavItem[] = [
   {
@@ -151,24 +146,24 @@ const NormalAppSidebar: React.FC = () => {
   const isActive = useCallback(
     (path: string) => {
       if (!path) return false;
-      
+
       // Remove trailing slash from pathname for consistent comparison
-      const cleanPathname = pathname.endsWith('/') && pathname !== '/' 
-        ? pathname.slice(0, -1) 
+      const cleanPathname = pathname.endsWith('/') && pathname !== '/'
+        ? pathname.slice(0, -1)
         : pathname;
-      
+
       // Remove trailing slash from path for consistent comparison
-      const cleanPath = path.endsWith('/') && path !== '/' 
-        ? path.slice(0, -1) 
+      const cleanPath = path.endsWith('/') && path !== '/'
+        ? path.slice(0, -1)
         : path;
-      
+
       // Check for exact match first
       if (cleanPathname === cleanPath) return true;
-      
+
       // Check if current pathname starts with the path (for sub-routes)
       // Make sure we don't match partial segments by checking for '/' after the path
       if (cleanPathname.startsWith(cleanPath + '/')) return true;
-      
+
       return false;
     },
     [pathname]
@@ -254,27 +249,24 @@ const NormalAppSidebar: React.FC = () => {
             {nav.subItems ? (
               <button
                 onClick={() => handleSubmenuToggle(index, menuType)}
-                className={`group w-full flex items-center gap-4 p-3 transition-colors cursor-pointer hover:bg-gray-50 rounded-lg ${
-                  shouldShowIconsOnly ? "lg:justify-center" : "lg:justify-start"
-                }`}
+                className={`group w-full flex items-center gap-4 p-3 transition-colors cursor-pointer hover:bg-gray-50 rounded-lg ${shouldShowIconsOnly ? "lg:justify-center" : "lg:justify-start"
+                  }`}
               >
                 <span
-                  className={`transition-all duration-200 ${
-                    openSubmenu?.type === menuType && openSubmenu?.index === index
+                  className={`transition-all duration-200 ${openSubmenu?.type === menuType && openSubmenu?.index === index
                       ? "text-primary"
                       : "text-gray-600"
-                  }`}
+                    }`}
                 >
                   {nav.icon}
                 </span>
                 {!shouldShowIconsOnly && (
                   <span
-                    className={`font-medium transition-colors ${
-                      openSubmenu?.type === menuType &&
-                      openSubmenu?.index === index
+                    className={`font-medium transition-colors ${openSubmenu?.type === menuType &&
+                        openSubmenu?.index === index
                         ? "text-primary"
                         : "text-gray-700"
-                    }`}
+                      }`}
                   >
                     {nav.name}
                   </span>
@@ -285,9 +277,8 @@ const NormalAppSidebar: React.FC = () => {
                 <Link
                   href={nav.path}
                   onClick={handleLinkClick}
-                  className={`group flex items-center gap-4 w-full p-3 transition-colors rounded-lg ${
-                    shouldShowIconsOnly ? "lg:justify-center" : "lg:justify-start"
-                  } hover:bg-gray-50 ${isActive(nav.path) ? "bg-primary/5" : ""}`}
+                  className={`group flex items-center gap-4 w-full p-3 transition-colors rounded-lg ${shouldShowIconsOnly ? "lg:justify-center" : "lg:justify-start"
+                    } hover:bg-gray-50 ${isActive(nav.path) ? "bg-primary/5" : ""}`}
                   title={shouldShowIconsOnly ? nav.name : undefined}
                 >
                   <span className="transition-all duration-200">
@@ -295,9 +286,8 @@ const NormalAppSidebar: React.FC = () => {
                   </span>
                   {!shouldShowIconsOnly && (
                     <span
-                      className={`font-medium transition-colors ${
-                        isActive(nav.path) ? "text-primary" : "text-gray-700"
-                      }`}
+                      className={`font-medium transition-colors ${isActive(nav.path) ? "text-primary" : "text-gray-700"
+                        }`}
                     >
                       {nav.name}
                     </span>
@@ -324,38 +314,34 @@ const NormalAppSidebar: React.FC = () => {
                       <Link
                         href={subItem.path}
                         onClick={handleLinkClick}
-                        className={`flex items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-gray-50 rounded-md ${
-                          isActive(subItem.path) ? "bg-gray-50" : ""
-                        }`}
+                        className={`flex items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-gray-50 rounded-md ${isActive(subItem.path) ? "bg-gray-50" : ""
+                          }`}
                       >
                         <span
-                          className={`${
-                            isActive(subItem.path)
+                          className={`${isActive(subItem.path)
                               ? "text-primary font-medium"
                               : "text-gray-600"
-                          }`}
+                            }`}
                         >
                           {subItem.name}
                         </span>
                         <span className="flex items-center gap-1 ml-auto">
                           {subItem.new && (
                             <span
-                              className={`px-2 py-1 text-xs rounded-full ${
-                                isActive(subItem.path)
+                              className={`px-2 py-1 text-xs rounded-full ${isActive(subItem.path)
                                   ? "bg-primary/10 text-primary"
                                   : "bg-gray-100 text-gray-600"
-                              }`}
+                                }`}
                             >
                               new
                             </span>
                           )}
                           {subItem.pro && (
                             <span
-                              className={`px-2 py-1 text-xs rounded-full ${
-                                isActive(subItem.path)
+                              className={`px-2 py-1 text-xs rounded-full ${isActive(subItem.path)
                                   ? "bg-primary/10 text-primary"
                                   : "bg-gray-100 text-gray-600"
-                              }`}
+                                }`}
                             >
                               pro
                             </span>
@@ -376,10 +362,9 @@ const NormalAppSidebar: React.FC = () => {
   return (
     <aside
       className={`fixed flex flex-col top-0 left-0 bg-white text-gray-900 h-full transition-all duration-300 ease-in-out z-40 border-r border-gray-200 
-        ${
-          isMobileOpen
-            ? "w-[290px] translate-x-0"
-            : isExpanded || isHovered
+        ${isMobileOpen
+          ? "w-[290px] translate-x-0"
+          : isExpanded || isHovered
             ? "w-[290px] lg:translate-x-0"
             : "w-[90px] lg:translate-x-0"
         }
@@ -391,9 +376,8 @@ const NormalAppSidebar: React.FC = () => {
       {/* Header with Logo and Close Button */}
       <div className="py-8 flex items-center justify-between">
         <div
-          className={`flex ${
-            shouldShowIconsOnly ? "lg:justify-center" : "justify-start"
-          }`}
+          className={`flex ${shouldShowIconsOnly ? "lg:justify-center" : "justify-start"
+            }`}
         >
           <Link href="/" onClick={handleLinkClick}>
             {shouldShowIconsOnly && !isMobileOpen ? (
@@ -430,27 +414,24 @@ const NormalAppSidebar: React.FC = () => {
             {/* User Profile Section */}
             <div className="mt-auto pb-4">
               <div
-                className={`flex items-center gap-3 p-3 transition-colors hover:bg-gray-50 rounded-lg ${
-                  shouldShowIconsOnly ? "lg:justify-center" : "lg:justify-start"
-                }`}
+                className={`flex items-center gap-3 p-3 transition-colors hover:bg-gray-50 rounded-lg ${shouldShowIconsOnly ? "lg:justify-center" : "lg:justify-start"
+                  }`}
                 title={shouldShowIconsOnly ? (user?.username || "User Profile") : undefined}
               >
-                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-white font-semibold text-lg">
-                    {user?.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt="User Avatar"
-                        className="w-full h-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-2xl">
-                        {user?.username
-                          ? user.username.charAt(0).toUpperCase()
-                          : "U"}
-                      </span>
-                    )}
-                  </span>
+                <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {user?.profilePic || user?.avatar ? (
+                    <img
+                      src={user.profilePic || user.avatar}
+                      alt="User Avatar"
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white font-semibold text-lg">
+                      {user?.username
+                        ? user.username.charAt(0).toUpperCase()
+                        : "U"}
+                    </span>
+                  )}
                 </div>
                 {!shouldShowIconsOnly && (
                   <div className="flex flex-col min-w-0 flex-1">

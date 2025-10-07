@@ -436,8 +436,8 @@ export default function ProfilePage() {
         <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-lg max-w-md w-full">
             <div className="flex flex-col items-center p-6 pb-4">
-              <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center mb-6">
-                <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center border-2 border-white">
+              <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center mb-6">
+                <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center border-2 border-white">
                   <span className="text-white text-2xl font-bold">!</span>
                 </div>
               </div>
@@ -457,7 +457,7 @@ export default function ProfilePage() {
                     setShowLogoutModal(false);
                     logout(); // 👈 Call actual logout
                   }}
-                  className="flex-1 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+                  className="flex-1 py-3 bg-primary text-white rounded-md"
                 >
                   Logout
                 </button>

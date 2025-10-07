@@ -53,17 +53,39 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const pathname = usePathname();
 
   // Function to refresh user data
+  // Function to refresh user data
   const refreshUser = async () => {
     try {
       const token = localStorage.getItem("auth-token");
       if (!token) return;
-
+  
       const response = await axios.get("/api/profile", {
         headers: { Authorization: `Bearer ${token}` },
       });
-
-      if (response.data.success) {
-        setUser(response.data.user);
+  
+      if (response.data && response.data.user) {
+        // Map the API response to match our User interface
+        const userData = response.data.user;
+        setUser({
+          _id: userData._id || "",
+          username: userData.name || userData.username || "",
+          name: userData.name || userData.username || "",
+          email: userData.email || "",
+          avatar: userData.avatar,
+          profilePic: userData.profilePic,
+          image: userData.image,
+          avatarPublicId: userData.avatarPublicId,
+          phone: userData.phone,
+          company: userData.company,
+          description: userData.description || userData.bio,
+          isVerified: userData.isVerified || true,
+          isPublic: userData.isPublic,
+          stripeCustomerId: userData.stripeCustomerId,
+          subscriptionId: userData.subscriptionId,
+          subscriptionPlan: userData.subscriptionPlan,
+          subscriptionStatus: userData.subscriptionStatus,
+          subscriptionPeriodEnd: userData.subscriptionPeriodEnd,
+        });
       }
     } catch (error) {
       console.error("Error refreshing user:", error);
