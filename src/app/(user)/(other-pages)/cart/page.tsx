@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { useUser } from '@/context/UserContext';
 import { Trash2, Plus, Minus } from 'lucide-react';
@@ -262,12 +263,12 @@ const Cart = () => {
                   </div>
                   
                   <div className="mt-2 ml-9">
-                    <button 
+                    <Link 
+                      href={`/inspect-layout/${item.id}`}
                       className="text-primary text-sm hover:underline"
-                      onClick={() => window.open(`/inspect-layout/${item.id}`, '_blank')}
                     >
                       Inspect Layout
-                    </button>
+                    </Link>
                   </div>
                 </div>
               ))}

@@ -120,99 +120,6 @@ const validateTools = (tools: unknown): ToolData[] => {
     throw new Error('Layout must contain at least one tool');
   }
 
-  // Parse scale info from processing data (same function as in frontend)
-  const parseScaleInfo = (processingData: string) => {
-    try {
-      const data = JSON.parse(processingData);
-      if (!data.scale_info) return null;
-
-      const scaleInfoStr = data.scale_info;
-      const scaleMatch = scaleInfoStr.match(/Scale:\s*([\d.e-]+)\s*mm\/px/);
-
-      return {
-        scale: scaleMatch ? parseFloat(scaleMatch[1]) : null,
-        diagonal_inches: data.diagonal_inches || null,
-        raw: data
-      };
-    } catch (error) {
-      return null;
-    }
-  };
-
-  // Calculate real tool dimensions (same logic as frontend)
-  const calculateRealToolDimensions = (tool: ToolData): { width: number; height: number } => {
-    // Check if tool has metadata with processing data
-    const scaleInfo = tool.metadata?.processIngData
-      ? parseScaleInfo(tool.metadata.processIngData)
-      : null;
-
-    if (!scaleInfo?.scale) {
-      // Fallback to default size if no scale info available
-      return { width: 80, height: 80 };
-    }
-
-    // If tool has pre-calculated real dimensions, use those
-    if (tool.realWidth && tool.realHeight) {
-      return { width: tool.realWidth, height: tool.realHeight };
-    }
-
-    // Calculate dimensions based on diagonal_inches from processing data
-    if (scaleInfo.diagonal_inches) {
-      const diagonalInches = scaleInfo.diagonal_inches;
-      const diagonalMm = diagonalInches * 25.4;
-      const diagonalPx = diagonalMm / scaleInfo.scale;
-
-      // Tool-specific aspect ratios
-      const aspectRatio =
-        tool.name.toLowerCase().includes('screwdriver') ? 0.15 :
-          tool.name.toLowerCase().includes('hammer') ? 0.8 :
-            tool.name.toLowerCase().includes('pliers') ? 0.5 :
-              0.7; // Default
-
-      const width = diagonalPx * Math.cos(Math.atan(1 / aspectRatio));
-      const height = width * aspectRatio;
-
-      return {
-        width: Math.max(20, width),
-        height: Math.max(20, height),
-      };
-    }
-
-    // Final fallback - estimate based on scale and tool type
-    const baseSizeMm =
-      tool.name.toLowerCase().includes('screwdriver') ? 150 :
-        tool.name.toLowerCase().includes('hammer') ? 300 :
-          tool.name.toLowerCase().includes('pliers') ? 200 :
-            tool.name.toLowerCase().includes('wrench') ? 250 :
-              100;
-
-    const sizePx = baseSizeMm / scaleInfo.scale;
-    const aspectRatio =
-      tool.name.toLowerCase().includes('screwdriver') ? 0.15 :
-        tool.name.toLowerCase().includes('hammer') ? 0.8 :
-          tool.name.toLowerCase().includes('pliers') ? 0.5 :
-            0.7;
-
-    return {
-      width: Math.max(20, sizePx),
-      height: Math.max(20, sizePx * aspectRatio),
-    };
-  };
-
-  // Check if two tools overlap using real dimensions
-  const doToolsOverlap = (tool1: ToolData, tool2: ToolData): boolean => {
-    const dims1 = calculateRealToolDimensions(tool1);
-    const dims2 = calculateRealToolDimensions(tool2);
-
-    const buffer = 2; // Small buffer to prevent touching tools from being considered overlapping
-
-    return !(
-      tool1.x + dims1.width <= tool2.x + buffer ||
-      tool2.x + dims2.width <= tool1.x + buffer ||
-      tool1.y + dims1.height <= tool2.y + buffer ||
-      tool2.y + dims2.height <= tool1.y + buffer
-    );
-  };
 
 
   // Validate each tool and create typed array
@@ -275,18 +182,6 @@ const validateTools = (tools: unknown): ToolData[] => {
 
     return validatedTool;
   });
-
-  // Check for overlaps using real tool dimensions
-  for (let i = 0; i < validatedTools.length; i++) {
-    for (let j = i + 1; j < validatedTools.length; j++) {
-      const tool1 = validatedTools[i];
-      const tool2 = validatedTools[j];
-
-      if (doToolsOverlap(tool1, tool2)) {
-        throw new Error(`Tools "${tool1.name}" and "${tool2.name}" are overlapping`);
-      }
-    }
-  }
 
   return validatedTools;
 };

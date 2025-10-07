@@ -42,7 +42,7 @@ const data: { left: DataItem[]; right: DataItem[] } = {
     },
     {
       id: 4,
-      image: '/images/icons/LandingPage/howItWorks/Layout.webp',
+      image: '/images/landing/canvas_image.svg',
     },
     {
       id: 6,

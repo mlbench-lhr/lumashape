@@ -71,6 +71,8 @@ const Header: React.FC<HeaderProps> = ({
         setSaveError(null);
 
         try {
+            // Do NOT call handleSaveAndExit here as it's causing overlap errors
+            
             const authToken = getAuthToken();
             if (!authToken) throw new Error("Authentication required. Please log in again.");
 
@@ -109,8 +111,8 @@ const Header: React.FC<HeaderProps> = ({
                 tools: droppedTools.map(tool => ({
                     id: tool.id,
                     name: tool.name,
-                    x: tool.x,
-                    y: tool.y,
+                    x: convertPositionToInches(tool.x, canvasWidth, true),
+                    y: convertPositionToInches(tool.y, canvasHeight, false),
                     rotation: tool.rotation,
                     flipHorizontal: tool.flipHorizontal,
                     flipVertical: tool.flipVertical,
@@ -142,6 +144,14 @@ const Header: React.FC<HeaderProps> = ({
             });
 
             toast.success("Layout added to cart successfully!");
+            
+            // After successfully adding to cart, save the layout
+            // But don't await it to avoid blocking the cart confirmation
+            handleSaveAndExit().catch(error => {
+                console.error("Background save failed:", error);
+                // Don't show error to user since cart operation succeeded
+            });
+            
         } catch (error) {
             console.error("Error adding to cart:", error);
             setSaveError(error instanceof Error ? error.message : "Failed to add layout to cart");
@@ -197,7 +207,7 @@ const Header: React.FC<HeaderProps> = ({
             const transform = canvasElement.style.transform;
             const scaleMatch = transform.match(/scale\(([^)]+)\)/);
             const zoom = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
-            
+
             baseWidthPx = rect.width / zoom;
             baseHeightPx = rect.height / zoom;
         }
@@ -315,31 +325,31 @@ const Header: React.FC<HeaderProps> = ({
             for (const droppedTool of droppedTools) {
                 // Get the original tool ID
                 const toolId = droppedTool.metadata?.originalId || droppedTool.id.split('-').slice(0, -1).join('-');
-    
+
                 // Get tool dimensions to calculate bottom-left position
                 const { toolHeight } = getToolDimensions(droppedTool);
-    
+
                 // Convert positions to inches using the same logic as Canvas tooltip
                 // X position stays the same (left edge)
                 const xInches = convertPositionToInches(droppedTool.x, canvasWidth, true);
                 // Y position uses bottom edge of tool (tool.y + toolHeight) for bottom-left origin
                 const yInches = convertPositionToInches(droppedTool.y + toolHeight, canvasHeight, false);
-    
+
                 // Get tool data
                 const toolRes = await fetch(`/api/user/tool/getTool?toolId=${toolId}`, {
                     headers: { Authorization: `Bearer ${authToken}` },
                 });
-    
+
                 if (!toolRes.ok) {
                     throw new Error(`Failed to fetch tool data for ID: ${toolId}`);
                 }
-    
+
                 const { tool } = await toolRes.json();
-    
+
                 if (!tool?.dxfLink) {
                     throw new Error(`Tool ${toolId} has no DXF link`);
                 }
-    
+
                 // Add tool to the array with properly calculated positions
                 tools.push({
                     tool_id: toolId,
@@ -625,10 +635,6 @@ const Header: React.FC<HeaderProps> = ({
 
 
     const handleSaveAndExit = async () => {
-        if (hasOverlaps) {
-            setSaveError("Cannot save layout with overlapping tools. Please fix overlaps first.");
-            return;
-        }
         if (droppedTools.length === 0) {
             setSaveError("Cannot save empty layout. Please add at least one tool.");
             return;
@@ -684,8 +690,8 @@ const Header: React.FC<HeaderProps> = ({
                     id: tool.id,
                     originalId: tool.metadata?.originalId,
                     name: tool.name,
-                    x: tool.x,
-                    y: tool.y,
+                    x: convertPositionToInches(tool.x, canvasWidth, true),
+                    y: convertPositionToInches(tool.y, canvasHeight, false),
                     rotation: tool.rotation,
                     flipHorizontal: tool.flipHorizontal,
                     flipVertical: tool.flipVertical,
@@ -695,6 +701,9 @@ const Header: React.FC<HeaderProps> = ({
                     smooth: tool.smooth || 0,
                     image: tool.image,
                     groupId: tool.groupId,
+                    realWidth: tool.realWidth,
+                    realHeight: tool.realHeight,
+                    metadata: tool.metadata,
                 })),
                 stats: {
                     totalTools: droppedTools.length,

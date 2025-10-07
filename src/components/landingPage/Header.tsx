@@ -16,6 +16,13 @@ const Header: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('/');
   const pathname = usePathname();
 
+  function getCookie(name: string) {
+    return document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(name + "="))
+      ?.split("=")[1];
+  }
+
   const navigation: NavigationItem[] = [
     { name: 'Home', href: '/', sectionId: 'home' },
     { name: 'Benefits', href: '/#benefits', sectionId: 'benefits' },
@@ -116,6 +123,15 @@ const Header: React.FC = () => {
     closeMobileMenu();
   };
 
+  const handleloginclick = () => {
+    const token = getCookie("auth-token");
+    if (token) {
+      router.push("/workspace");
+    } else {
+      router.push("/auth/login");
+    }
+  };
+
   return (
     <>
       <header className="bg-white shadow-sm relative z-50 sticky top-0">
@@ -154,7 +170,7 @@ const Header: React.FC = () => {
             {/* Desktop Action Buttons */}
             <div className="hidden xl:flex items-center space-x-4 flex-shrink-0">
               <Button
-              onClick={() => router.push('/auth/login')}
+                onClick={handleloginclick}
                 variant="primary"
                 size="sm"
                 width="auto"
@@ -242,7 +258,7 @@ const Header: React.FC = () => {
           {/* Mobile Action Buttons */}
           <div className="p-4 sm:p-6 border-t border-gray-200 space-y-3">
             <button
-              onClick={() => router.push('/auth/login')}
+              onClick={handleloginclick}
               className="block w-full text-center bg-primary hover:bg-blue-700 text-white px-4 py-3 sm:py-4 rounded-full text-base sm:text-lg font-medium transition-colors"
             >
               Login/Signup
