@@ -308,7 +308,7 @@ const Cart = () => {
               
               {/* Price Breakdown */}
               <div className="pb-4 mb-4">
-                <div className="flex justify-between mb-2">
+                <div className="flex justify-between">
                   <span className="text-gray-600">Layout Base Price</span>
                   <span>${totalPrice.toFixed(2)}</span>
                 </div>
