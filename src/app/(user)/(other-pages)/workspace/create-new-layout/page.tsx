@@ -7,8 +7,6 @@ import Link from 'next/link';
 const CreateNewLayout = () => {
   const [layoutName, setLayoutName] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
-  const [selectedBrand, setSelectedBrand] = useState<string>('');
-  const [containerType, setContainerType] = useState('Drawer');
   const [width, setWidth] = useState('10');
   const [length, setLength] = useState('24');
   const [units, setUnits] = useState('');
@@ -28,8 +26,6 @@ const CreateNewLayout = () => {
     if (savedData) {
       const parsed = JSON.parse(savedData);
       setLayoutName(parsed.layoutName || '');
-      setSelectedBrand(parsed.selectedBrand || '');
-      setContainerType(parsed.containerType || 'Drawer');
       setWidth(parsed.width || '10');
       setLength(parsed.length || '24');
       setUnits(parsed.units || '');
@@ -38,9 +34,9 @@ const CreateNewLayout = () => {
 
   // Save to sessionStorage whenever state changes
   useEffect(() => {
-    const data = { layoutName, selectedBrand, containerType, width, length, units };
+    const data = { layoutName, width, length, units };
     sessionStorage.setItem('layoutForm', JSON.stringify(data));
-  }, [layoutName, selectedBrand, containerType, width, length, units]);
+  }, [layoutName, width, length, units]);
 
   // Validation
   const validateForm = () => {
@@ -50,14 +46,6 @@ const CreateNewLayout = () => {
       newErrors.layoutName = 'Layout name is required.';
     } else if (/\s/.test(layoutName)) {
       newErrors.layoutName = 'Layout name must not contain spaces.';
-    }
-
-    if (!selectedBrand) {
-      newErrors.selectedBrand = 'Brand selection is required.';
-    }
-
-    if (!containerType) {
-      newErrors.containerType = 'Container type is required.';
     }
 
     if (!units) {
@@ -123,138 +111,75 @@ const CreateNewLayout = () => {
             {errors.layoutName && <p className="text-sm text-red-600 mt-1">{errors.layoutName}</p>}
           </div>
 
-          {/* Brand */}
-          <div>
-            <label className="block text-sm font-bold text-gray-900 mb-2">
-              Brand
-            </label>
-            <p className="text-sm text-gray-600 mb-3">
-              Choose a brand to use standard container dimensions.
-            </p>
+          {/* Container Details */}
+          <div className="mt-4">
+            <h3 className="text-sm font-medium text-gray-900 mb-4">
+              Container Details
+            </h3>
 
-            <div className="flex space-x-2 mb-3">
-              {brands.map((brand) => (
-                <div
-                  key={brand.name}
-                  className={`w-16 h-12 border-2 cursor-pointer flex items-center justify-center ${selectedBrand === brand.name ? 'border-blue-500' : 'border-transparent'
-                    }`}
-                  onClick={() => setSelectedBrand(brand.name)}
-                >
-                  <img
-                    src={brand.logo}
-                    alt={`${brand.name} logo`}
-                    className="max-w-full max-h-full object-contain"
-                  />
-                </div>
-              ))}
-            </div>
-            {errors.selectedBrand && <p className="text-sm text-red-600">{errors.selectedBrand}</p>}
+            <div className="grid grid-cols-2 gap-4 mb-4">
 
-            {/* Container Details */}
-            <div className="mt-4">
-              <h3 className="text-sm font-medium text-gray-900 mb-4">
-                Container Details
-              </h3>
-
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                {/* Container Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Container Type
-                  </label>
-                  <div className="relative">
-                    <button
-                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className={`w-full px-3 py-2 text-left border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between text-gray-900
-                        ${errors.containerType ? 'border-red-500' : 'border-gray-300'}`}
-                    >
-                      {containerType}
-                      <ChevronDown className="w-4 h-4 text-gray-400" />
-                    </button>
-                    {isDropdownOpen && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
-                        <div className="py-1">
-                          {["Drawer", "Box", "Case"].map((type) => (
-                            <button
-                              key={type}
-                              onClick={() => {
-                                setContainerType(type);
-                                setIsDropdownOpen(false);
-                              }}
-                              className="w-full px-3 py-2 text-left hover:bg-gray-100 text-gray-900"
-                            >
-                              {type}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  {errors.containerType && <p className="text-sm text-red-600">{errors.containerType}</p>}
-                </div>
-
-                {/* Units */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Units
-                  </label>
-                  <select
-                    value={units}
-                    onChange={(e) => setUnits(e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white
+              {/* Units */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Units
+                </label>
+                <select
+                  value={units}
+                  onChange={(e) => setUnits(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-primary text-gray-900 bg-gray
                       ${errors.units ? 'border-red-500' : 'border-gray-300'}`}
-                  >
-                    <option value="">Select</option>
-                    <option value="mm">mm</option>
-                    <option value="inches">inches</option>
-                  </select>
-                  {errors.units && <p className="text-sm text-red-600">{errors.units}</p>}
-                </div>
+                >
+                  <option value="">Select</option>
+                  <option value="mm">mm</option>
+                  <option value="inches">inches</option>
+                </select>
+                {errors.units && <p className="text-sm text-red-600">{errors.units}</p>}
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* Width */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Width
-                  </label>
-                  <input
-                    type="text"
-                    value={width}
-                    onChange={(e) => setWidth(e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900
+            <div className="grid grid-cols-2 gap-4">
+              {/* Width */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Width
+                </label>
+                <input
+                  type="text"
+                  value={width}
+                  onChange={(e) => setWidth(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-primary text-gray-900
                       ${errors.width ? 'border-red-500' : 'border-gray-300'}`}
-                  />
-                  {errors.width && <p className="text-sm text-red-600">{errors.width}</p>}
-                </div>
+                />
+                {errors.width && <p className="text-sm text-red-600">{errors.width}</p>}
+              </div>
 
-                {/* Length */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Length
-                  </label>
-                  <input
-                    type="text"
-                    value={length}
-                    onChange={(e) => setLength(e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900
+              {/* Length */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Length
+                </label>
+                <input
+                  type="text"
+                  value={length}
+                  onChange={(e) => setLength(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-primary text-gray-900
                       ${errors.length ? 'border-red-500' : 'border-gray-300'}`}
-                  />
-                  {errors.length && <p className="text-sm text-red-600">{errors.length}</p>}
-                </div>
+                />
+                {errors.length && <p className="text-sm text-red-600">{errors.length}</p>}
               </div>
             </div>
+          </div>
 
-            {/* Bottom Button */}
-            <div className="mt-6">
-              <Link
-                href="/workspace/create-new-layout/design-layout"
-                onClick={handleContinue}
-                className="ml-4 mb-4 text-white py-3 px-4 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-primary"
-              >
-                Continue To Canvas
-              </Link>
-            </div>
+          {/* Bottom Button */}
+          <div className="mt-8">
+            <Link
+              href="/workspace/create-new-layout/design-layout"
+              onClick={handleContinue}
+              className="text-white py-3 px-4 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-primary"
+            >
+              Continue To Canvas
+            </Link>
           </div>
         </div>
       </div>

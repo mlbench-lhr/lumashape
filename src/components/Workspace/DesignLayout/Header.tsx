@@ -20,8 +20,6 @@ interface HeaderProps {
 
 interface LayoutFormData {
     layoutName?: string;
-    selectedBrand?: string;
-    containerType?: string;
     width?: number;
     length?: number;
     units?: 'mm' | 'inches';
@@ -97,7 +95,6 @@ const Header: React.FC<HeaderProps> = ({
 
             // Create cart item with complete layout data
             const layoutName = additionalData.layoutName || `Layout ${new Date().toLocaleDateString()}`;
-            const brandName = additionalData.selectedBrand || "";
             const containerSize = `${additionalData.canvasWidth ?? canvasWidth}" × ${additionalData.canvasHeight ?? canvasHeight}"`;
 
             // Prepare layout data to save with cart item
@@ -129,7 +126,6 @@ const Header: React.FC<HeaderProps> = ({
             await addToCart({
                 id: `layout-${Date.now()}`,
                 name: layoutName,
-                brand: brandName,
                 containerSize: containerSize,
                 price: 30, // Fixed price as shown in the image
                 snapshotUrl: imageUrl || undefined,
@@ -303,8 +299,6 @@ const Header: React.FC<HeaderProps> = ({
                 try {
                     const layoutForm = JSON.parse(sessionData) as LayoutFormData;
                     layoutName = layoutForm.layoutName || "Tool Layout";
-                    brand = layoutForm.selectedBrand || "";
-                    containerType = layoutForm.containerType || "Drawer";
                 } catch (err) {
                     console.error("Error parsing session data:", err);
                 }
@@ -456,8 +450,6 @@ const Header: React.FC<HeaderProps> = ({
                 content += `LAYOUT METADATA\n`;
                 content += `${'-'.repeat(20)}\n`;
                 content += `Layout Name: ${layoutForm.layoutName || 'N/A'}\n`;
-                content += `Brand: ${layoutForm.selectedBrand || 'N/A'}\n`;
-                content += `Container Type: ${layoutForm.containerType || 'N/A'}\n\n`;
             } catch (error) {
                 console.error('Error parsing session data:', error);
             }
@@ -678,8 +670,6 @@ const Header: React.FC<HeaderProps> = ({
             // Step 2: Save layout data with image URL
             const layoutData = {
                 name: additionalData.layoutName || `Layout ${new Date().toLocaleDateString()}`,
-                brand: additionalData.selectedBrand || "",
-                containerType: additionalData.containerType || "",
                 canvas: {
                     width: additionalData.canvasWidth ?? canvasWidth,
                     height: additionalData.canvasHeight ?? canvasHeight,
