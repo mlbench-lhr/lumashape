@@ -304,14 +304,14 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     </div>
                   )}
 
-                  {/* CLEAN: Subtle selection indicator - glow only */}
+                  {/* CLEAN: Subtle selection indicator - tight border only */}
                   {isSelected && (
                     <div
-                      className="absolute inset-0 pointer-events-none rounded-sm"
+                      className="absolute inset-0 pointer-events-none"
                       style={{
-                        boxShadow: isPrimarySelection
-                          ? '0 0 0 2px rgba(59, 130, 246, 0.8), 0 0 16px rgba(59, 130, 246, 0.4)'
-                          : '0 0 0 1px rgba(59, 130, 246, 0.6), 0 0 8px rgba(59, 130, 246, 0.2)',
+                        border: isPrimarySelection
+                          ? '2px solid rgba(59, 130, 246, 0.8)'
+                          : '1px solid rgba(59, 130, 246, 0.6)',
                       }}
                     />
                   )}
