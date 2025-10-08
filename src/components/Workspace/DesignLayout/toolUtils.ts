@@ -466,11 +466,11 @@ export const createShape = (
     thickness: targetUnit === 'inches' ? 0.5 : 12.7,
     unit: targetUnit,
     opacity: 100,
-    smooth: 100,
+    smooth: 0,
     metadata: {
       diagonalInches: sizeInInches * Math.sqrt(2), // Diagonal of a 4x4 square
-      naturalWidth: 100,
-      naturalHeight: 100,
+      naturalWidth: 23,  // Both SVGs have the same viewBox dimensions
+      naturalHeight: 24, // Both SVGs have the same viewBox dimensions
     }
   };
 

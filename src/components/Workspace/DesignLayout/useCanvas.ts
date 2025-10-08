@@ -442,12 +442,12 @@ export const useCanvas = ({
   const handleResizeStart = useCallback((e: React.MouseEvent, toolId: string, handle: 'nw' | 'ne' | 'sw' | 'se') => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const tool = droppedTools.find(t => t.id === toolId);
     if (!tool) return;
 
     const { toolWidth, toolHeight } = getToolDimensions(tool);
-    
+
     setIsResizing(true);
     setResizeHandle(handle);
     setResizingToolId(toolId);
@@ -468,32 +468,40 @@ export const useCanvas = ({
     const deltaX = e.clientX - initialResizeData.mouseX;
     const deltaY = e.clientY - initialResizeData.mouseY;
 
+    // Find the tool being resized to check if it's a perfect shape
+    const currentTool = droppedTools.find(t => t.id === resizingToolId);
+    const isPerfectShape = currentTool && currentTool.brand === 'SHAPE' && 
+                          (currentTool.name.toLowerCase().includes('circle') || 
+                           currentTool.name.toLowerCase().includes('square'));
+
     // Calculate new dimensions based on handle
     let newWidth = initialResizeData.toolWidth;
     let newHeight = initialResizeData.toolHeight;
     let newX = initialResizeData.toolX;
     let newY = initialResizeData.toolY;
 
-    const aspectRatio = initialResizeData.toolWidth / initialResizeData.toolHeight;
+    // For perfect shapes (squares and circles), always maintain 1:1 aspect ratio
+    // For other shapes, maintain their original aspect ratio
+    const aspectRatio = isPerfectShape ? 1 : (initialResizeData.toolWidth / initialResizeData.toolHeight);
 
     switch (resizeHandle) {
       case 'se': // Bottom-right
         newWidth = Math.max(20, initialResizeData.toolWidth + deltaX / viewport.zoom);
-        newHeight = newWidth / aspectRatio; // Maintain aspect ratio
+        newHeight = isPerfectShape ? newWidth : newWidth / aspectRatio;
         break;
       case 'sw': // Bottom-left
         newWidth = Math.max(20, initialResizeData.toolWidth - deltaX / viewport.zoom);
-        newHeight = newWidth / aspectRatio;
+        newHeight = isPerfectShape ? newWidth : newWidth / aspectRatio;
         newX = initialResizeData.toolX + (initialResizeData.toolWidth - newWidth);
         break;
       case 'ne': // Top-right
         newWidth = Math.max(20, initialResizeData.toolWidth + deltaX / viewport.zoom);
-        newHeight = newWidth / aspectRatio;
+        newHeight = isPerfectShape ? newWidth : newWidth / aspectRatio;
         newY = initialResizeData.toolY + (initialResizeData.toolHeight - newHeight);
         break;
       case 'nw': // Top-left
         newWidth = Math.max(20, initialResizeData.toolWidth - deltaX / viewport.zoom);
-        newHeight = newWidth / aspectRatio;
+        newHeight = isPerfectShape ? newWidth : newWidth / aspectRatio;
         newX = initialResizeData.toolX + (initialResizeData.toolWidth - newWidth);
         newY = initialResizeData.toolY + (initialResizeData.toolHeight - newHeight);
         break;
@@ -506,7 +514,7 @@ export const useCanvas = ({
         const DPI = 96;
         const canvasInchesX = unit === 'mm' ? (canvasWidth / 25.4) : canvasWidth;
         const canvasInchesY = unit === 'mm' ? (canvasHeight / 25.4) : canvasHeight;
-        
+
         const el = canvasRef.current;
         let baseWidthPx = canvasInchesX * DPI;
         let baseHeightPx = canvasInchesY * DPI;
@@ -523,16 +531,20 @@ export const useCanvas = ({
         // Convert pixel dimensions back to tool units
         const newWidthInInches = newWidth / ppiX;
         const newHeightInInches = newHeight / ppiY;
-        
+
         const newWidthInUnits = tool.unit === 'mm' ? newWidthInInches * 25.4 : newWidthInInches;
         const newHeightInUnits = tool.unit === 'mm' ? newHeightInInches * 25.4 : newHeightInInches;
+
+        // For perfect shapes, ensure both dimensions are exactly equal
+        const finalWidth = isPerfectShape ? newWidthInUnits : newWidthInUnits;
+        const finalHeight = isPerfectShape ? newWidthInUnits : newHeightInUnits;
 
         return {
           ...tool,
           x: newX,
           y: newY,
-          width: newWidthInUnits,
-          length: newHeightInUnits,
+          width: finalWidth,
+          length: finalHeight,
           metadata: {
             ...tool.metadata,
             diagonalInches: Math.sqrt(newWidthInInches * newWidthInInches + newHeightInInches * newHeightInInches),
@@ -541,7 +553,7 @@ export const useCanvas = ({
       }
       return tool;
     }));
-  }, [isResizing, resizeHandle, resizingToolId, initialResizeData, setDroppedTools, viewport.zoom, unit, canvasWidth, canvasHeight, canvasRef]);
+  }, [isResizing, resizeHandle, resizingToolId, initialResizeData, setDroppedTools, viewport.zoom, unit, canvasWidth, canvasHeight, canvasRef, droppedTools]);
 
   // Handle resize end
   const handleResizeEnd = useCallback(() => {
@@ -550,6 +562,31 @@ export const useCanvas = ({
     setResizingToolId(null);
     setInitialResizeData(null);
   }, []);
+
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (isResizing) {
+        // Check if the mousedown is on a resize handle or the tool being resized
+        const target = e.target as HTMLElement;
+        const isOnResizeHandle = target.closest('.resize-handle') || 
+                                target.style.cursor?.includes('resize') ||
+                                (target.parentElement && target.parentElement.style.cursor?.includes('resize'));
+        
+        // If clicking outside resize handles, stop resizing
+        if (!isOnResizeHandle) {
+          e.preventDefault();
+          handleResizeEnd();
+        }
+      }
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousedown', handleMouseDown, true);
+      return () => {
+        document.removeEventListener('mousedown', handleMouseDown, true);
+      };
+    }
+  }, [isResizing, handleResizeEnd]);
 
   const handleToolMouseDown = useCallback((e: React.MouseEvent, toolId: string) => {
     e.preventDefault();
@@ -644,7 +681,7 @@ export const useCanvas = ({
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
 
-     // Handle resizing first
+    // Handle resizing first
     if (isResizing) {
       handleResize(e);
       return;
@@ -733,7 +770,7 @@ export const useCanvas = ({
   ]);
 
   const handleMouseUp = useCallback(() => {
-     if (isResizing) {
+    if (isResizing) {
       handleResizeEnd();
       return;
     }
