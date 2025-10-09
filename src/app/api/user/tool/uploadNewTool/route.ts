@@ -27,11 +27,13 @@ export async function POST(req: Request) {
     const image = formData.get("image") as File;
     const length = parseFloat(formData.get("length") as string);
     const depth = parseFloat(formData.get("depth") as string);
+    const toolBrand = formData.get("toolBrand") as string;
+    const toolType = formData.get("toolType") as string;
 
     // 3. Validate required fields
-    if (!image || !length || !depth) {
+    if (!image || !length || !depth || !toolBrand || !toolType) {
       return NextResponse.json(
-        { error: "Missing required fields: image, length, and depth are required" },
+        { error: "Missing required fields: image, length, depth, toolBrand, and toolType are required" },
         { status: 400 }
       );
     }
@@ -41,6 +43,8 @@ export async function POST(req: Request) {
       userEmail: decoded.email,
       length,
       depth,
+      toolBrand,
+      toolType,
       imageUrl: "", // Will be updated after processing
       processingStatus: "pending",
       likes: 0,
