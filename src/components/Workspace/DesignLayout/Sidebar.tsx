@@ -2,7 +2,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
     Search,
-    ChevronDown
+    ChevronDown,
+    Hand
 } from 'lucide-react';
 import Image from 'next/image';
 import { DroppedTool, Tool, ToolGroup } from './types';
@@ -18,7 +19,9 @@ import {
     alignTools,
     autoLayout,
     createShape,
-    updateToolAppearance
+    updateToolAppearance,
+    createFingerCut,
+    updateFingerCutDimensions
 } from './toolUtils';
 
 interface SidebarProps {
@@ -39,6 +42,7 @@ interface SidebarProps {
     canvasWidth?: number;
     canvasHeight?: number;
     unit?: 'mm' | 'inches';
+    setActiveTool?: (tool: 'cursor' | 'hand' | 'box' | 'fingercut') => void;
 }
 
 
@@ -80,7 +84,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     onRedo = () => { },
     canvasWidth,
     canvasHeight,
-    unit
+    unit,
+    setActiveTool = () => {}
 }) => {
 
     const [activeTab, setActiveTab] = useState<'inventory' | 'edit'>('inventory');
@@ -88,6 +93,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     const [tools, setTools] = useState<Tool[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const selectedToolObject = selectedTool ? droppedTools.find(tool => tool.id === selectedTool) : null;
+    const isFingerCutSelected = selectedToolObject?.metadata?.isFingerCut;
 
     // Extract database tool data into separate variables
     const extractToolData = (dbTool: DatabaseTool) => {
@@ -129,6 +137,31 @@ const Sidebar: React.FC<SidebarProps> = ({
             version: __v
         };
     };
+
+    // Handle finger cut creation
+    const handleCreateFingerCut = useCallback(() => {
+        if (canvasWidth && canvasHeight) {
+            const centerX = canvasWidth / 2;
+            const centerY = canvasHeight / 2;
+            createFingerCut(droppedTools, setDroppedTools, { x: centerX, y: centerY }, canvasWidth, canvasHeight, unit);
+            onHistoryChange?.();
+        }
+    }, [droppedTools, setDroppedTools, canvasWidth, canvasHeight, unit, onHistoryChange]);
+
+
+    // Handle finger cut dimension updates
+    const handleFingerCutDimensionChange = useCallback((dimension: 'width' | 'length', value: number) => {
+        if (selectedTool && isFingerCutSelected) {
+            const currentTool = selectedToolObject;
+            if (currentTool) {
+                const newWidth = dimension === 'width' ? value : currentTool.width;
+                const newLength = dimension === 'length' ? value : currentTool.length;
+                updateFingerCutDimensions(selectedTool, droppedTools, setDroppedTools, newWidth, newLength);
+                onHistoryChange?.();
+            }
+        }
+    }, [selectedTool, isFingerCutSelected, selectedToolObject, droppedTools, setDroppedTools, onHistoryChange]);
+
 
     // Parse scale info from processing data
     const parseScaleInfo = (processingData: string) => {
@@ -280,9 +313,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         tool.brand.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Get the selected tool object for appearance controls
-    const selectedToolObject = selectedTool ? droppedTools.find(tool => tool.id === selectedTool) : null;
-
     // Determine effective selected tools - use selectedTool if selectedTools is empty
     const effectiveSelectedTools = selectedTools.length > 0 ? selectedTools : (selectedTool ? [selectedTool] : []);
 
@@ -352,7 +382,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         onHistoryChange?.();
     }, [droppedTools, effectiveSelectedTools, setDroppedTools, onHistoryChange]);
 
-    const handleCreateShape = useCallback((shapeType: 'circle' | 'square') => {
+        const handleCreateShape = useCallback((shapeType: 'circle' | 'square' | 'cylinder') => {
         const position = { x: 200, y: 150 };
         createShape(droppedTools, setDroppedTools, shapeType, position, canvasWidth, canvasHeight, unit);
         onHistoryChange?.();
@@ -426,6 +456,77 @@ const Sidebar: React.FC<SidebarProps> = ({
                     )}
                 </>
             )}
+        </>
+    );
+
+    const ToolsView = () => (
+        <>
+            {/* Tool Selection Buttons */}
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Canvas Tools</h3>
+                <div className="grid grid-cols-2 gap-2">
+                    <button
+                        onClick={() => setActiveTool('cursor')}
+                        className={`p-2 rounded text-sm font-medium transition-colors ${
+                            activeTool === 'cursor' 
+                                ? 'bg-blue-500 text-white' 
+                                : 'bg-white text-gray-700 hover:bg-gray-100'
+                        }`}
+                    >
+                        Select
+                    </button>
+                    <button
+                        onClick={() => setActiveTool('hand')}
+                        className={`p-2 rounded text-sm font-medium transition-colors ${
+                            activeTool === 'hand' 
+                                ? 'bg-blue-500 text-white' 
+                                : 'bg-white text-gray-700 hover:bg-gray-100'
+                        }`}
+                    >
+                        Pan
+                    </button>
+                    <button
+                        onClick={() => setActiveTool('box')}
+                        className={`p-2 rounded text-sm font-medium transition-colors ${
+                            activeTool === 'box' 
+                                ? 'bg-blue-500 text-white' 
+                                : 'bg-white text-gray-700 hover:bg-gray-100'
+                        }`}
+                    >
+                        Select Box
+                    </button>
+                    <button
+                        onClick={() => setActiveTool('fingercut')}
+                        className={`p-2 rounded text-sm font-medium transition-colors flex items-center justify-center gap-1 ${
+                            activeTool === 'fingercut' 
+                                ? 'bg-blue-500 text-white' 
+                                : 'bg-white text-gray-700 hover:bg-gray-100'
+                        }`}
+                    >
+                        <Hand className="w-4 h-4" />
+                        Finger Cut
+                    </button>
+                </div>
+                {activeTool === 'fingercut' && (
+                    <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-700">
+                        Click on the canvas to add finger cut areas for easy tool removal
+                    </div>
+                )}
+            </div>
+
+            {/* Search */}
+            <div className="relative mb-4">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <input
+                    type="text"
+                    placeholder="Search tools..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+            </div>
+
+            {/* ... existing tools rendering ... */}
         </>
     );
 
@@ -541,6 +642,49 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
             </div>
 
+             {/* Finger Cut Controls */}
+            {isFingerCutSelected && selectedToolObject && (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-blue-800 mb-3 flex items-center gap-2">
+                        <Hand className="w-4 h-4" />
+                        Finger Cut Settings
+                    </h3>
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-xs font-medium text-blue-700 mb-1">
+                                Width ({unit})
+                            </label>
+                            <input
+                                type="number"
+                                value={selectedToolObject.width}
+                                onChange={(e) => handleFingerCutDimensionChange('width', parseFloat(e.target.value) || 0)}
+                                className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
+                                min="10"
+                                max="200"
+                                step="1"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-blue-700 mb-1">
+                                Length ({unit})
+                            </label>
+                            <input
+                                type="number"
+                                value={selectedToolObject.length}
+                                onChange={(e) => handleFingerCutDimensionChange('length', parseFloat(e.target.value) || 0)}
+                                className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
+                                min="10"
+                                max="200"
+                                step="1"
+                            />
+                        </div>
+                        <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
+                            💡 Finger cuts create easy-access areas in foam for grabbing tools
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Alignment Section */}
             <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Alignment</h3>
@@ -590,7 +734,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
             </div>
 
-            {/* Add Shapes Section */}
+                        {/* Add Shapes Section */}
             <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Shapes</h3>
                 <div className="flex space-x-4">
@@ -627,6 +771,23 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </div>
                         </button>
                         <span className="text-xs text-gray-500 text-center leading-tight">square</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                        <button
+                            className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center mb-1 transition-colors cursor-pointer"
+                            onClick={() => handleCreateShape('cylinder')}
+                        >
+                            <div className='w-6 h-6'>
+                                <Image
+                                    src="/images/workspace/cylinder.svg"
+                                    alt="cylindrical finger cut"
+                                    width={24}
+                                    height={24}
+                                    className="w-full h-full object-contain"
+                                />
+                            </div>
+                        </button>
+                        <span className="text-xs text-gray-500 text-center leading-tight">finger cut</span>
                     </div>
                 </div>
             </div>
