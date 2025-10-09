@@ -6,6 +6,7 @@ import { DroppedTool } from './types';
 import * as htmlToImage from "html-to-image";
 import { useCart } from "@/context/CartContext";
 import { toast } from "react-toastify";
+import { calculatePriceFromLayoutData } from '@/utils/pricing';
 
 interface HeaderProps {
     droppedTools: DroppedTool[];
@@ -114,12 +115,15 @@ const Header: React.FC<HeaderProps> = ({
                 })),
             };
 
+            // Calculate price based on volume
+            const calculatedPrice = calculatePriceFromLayoutData(layoutData);
+
             // Add to cart with layout data
             await addToCart({
                 id: `layout-${Date.now()}`,
                 name: layoutName,
                 containerSize: containerSize,
-                price: 30, // Fixed price as shown in the image
+                price: calculatedPrice, // Use calculated price instead of fixed $30
                 snapshotUrl: imageUrl || undefined,
                 layoutData: {
                     ...layoutData,

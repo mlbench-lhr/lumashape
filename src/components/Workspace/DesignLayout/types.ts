@@ -22,6 +22,10 @@ export interface Tool {
     naturalWidth?: number;
     naturalHeight?: number;
     originalId?: string; // ✅ Store original database ID
+    // ✅ NEW: Finger cut specific metadata
+    isFingerCut?: boolean;
+    fingerCutWidth?: number;
+    fingerCutLength?: number;
   };
 }
 

@@ -87,6 +87,7 @@ export async function POST(req: NextRequest) {
       {
         message: "Login successful",
         user: userResponse,
+        status: "success",
         token, // Optional: include token in response for localStorage approach
       },
       { status: 200 }

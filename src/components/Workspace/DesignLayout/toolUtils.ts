@@ -436,24 +436,48 @@ export const autoLayout = (
 export const createShape = (
   droppedTools: DroppedTool[],
   updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
-  shapeType: 'circle' | 'square',
+  shapeType: 'circle' | 'square' | 'cylinder',
   position: { x: number; y: number },
   canvasWidth?: number,
   canvasHeight?: number,
   unit?: 'mm' | 'inches'
 ): void => {
-  // Calculate 4x4 inches in the appropriate unit
-  const sizeInInches = 4;
-  const sizeInMm = sizeInInches * 25.4; // Convert to mm
-  
+  // Calculate dimensions based on shape type
+  let sizeInInches: number;
+  let width: number;
+  let length: number;
+  let icon: string;
+  let name: string;
+
+  if (shapeType === 'cylinder') {
+    // Cylindrical finger cut dimensions - typically 1" diameter by 3" long
+    const fingerDiameterInches = 1;
+    const fingerLengthInches = 3;
+    sizeInInches = Math.sqrt(fingerDiameterInches * fingerDiameterInches + fingerLengthInches * fingerLengthInches);
+
+    const targetUnit = unit || 'inches';
+    width = targetUnit === 'inches' ? fingerLengthInches : fingerLengthInches * 25.4; // Length is the width in layout
+    length = targetUnit === 'inches' ? fingerDiameterInches : fingerDiameterInches * 25.4; // Diameter is the height
+    icon = '⭕'; // Cylinder/circle icon to represent the cylindrical opening
+    name = 'Finger Cut';
+  } else {
+    // Original circle/square logic
+    sizeInInches = 4;
+    const targetUnit = unit || 'inches';
+    const targetSize = targetUnit === 'inches' ? sizeInInches : sizeInInches * 25.4;
+    width = targetSize;
+    length = targetSize;
+    icon = shapeType === 'circle' ? '⭕' : '⬜';
+    name = shapeType.charAt(0).toUpperCase() + shapeType.slice(1);
+  }
+
   // Use the canvas unit or default to inches
   const targetUnit = unit || 'inches';
-  const targetSize = targetUnit === 'inches' ? sizeInInches : sizeInMm;
 
   const newShape: DroppedTool = {
     id: `${shapeType}_${Date.now()}`,
-    name: shapeType.charAt(0).toUpperCase() + shapeType.slice(1),
-    icon: shapeType === 'circle' ? '⭕' : '⬜',
+    name: name,
+    icon: icon,
     brand: 'SHAPE',
     image: `/images/workspace/${shapeType}.svg`,
     x: position.x,
@@ -461,20 +485,83 @@ export const createShape = (
     rotation: 0,
     flipHorizontal: false,
     flipVertical: false,
-    width: targetSize,
-    length: targetSize,
+    width: width,
+    length: length,
     thickness: targetUnit === 'inches' ? 0.5 : 12.7,
     unit: targetUnit,
     opacity: 100,
     smooth: 0,
     metadata: {
-      diagonalInches: sizeInInches * Math.sqrt(2), // Diagonal of a 4x4 square
-      naturalWidth: 23,  // Both SVGs have the same viewBox dimensions
-      naturalHeight: 24, // Both SVGs have the same viewBox dimensions
+      diagonalInches: sizeInInches,
+      naturalWidth: 23,  // SVG viewBox dimensions
+      naturalHeight: 24, // SVG viewBox dimensions
     }
   };
 
   updateDroppedTools(prev => [...prev, newShape]);
+};
+
+// Create finger cut functionality
+export const createFingerCut = (
+  droppedTools: DroppedTool[],
+  updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
+  position: { x: number; y: number },
+  canvasWidth?: number,
+  canvasHeight?: number,
+  unit?: 'mm' | 'inches'
+): void => {
+  const fingerCutTool: DroppedTool = {
+    id: `fingercut-${Date.now()}`,
+    name: 'Finger Cut',
+    icon: '⭕', // Changed from 'hand' to cylinder icon
+    brand: 'FINGERCUT',
+    x: position.x - 25,
+    y: position.y - 15,
+    rotation: 0,
+    flipHorizontal: false,
+    flipVertical: false,
+    width: 50,
+    length: 30,
+    thickness: unit === 'mm' ? 12.7 : 0.5,
+    unit: unit || 'mm',
+    opacity: 100,
+    smooth: 0,
+    metadata: {
+      isFingerCut: true,
+      fingerCutWidth: 50,
+      fingerCutLength: 30,
+      diagonalInches: 2.0,
+    },
+  };
+
+  updateDroppedTools(prev => [...prev, fingerCutTool]);
+};
+
+// Update finger cut dimensions
+export const updateFingerCutDimensions = (
+  toolId: string,
+  droppedTools: DroppedTool[],
+  updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
+  width: number,
+  length: number
+): void => {
+  updateDroppedTools(prev =>
+    prev.map(tool => {
+      if (tool.id === toolId && tool.metadata?.isFingerCut) {
+        return {
+          ...tool,
+          width,
+          length,
+          metadata: {
+            ...tool.metadata,
+            fingerCutWidth: width,
+            fingerCutLength: length,
+          },
+        };
+      }
+      return tool;
+    })
+  );
 };
 
 // Update tool appearance - no longer saves to global history

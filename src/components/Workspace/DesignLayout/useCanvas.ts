@@ -12,7 +12,7 @@ interface UseCanvasProps {
   canvasWidth: number;
   canvasHeight: number;
   unit: 'mm' | 'inches';
-  activeTool: 'cursor' | 'hand' | 'box';
+  activeTool: 'cursor' | 'hand' | 'box' | 'fingercut';
 }
 
 
@@ -164,6 +164,14 @@ export const useCanvas = ({
 
   // Check if two tools overlap
   const doToolsOverlap = useCallback((tool1: DroppedTool, tool2: DroppedTool) => {
+    // Bypass overlap check if either tool is a cylinder
+    const isTool1Cylinder = tool1.id.startsWith('cylinder_') || tool1.name === 'Finger Cut';
+    const isTool2Cylinder = tool2.id.startsWith('cylinder_') || tool2.name === 'Finger Cut';
+    
+    if (isTool1Cylinder || isTool2Cylinder) {
+      return false; // No overlap for cylinders
+    }
+
     const { toolWidth: w1, toolHeight: h1 } = getToolDimensions(tool1);
     const { toolWidth: w2, toolHeight: h2 } = getToolDimensions(tool2);
 
@@ -781,6 +789,49 @@ export const useCanvas = ({
     setSelectionBox(null);
   }, [endPan]);
 
+    // Handle finger cut tool click
+  const handleFingerCutClick = useCallback((e: React.MouseEvent) => {
+    const canvasRect = canvasRef.current?.getBoundingClientRect();
+    if (!canvasRect) return;
+
+    const canvasPos = screenToCanvas(e.clientX, e.clientY);
+    
+    // Create a new finger cut tool
+    const fingerCutTool: DroppedTool = {
+      id: `fingercut-${Date.now()}`,
+      name: 'Finger Cut',
+      icon: '⭕',
+      brand: 'FINGERCUT',
+      x: canvasPos.x - 25, // Center the finger cut
+      y: canvasPos.y - 15,
+      rotation: 0,
+      flipHorizontal: false,
+      flipVertical: false,
+      width: 50, // Default finger cut width
+      length: 30, // Default finger cut length
+      thickness: unit === 'mm' ? 12.7 : 0.5,
+      unit,
+      opacity: 100,
+      smooth: 0,
+      metadata: {
+        isFingerCut: true,
+        fingerCutWidth: 50,
+        fingerCutLength: 30,
+        diagonalInches: 2.0, // Default size for finger cuts
+      },
+    };
+
+    // Constrain to canvas boundaries
+    const constrainedPos = constrainToCanvas(fingerCutTool, fingerCutTool.x, fingerCutTool.y);
+    fingerCutTool.x = constrainedPos.x;
+    fingerCutTool.y = constrainedPos.y;
+
+    // Add to dropped tools
+    setDroppedTools(prev => [...prev, fingerCutTool]);
+    setSelectedTool(fingerCutTool.id);
+    setSelectedTools([fingerCutTool.id]);
+  }, [activeTool, screenToCanvas, constrainToCanvas, setDroppedTools, setSelectedTool, setSelectedTools, unit]);
+
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     const isCanvasContainer = target === canvasContainerRef.current;
@@ -792,7 +843,11 @@ export const useCanvas = ({
         setSelectedTool(null);
       }
     }
-  }, [selectionBox, activeTool, setSelectedTool, setSelectedTools]);
+    // Handle finger cut tool click
+    else if (activeTool === 'fingercut') {
+      handleFingerCutClick(e);
+    }
+  }, [selectionBox, activeTool, setSelectedTool, setSelectedTools, handleFingerCutClick]);
 
   const handleDeleteTool = useCallback((toolId: string) => {
     setDroppedTools(prev => prev.filter(tool => tool.id !== toolId));
@@ -907,6 +962,8 @@ export const useCanvas = ({
     }));
   }, [getCanvasStyle, viewport.zoom]);
 
+
+
   return {
     // Refs
     canvasRef,
@@ -938,6 +995,7 @@ export const useCanvas = ({
     handleCanvasMouseDown,
     handleDeleteTool,
     handleDeleteSelectedTools,
+    handleFingerCutClick,
     autoFixOverlaps,
 
     // Style helpers

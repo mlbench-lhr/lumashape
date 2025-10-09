@@ -2,7 +2,7 @@
 import React from 'react';
 import { useCallback } from 'react';
 import { DroppedTool, Tool } from './types';
-import { RefreshCw, X, Move, Maximize, AlertTriangle, Check } from 'lucide-react';
+import { RefreshCw, X, Move, Maximize, AlertTriangle, Check, Hand } from 'lucide-react';
 import { useCanvas } from './useCanvas';
 import RotationWheel from './RotationWheel';
 import ResizeHandles from './ResizeHandles';
@@ -21,7 +21,7 @@ interface CanvasProps {
   canvasWidth: number;
   canvasHeight: number;
   unit: 'mm' | 'inches';
-  activeTool: 'cursor' | 'hand' | 'box';
+  activeTool: 'cursor' | 'hand' | 'box' | 'fingercut';
   onOverlapChange?: (hasOverlaps: boolean) => void;
 }
 
@@ -61,6 +61,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     getToolCursor,
     fitToView,
     centerCanvas,
+    handleFingerCutClick,
   } = useCanvas(props);
 
   // Helper function to convert pixel position to inches with bottom-left origin
@@ -253,6 +254,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             const isPrimarySelection = selectedTool === tool.id;
             const isOverlapping = overlappingTools.includes(tool.id);
             const isShape = tool.brand === 'SHAPE';
+            const isFingerCut = tool.metadata?.isFingerCut;
 
             // Calculate opacity and blur values
             const opacity = (tool.opacity || 100) / 100;
@@ -277,8 +279,76 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 }}
                 onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
               >
-                <div className="relative w-full h-full">
-                  {tool.image && (
+                {/* Finger Cut Rendering */}
+                {isFingerCut ? (
+                  <div className="relative w-full h-full">
+                    {/* Cylindrical finger cut shape */}
+                    <svg
+                      width="100%"
+                      height="100%"
+                      viewBox="0 0 100 100"
+                      className="absolute inset-0"
+                      style={{
+                        opacity: opacity,
+                        filter: `blur(${blurAmount}px) ${isSelected
+                          ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)) brightness(1.05)'
+                          : ''
+                        }`,
+                      }}
+                    >
+                      {/* Main cylinder body */}
+                      <rect
+                        x="15"
+                        y="25"
+                        width="70"
+                        height="50"
+                        fill="none"
+                        stroke={isOverlapping ? '#f87171' : '#60a5fa'}
+                        strokeWidth="2"
+                        strokeDasharray="5,5"
+                        className="transition-colors duration-200"
+                      />
+                      
+                      {/* Left ellipse (front) */}
+                      <ellipse
+                        cx="15"
+                        cy="50"
+                        rx="8"
+                        ry="25"
+                        fill="none"
+                        stroke={isOverlapping ? '#f87171' : '#60a5fa'}
+                        strokeWidth="2"
+                        className="transition-colors duration-200"
+                      />
+                      
+                      {/* Right ellipse (back) - dashed to show it's behind */}
+                      <ellipse
+                        cx="85"
+                        cy="50"
+                        rx="8"
+                        ry="25"
+                        fill="none"
+                        stroke={isOverlapping ? '#f87171' : '#60a5fa'}
+                        strokeWidth="2"
+                        strokeDasharray="3,3"
+                        className="transition-colors duration-200"
+                      />
+                      
+                      {/* Center label */}
+                      <text
+                        x="50"
+                        y="55"
+                        textAnchor="middle"
+                        className={`text-xs font-medium fill-current ${isOverlapping ? 'text-red-600' : 'text-blue-600'}`}
+                        style={{ fontSize: '8px' }}
+                      >
+                        Finger Cut
+                      </text>
+                    </svg>
+                  </div>
+                ) : (
+                  // Regular tool rendering
+                  tool.image && (
                     <div className="relative w-full h-full">
                       {/* CLEAN: Main tool image without borders or 3D effects */}
                       <img
@@ -302,123 +372,123 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                         draggable={false}
                       />
                     </div>
-                  )}
+                  )
+                )}
 
-                  {/* CLEAN: Subtle selection indicator - tight border only */}
-                  {isSelected && (
+                {/* CLEAN: Subtle selection indicator - tight border only */}
+                {isSelected && (
+                  <div
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      border: isPrimarySelection
+                        ? '2px solid rgba(59, 130, 246, 0.8)'
+                        : '1px solid rgba(59, 130, 246, 0.6)',
+                    }}
+                  />
+                )}
+
+                {/* Minimal overlap indicator */}
+                {isOverlapping && (
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center z-30">
+                    <AlertTriangle className="w-2.5 h-2.5" />
+                  </div>
+                )}
+
+                {/* Delete button - only when selected */}
+                {isSelected && (
+                  <button
+                    className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-30 shadow-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteTool(tool.id);
+                    }}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+
+                {/* Multi-select indicator */}
+                {isSelected && selectedTools.length > 1 && (
+                  <div className="absolute -top-1 -left-1 bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold z-30">
+                    {isPrimarySelection ? '1' : selectedTools.indexOf(tool.id) + 1}
+                  </div>
+                )}
+
+                {/* Rotation Wheel - show only for primary selected tool */}
+                {isPrimarySelection && (
+                  <RotationWheel
+                    toolId={tool.id}
+                    currentRotation={tool.rotation}
+                    onRotationChange={(toolId, rotation) => {
+                      props.setDroppedTools(prevTools =>
+                        prevTools.map(t =>
+                          t.id === toolId ? { ...t, rotation } : t
+                        )
+                      );
+                    }}
+                    toolWidth={toolWidth}
+                    toolHeight={toolHeight}
+                  />
+                )}
+
+                {/* Resize handles - only for selected shapes */}
+                {isSelected && isShape && (
+                  <ResizeHandles
+                    tool={tool}
+                    toolWidth={toolWidth}
+                    toolHeight={toolHeight}
+                    onResize={handleResize}
+                  />
+                )}
+
+                {/* Resize handles - only for shapes and when selected */}
+                {isSelected && tool.brand === 'SHAPE' && (
+                  <>
+                    {/* Corner resize handles */}
                     <div
-                      className="absolute inset-0 pointer-events-none"
-                      style={{
-                        border: isPrimarySelection
-                          ? '2px solid rgba(59, 130, 246, 0.8)'
-                          : '1px solid rgba(59, 130, 246, 0.6)',
-                      }}
+                      className="absolute -top-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-nw-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onMouseDown={(e) => handleResizeStart(e, tool.id, 'nw')}
                     />
-                  )}
+                    <div
+                      className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-ne-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onMouseDown={(e) => handleResizeStart(e, tool.id, 'ne')}
+                    />
+                    <div
+                      className="absolute -bottom-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-sw-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onMouseDown={(e) => handleResizeStart(e, tool.id, 'sw')}
+                    />
+                    <div
+                      className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-se-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onMouseDown={(e) => handleResizeStart(e, tool.id, 'se')}
+                    />
+                  </>
+                )}
 
-                  {/* Minimal overlap indicator */}
-                  {isOverlapping && (
-                    <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center z-30">
-                      <AlertTriangle className="w-2.5 h-2.5" />
+                {/* ENHANCED: Tool info tooltip */}
+                <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-95 text-white text-xs px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 backdrop-blur-sm shadow-lg">
+                  <div className="text-center space-y-1">
+                    <div className="font-medium text-blue-200">{tool.name}</div>
+                    <div className="text-gray-400">
+                      {`Display: ${Math.round(toolWidth)} × ${Math.round(toolHeight)}px`}
                     </div>
-                  )}
-
-                  {/* Delete button - only when selected */}
-                  {isSelected && (
-                    <button
-                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-30 shadow-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteTool(tool.id);
-                      }}
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-
-                  {/* Multi-select indicator */}
-                  {isSelected && selectedTools.length > 1 && (
-                    <div className="absolute -top-1 -left-1 bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold z-30">
-                      {isPrimarySelection ? '1' : selectedTools.indexOf(tool.id) + 1}
-                    </div>
-                  )}
-
-                  {/* Rotation Wheel - show only for primary selected tool */}
-                  {isPrimarySelection && (
-                    <RotationWheel
-                      toolId={tool.id}
-                      currentRotation={tool.rotation}
-                      onRotationChange={(toolId, rotation) => {
-                        props.setDroppedTools(prevTools =>
-                          prevTools.map(t =>
-                            t.id === toolId ? { ...t, rotation } : t
-                          )
-                        );
-                      }}
-                      toolWidth={toolWidth}
-                      toolHeight={toolHeight}
-                    />
-                  )}
-
-                  {/* Resize handles - only for selected shapes */}
-                  {isSelected && isShape && (
-                    <ResizeHandles
-                      tool={tool}
-                      toolWidth={toolWidth}
-                      toolHeight={toolHeight}
-                      onResize={handleResize}
-                    />
-                  )}
-
-                  {/* Resize handles - only for shapes and when selected */}
-                  {isSelected && tool.brand === 'SHAPE' && (
-                    <>
-                      {/* Corner resize handles */}
-                      <div
-                        className="absolute -top-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-nw-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onMouseDown={(e) => handleResizeStart(e, tool.id, 'nw')}
-                      />
-                      <div
-                        className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-ne-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onMouseDown={(e) => handleResizeStart(e, tool.id, 'ne')}
-                      />
-                      <div
-                        className="absolute -bottom-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-sw-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onMouseDown={(e) => handleResizeStart(e, tool.id, 'sw')}
-                      />
-                      <div
-                        className="absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-se-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onMouseDown={(e) => handleResizeStart(e, tool.id, 'se')}
-                      />
-                    </>
-                  )}
-
-                  {/* ENHANCED: Tool info tooltip */}
-                  <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-95 text-white text-xs px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 backdrop-blur-sm shadow-lg">
-                    <div className="text-center space-y-1">
-                      <div className="font-medium text-blue-200">{tool.name}</div>
-                      <div className="text-gray-400">
-                        {`Display: ${Math.round(toolWidth)} × ${Math.round(toolHeight)}px`}
+                    {isShape && (
+                      <div className="text-yellow-300">
+                        {`Size: ${tool.width?.toFixed(1)} × ${tool.length?.toFixed(1)} ${tool.unit}`}
                       </div>
-                      {isShape && (
-                        <div className="text-yellow-300">
-                          {`Size: ${tool.width?.toFixed(1)} × ${tool.length?.toFixed(1)} ${tool.unit}`}
-                        </div>
-                      )}
-                      <div className="text-green-300">
-                        {`Position: (${positionXInches}", ${positionYInches}")`}
-                      </div>
-                      {isOverlapping && (
-                        <div className="text-red-300 font-medium">
-                          {`⚠ Overlapping`}
-                        </div>
-                      )}
-                      {isSelected && selectedTools.length > 1 && (
-                        <div className="text-blue-300">
-                          {`${selectedTools.length} tools selected`}
-                        </div>
-                      )}
+                    )}
+                    <div className="text-green-300">
+                      {`Position: (${positionXInches}", ${positionYInches}")`}
                     </div>
+                    {isOverlapping && (
+                      <div className="text-red-300 font-medium">
+                        {`⚠ Overlapping`}
+                      </div>
+                    )}
+                    {isSelected && selectedTools.length > 1 && (
+                      <div className="text-blue-300">
+                        {`${selectedTools.length} tools selected`}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
