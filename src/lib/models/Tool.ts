@@ -1,5 +1,10 @@
 import mongoose, { Document, Model, Schema } from "mongoose";
 
+export interface ICCVResponse {
+  dxfUrl?: string;
+  [key: string]: string | number | boolean | object | undefined;
+}
+
 export interface ITool extends Document {
   userEmail: string;
   toolBrand: string;
@@ -8,8 +13,8 @@ export interface ITool extends Document {
   depth: number;
   imageUrl: string;
   processingStatus: "pending" | "completed" | "failed";
-  cvResponse?: any;
-  processingError?: string;
+  cvResponse?: ICCVResponse | null;
+  processingError?: string | null;
   published: boolean;
   likes: number;
   dislikes: number;
@@ -31,7 +36,7 @@ const ToolSchema: Schema<ITool> = new mongoose.Schema(
     depth: { type: Number, required: true },
     imageUrl: { type: String, default: "" },
     processingStatus: { type: String, required: true, default: "pending" },
-    cvResponse: { type: Schema.Types.Mixed, default: null },
+    cvResponse: { type: Schema.Types.Mixed, default: null }, // stores ICCVResponse
     processingError: { type: String, default: null },
     published: { type: Boolean, required: true, default: false },
     likes: { type: Number, default: 0 },
