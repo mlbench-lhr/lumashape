@@ -37,7 +37,7 @@ export async function DELETE(req: Request) {
       );
     }
 
-    return NextResponse.json({ success: true, id: toolId });
+    return NextResponse.json({ success: true, message: "Tool deleted successfully", id: toolId });
   } catch (err) {
     console.error("Error deleting tool:", err);
     return NextResponse.json({ error: "Failed to delete tool" }, { status: 500 });
