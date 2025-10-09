@@ -45,7 +45,6 @@ export async function POST(req: Request) {
       depth,
       toolBrand,
       toolType,
-      imageUrl: "", // Will be updated after processing
       processingStatus: "pending",
       likes: 0,
       dislikes: 0,
