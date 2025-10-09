@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import jwt from "jsonwebtoken";
 import axios, { AxiosResponse } from "axios";
 import FormData from "form-data";
@@ -56,6 +57,31 @@ function convertToInches(value: number, unit: string): number {
     return value * MM_TO_INCHES;
   }
   return value;
+}
+
+async function uploadToSpaces(buffer: Buffer, filename: string): Promise<string> {
+  const s3Client = new S3Client({
+    region: process.env.DO_SPACES_REGION!,
+    endpoint: process.env.DO_SPACES_ENDPOINT!,
+    credentials: {
+      accessKeyId: process.env.DO_SPACES_KEY!,
+      secretAccessKey: process.env.DO_SPACES_SECRET!,
+    },
+  });
+
+  const fileName = `tools/tool-${Date.now()}-${filename}`;
+
+  const command = new PutObjectCommand({
+    Bucket: process.env.DO_SPACES_BUCKET!,
+    Key: fileName,
+    Body: buffer,
+    ContentType: "image/jpeg",
+    ACL: "public-read",
+  });
+
+  await s3Client.send(command);
+
+  return `https://${process.env.DO_SPACES_BUCKET}.${process.env.DO_SPACES_REGION}.digitaloceanspaces.com/${fileName}`;
 }
 
 // ===============================
@@ -154,7 +180,12 @@ export async function POST(req: Request) {
       imageSize: image.size,
     });
 
-    // 6. Save initial tool data to MongoDB
+    // 6. Convert image to buffer synchronously before async operations
+    const imageBuffer = Buffer.from(await image.arrayBuffer());
+    const imageName = image.name || "tool_image.jpg";
+    const imageType = image.type || "image/jpeg";
+
+    // 7. Save initial tool data to MongoDB (without imageUrl yet)
     const tool = new Tool({
       userEmail: decoded.email,
       length: lengthNum,
@@ -162,7 +193,7 @@ export async function POST(req: Request) {
       unit: unitValue.toLowerCase().trim(),
       brand: toolBrand,
       toolType: toolType,
-      imageUrl: "",
+      imageUrl: "", // Will be updated after upload
       processingStatus: "pending",
       likes: 0,
       dislikes: 0,
@@ -177,17 +208,38 @@ export async function POST(req: Request) {
     await tool.save();
     console.log("Tool saved with ID:", tool._id);
 
-    // 7. Background processing - send to CV endpoint
+    // 8. Start background processing (upload to Spaces + CV processing)
     setImmediate(async () => {
       try {
+        console.log(`Starting background processing for tool ${tool._id}`);
+        
+        // Step 1: Upload to DigitalOcean Spaces
+        let uploadedImageUrl: string;
+        try {
+          uploadedImageUrl = await uploadToSpaces(imageBuffer, imageName);
+          console.log(`Image uploaded to Spaces for tool ${tool._id}:`, uploadedImageUrl);
+          
+          // Update tool with image URL
+          await dbConnect();
+          await Tool.findByIdAndUpdate(tool._id, { imageUrl: uploadedImageUrl });
+        } catch (uploadError) {
+          console.error(`Failed to upload image to Spaces for tool ${tool._id}:`, uploadError);
+          
+          await dbConnect();
+          await Tool.findByIdAndUpdate(tool._id, {
+            processingStatus: "failed",
+            processingError: "Failed to upload image to storage"
+          });
+          return; // Exit background process if upload fails
+        }
+
+        // Step 2: Send to CV endpoint
         console.log(`Starting CV processing for tool ${tool._id}`);
         
-        const imageBuffer = Buffer.from(await image.arrayBuffer());
         const form = new FormData();
-        
         form.append("image", imageBuffer, {
-          filename: image.name || "tool_image.jpg",
-          contentType: image.type || "image/jpeg",
+          filename: imageName,
+          contentType: imageType,
         });
         form.append("length", lengthInches.toString());
         form.append("depth", depthInches.toString());
@@ -264,7 +316,7 @@ export async function POST(req: Request) {
       }
     });
 
-    // 8. Respond immediately to client
+    // 9. Respond immediately to client (before background processing completes)
     return NextResponse.json({
       success: true,
       message: "Tool data saved successfully. Processing in background.",
