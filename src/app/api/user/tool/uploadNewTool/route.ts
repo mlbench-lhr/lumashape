@@ -31,10 +31,16 @@ interface AddToolDTO {
 }
 
 interface CvApiResponse {
+  success?: boolean;
   annotated_image_url?: string;
-  dxf_link?: string;
-  height_in_inches?: number;
-  scale_info?: number;
+  dxf_url?: string;
+  expanded_contour_image_url?: string;
+  contour_points_count?: number;
+  expansion_pixels?: number;
+  dimensions?: {
+    length_inches?: number;
+    depth_inches?: number;
+  };
   [key: string]: unknown;
 }
 
@@ -43,8 +49,6 @@ interface ToolUpdateData {
   cvResponse?: CvApiResponse;
   imageUrl?: string;
   dxfLink?: string;
-  diagonalInches?: number;
-  scaleFactor?: number;
   processingError?: string;
 }
 
@@ -191,7 +195,7 @@ export async function POST(req: Request) {
       length: lengthNum,
       depth: depthNum,
       unit: unitValue.toLowerCase().trim(),
-      brand: toolBrand,
+      toolBrand: toolBrand,
       toolType: toolType,
       imageUrl: "", // Will be updated after upload
       processingStatus: "pending",
@@ -263,23 +267,23 @@ export async function POST(req: Request) {
 
         console.log("CV response received:", cvResponse.data);
 
+        // Check if CV processing was successful
+        if (!cvResponse.data.success) {
+          throw new Error("CV processing failed: success=false in response");
+        }
+
         const updateData: ToolUpdateData = {
           processingStatus: "completed",
           cvResponse: cvResponse.data,
         };
 
-        // Map CV response fields
+        // Map CV response fields to Tool model
         if (cvResponse.data.annotated_image_url) {
           updateData.imageUrl = cvResponse.data.annotated_image_url;
         }
-        if (cvResponse.data.dxf_link) {
-          updateData.dxfLink = cvResponse.data.dxf_link;
-        }
-        if (cvResponse.data.height_in_inches) {
-          updateData.diagonalInches = cvResponse.data.height_in_inches;
-        }
-        if (cvResponse.data.scale_info) {
-          updateData.scaleFactor = cvResponse.data.scale_info;
+        
+        if (cvResponse.data.dxf_url) {
+          updateData.dxfLink = cvResponse.data.dxf_url;
         }
 
         await dbConnect();
