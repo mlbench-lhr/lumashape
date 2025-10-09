@@ -88,10 +88,10 @@ export async function PUT(request: NextRequest) {
         const updateData = {
             paperType,
             brand,
-            toolType,
-            description: description || '',
-            purchaseLink: purchaseLink || '',
-            backgroundImg: backgroundImg || existingTool.backgroundImg,
+            // toolType,
+            // description: description || '',
+            // purchaseLink: purchaseLink || '',
+            // backgroundImg: backgroundImg || existingTool.backgroundImg,
             updatedAt: new Date()
         };
 
