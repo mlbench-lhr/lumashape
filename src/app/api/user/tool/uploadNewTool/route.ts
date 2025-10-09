@@ -62,6 +62,7 @@ export async function POST(req: Request) {
       success: true,
       message: "Tool data saved successfully. Processing in background.",
       toolId: tool._id,
+      processingStatus: "pending",
     });
 
     // 6. Process CV endpoint in background (non-blocking)
