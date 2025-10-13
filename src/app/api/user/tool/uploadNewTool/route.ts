@@ -259,8 +259,8 @@ export async function POST(req: Request) {
 
         // Read image file from disk
         const imageBuffer = fs.readFileSync(imageFile.filepath);
-        const imageName = imageFile.originalFilename || "tool_image.jpg";
-        const imageType = imageFile.mimetype || "image/jpeg";
+        const imageName = imageFile.originalFilename || "tool_image.png";
+        const imageType = imageFile.mimetype || "image/png";
 
         console.log(`Image loaded: ${imageName}, size: ${imageBuffer.length} bytes`);
 
