@@ -20,6 +20,8 @@ export async function POST(req: NextRequest) {
       await req.json();
     console.log("Login attempt for email:", email);
 
+    
+
     // Basic validation
     if (!email || !password) {
       return NextResponse.json(
@@ -31,20 +33,6 @@ export async function POST(req: NextRequest) {
     // Find user by email
     const user = await User.findOne({ email }).select("+password");
 
-    if (!user?.isVerified) {
-      return NextResponse.json(
-        { message: "Please verify your email before logging in." },
-        { status: 403 }
-      );
-    }
-
-    if (user.isDeleted) {
-      return NextResponse.json(
-        { message: "Your account has been deleted You cannot login" },
-        { status: 403 }
-      );
-    }
-
     if (!user) {
       return NextResponse.json(
         { message: "User Not Found" },
@@ -52,7 +40,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Compare password
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     console.log("password: ", isPasswordValid);
@@ -62,6 +49,14 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
+
+    if (!user.isVerified) {
+      return NextResponse.json(
+        { message: "Please verify your email before logging in." },
+        { status: 403 }
+      );
+    }
+
     // Generate JWT token
     const token = jwt.sign(
       {

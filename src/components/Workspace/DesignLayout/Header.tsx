@@ -309,7 +309,7 @@ const Header: React.FC<HeaderProps> = ({
 
                 const { tool } = await toolRes.json();
 
-                if (!tool?.dxfLink) {
+                if (!tool?.cvResponse?.dxf_url) {
                     throw new Error(`Tool ${toolId} has no DXF link`);
                 }
 
@@ -317,11 +317,11 @@ const Header: React.FC<HeaderProps> = ({
                 tools.push({
                     tool_id: toolId,
                     name: droppedTool.name,
-                    brand: tool.brand || "Brand",
-                    dxf_link: tool.dxfLink,
+                    brand: tool.toolBrand || "Brand",
+                    dxf_link: tool.cvResponse.dxf_url,
                     position_inches: { x: xInches, y: yInches },
                     rotation_degrees: droppedTool.rotation || 0,
-                    height_diagonal_inches: tool.heightDiagonal || 5.0,
+                    height_diagonal_inches: tool.length || 5.0,
                     thickness_inches: droppedTool.thickness || 0.5,
                     flip_horizontal: droppedTool.flipHorizontal || false,
                     flip_vertical: droppedTool.flipVertical || false,
