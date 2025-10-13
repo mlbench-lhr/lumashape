@@ -391,7 +391,7 @@ const MobileToolsInventory = () => {
                 <p className="text-gray-500 font-medium text-[11px] sm:text-[20px] text-center mt-[19px]">
                   To start adding tools to your inventory please download our mobile
                 </p>
-                <p className="text-gray-500 font-medium text-[11px] sm:text-[20px] text-center mt-[8px]">
+                <p className="text-gray-500 font-medium text-[11px] sm:text-[20px] text-center mt-[4px]">
                   app. Scan and manage your tools on the go with ease.
                 </p>
 
@@ -399,12 +399,43 @@ const MobileToolsInventory = () => {
             )}
 
             {filteredTools.length > 0 && (
+
               <div className="w-full max-w-[343px] sm:max-w-[1200px] mx-auto px-4 sm:px-0">
+                <div className="w-full bg-blue-50 border border-[#e0e0e0] rounded-[10px] px-4 py-3 mb-6 flex flex-col sm:flex-row items-center text-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <Image
+                      src="/images/icons/phone.svg"
+                      width={20}
+                      height={20}
+                      alt="mobile"
+                    />
+                    <p className="text-gray-700 text-sm sm:text-base">
+                      Add more tools to your inventory using our mobile app.&nbsp;
+                      <a
+                        href="https://apps.apple.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        iOS
+                      </a>{" "}
+                      or{" "}
+                      <a
+                        href="https://play.google.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        Android
+                      </a>
+                    </p>
+                  </div>
+                </div>
                 <div className="flex flex-wrap justify-center sm:justify-start gap-4">
                   {filteredTools.map((tool) => (
                     <div
                       key={tool._id}
-                      className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[248px] sm:w-[266px] sm:h-[248px] relative"
+                      className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[248px] sm:w-[266px] sm:h-[220px] relative"
                     >
                       {/* Published Badge */}
                       {tool.published && (
@@ -491,7 +522,7 @@ const MobileToolsInventory = () => {
                         </div>
 
                         {/* Tool details */}
-                        <div className="w-full h-[70px] flex flex-col justify-center">
+                        <div className="w-full h-[40px] flex flex-col justify-center">
                           <div className="flex items-baseline gap-[3px]">
                             <h3 className="font-bold text-[16px]">{tool.toolType}</h3>
                             <span className="text-[14px] font-medium">({tool.toolBrand})</span>
