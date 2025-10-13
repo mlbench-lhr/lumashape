@@ -304,12 +304,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     const effectiveSelectedTools = selectedTools.length > 0 ? selectedTools : (selectedTool ? [selectedTool] : []);
 
     // Tool manipulation handlers
-    const handleRotate = useCallback((degrees: number) => {
-        if (selectedTool) {
-            rotateTool(selectedTool, droppedTools, activeTool, selectedTool, setDroppedTools, degrees);
-            onHistoryChange?.();
-        }
-    }, [selectedTool, droppedTools, activeTool, setDroppedTools, onHistoryChange]);
 
     const handleFlip = useCallback((direction: 'horizontal' | 'vertical') => {
         if (selectedTool) {
@@ -505,18 +499,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     );
 
     const editActions = [
-        {
-            icon: "/images/workspace/rotate_left.svg",
-            label: 'rotate left',
-            action: () => handleRotate(-90),
-            disabled: !selectedTool
-        },
-        {
-            icon: "/images/workspace/rotate_right.svg",
-            label: 'rotate right',
-            action: () => handleRotate(90),
-            disabled: !selectedTool
-        },
         {
             icon: "/images/workspace/flip-horizontal.svg",
             label: 'flip horizontal',
