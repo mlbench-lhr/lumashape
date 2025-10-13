@@ -64,6 +64,7 @@ interface TrendingLayout {
         width: number;
         length: number;
         units: string;
+        thickness: number;
     };
 }
 
@@ -695,7 +696,7 @@ const TrendingTab = () => {
 
                                                 {/* Dimensions */}
                                                 <p className="text-[12px] text-[#b3b3b3] font-medium">
-                                                    {`Custom (${layout.metadata?.width}" × ${layout.metadata?.length}")`}
+                                                    {`Custom (${layout.metadata?.width}" × ${layout.metadata?.length}" × ${layout.metadata?.thickness}" )`}
                                                 </p>
                                             </div>
 
