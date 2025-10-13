@@ -20,6 +20,7 @@ interface ControlBarProps {
   onRedo?: () => void;
 }
 
+
 const ControlBar: React.FC<ControlBarProps> = ({
   canvasWidth,
   setCanvasWidth,
@@ -107,17 +108,23 @@ const ControlBar: React.FC<ControlBarProps> = ({
     }
   }, [hasLoadedFromSession, unit, canvasWidth, canvasHeight, thickness]);
 
+  const MAX_INCHES = 72;
+  const MAX_MM = 1828.8;
+
   const handleHeightChange = (value: number) => {
-    if (value > 0) {
+    const max = unit === "inches" ? MAX_INCHES : MAX_MM;
+    if (value > 0 && value <= max) {
       setCanvasHeight(value);
     }
   };
 
   const handleWidthChange = (value: number) => {
-    if (value > 0) {
+    const max = unit === "inches" ? MAX_INCHES : MAX_MM;
+    if (value > 0 && value <= max) {
       setCanvasWidth(value);
     }
   };
+
 
   return (
     <div className="bg-primary text-white px-4 py-2 flex items-center justify-between">
@@ -163,8 +170,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
         <div className="flex items-center space-x-1">
           <button
             className={`p-1 rounded transition-colors ${canUndo
-                ? 'hover:bg-blue-500 cursor-pointer'
-                : 'cursor-not-allowed opacity-50'
+              ? 'hover:bg-blue-500 cursor-pointer'
+              : 'cursor-not-allowed opacity-50'
               }`}
             onClick={onUndo}
             disabled={!canUndo}
@@ -180,8 +187,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
           </button>
           <button
             className={`p-1 rounded transition-colors ${canRedo
-                ? 'hover:bg-blue-500 cursor-pointer'
-                : 'cursor-not-allowed opacity-50'
+              ? 'hover:bg-blue-500 cursor-pointer'
+              : 'cursor-not-allowed opacity-50'
               }`}
             onClick={onRedo}
             disabled={!canRedo}
@@ -234,20 +241,33 @@ const ControlBar: React.FC<ControlBarProps> = ({
             onChange={(e) => setThickness(Number(e.target.value))}
             className="bg-white text-gray-900 px-2 py-1 w-32 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400"
           >
-            {unit === 'inches' ? (
+            {unit === "inches" ? (
               <>
                 <option value={0.5}>0.500 inches</option>
+                <option value={0.75}>0.750 inches</option>
                 <option value={1}>1.000 inches</option>
+                <option value={1.25}>1.250 inches</option>
                 <option value={1.5}>1.500 inches</option>
+                <option value={1.75}>1.750 inches</option>
+                <option value={2}>2.000 inches</option>
+                <option value={2.5}>2.500 inches</option>
+                <option value={3}>3.000 inches</option>
               </>
             ) : (
               <>
                 <option value={12.7}>12.7 mm</option>
+                <option value={19.05}>19.05 mm</option>
                 <option value={25.4}>25.4 mm</option>
+                <option value={31.75}>31.75 mm</option>
                 <option value={38.1}>38.1 mm</option>
+                <option value={44.45}>44.45 mm</option>
+                <option value={50.8}>50.8 mm</option>
+                <option value={63.5}>63.5 mm</option>
+                <option value={76.2}>76.2 mm</option>
               </>
             )}
           </select>
+
         </div>
       </div>
     </div>
