@@ -51,15 +51,11 @@ interface SidebarProps {
 interface DatabaseTool {
     _id: string;
     userEmail: string;
-    paperType: string;
-    brand: string;
+    toolBrand: string;
     toolType: string;
-    description: string;
-    purchaseLink: string;
-    backgroundImg: string;
-    annotatedImg: string;
+    imageUrl: string;
     outlinesImg: string;
-    diagonalInches: number;
+    length: number;
     dxfLink: string;   // ✅ new
     scaleFactor: number;      // ✅ new
     createdAt: string;
@@ -102,15 +98,11 @@ const Sidebar: React.FC<SidebarProps> = ({
         const {
             _id,
             userEmail,
-            paperType,
-            brand,
+            toolBrand,
             toolType,
-            description,
-            purchaseLink,
-            backgroundImg,
-            annotatedImg,
+            imageUrl,
             outlinesImg,
-            diagonalInches,
+            length,
             dxfLink,
             scaleFactor,
             createdAt,
@@ -121,15 +113,11 @@ const Sidebar: React.FC<SidebarProps> = ({
         return {
             id: _id,
             userEmail,
-            paperType,
-            brand,
+            toolBrand,
             toolType,
-            description,
-            purchaseLink,
-            backgroundImg,
-            annotatedImg,
+            imageUrl,
             outlinesImg,
-            diagonalInches,
+            length,
             dxfLink,
             scaleFactor,
             createdAt,
@@ -193,17 +181,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                 id: extractedData.id,
                 name: extractedData.toolType || 'Unknown Tool',
                 icon: getToolIcon(extractedData.toolType),
-                brand: extractedData.brand,
-                image: extractedData.annotatedImg,
+                toolBrand: extractedData.toolBrand,
+                image: extractedData.imageUrl,
                 metadata: {
                     userEmail: extractedData.userEmail,
-                    paperType: extractedData.paperType,
-                    description: extractedData.description,
-                    purchaseLink: extractedData.purchaseLink,
-                    annotatedImg: extractedData.annotatedImg,
-                    backgroundImg: extractedData.backgroundImg,
+                    toolBrand: extractedData.toolBrand,
+                    toolType: extractedData.toolType,
+                    imageUrl: extractedData.imageUrl,
                     outlinesImg: extractedData.outlinesImg,
-                    diagonalInches: extractedData.diagonalInches,
+                    length: extractedData.length,
                     dxfLink: extractedData.dxfLink,
                     scaleFactor: extractedData.scaleFactor,
                     createdAt: extractedData.createdAt,
@@ -241,7 +227,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     // Get tool real dimensions for display (helper function)
     const getToolRealDimensions = (tool: DroppedTool): { width: string; height: string; info: string } => {
-        const diagInches = tool.metadata?.diagonalInches;
+        const diagInches = tool.metadata?.length;
         const scaleFactor = tool.metadata?.scaleFactor;
 
         if (diagInches && scaleFactor) {
@@ -310,24 +296,12 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     const filteredTools = tools.filter(tool =>
         tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tool.brand.toLowerCase().includes(searchTerm.toLowerCase())
+        tool.metadata?.toolBrand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tool.metadata?.toolType?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     // Determine effective selected tools - use selectedTool if selectedTools is empty
     const effectiveSelectedTools = selectedTools.length > 0 ? selectedTools : (selectedTool ? [selectedTool] : []);
-
-    // History handlers
-    const handleUndo = useCallback(() => {
-        onUndo();
-        setSelectedTools([]);
-        onHistoryChange?.();
-    }, [onUndo, setSelectedTools, onHistoryChange]);
-
-    const handleRedo = useCallback(() => {
-        onRedo();
-        setSelectedTools([]);
-        onHistoryChange?.();
-    }, [onRedo, setSelectedTools, onHistoryChange]);
 
     // Tool manipulation handlers
     const handleRotate = useCallback((degrees: number) => {
@@ -411,7 +385,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex items-center justify-between mb-4">
                 <span className="text-sm text-gray-600">Sort by:</span>
                 <div className="flex items-center space-x-1 text-sm text-blue-600 cursor-pointer">
-                    <span>All Brands</span>
+                    <span>All toolBrands</span>
                     <ChevronDown className="w-4 h-4" />
                 </div>
             </div>
@@ -830,11 +804,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 </span>
                             </div>
                         )}
-                        {selectedToolObject?.metadata?.diagonalInches && (
+                        {selectedToolObject?.metadata?.length && (
                             <div className="flex justify-between items-center">
                                 <span className="text-gray-600">Diagonal:</span>
                                 <span className="text-gray-900 text-xs">
-                                    {selectedToolObject.metadata.diagonalInches.toFixed(2)} in
+                                    {selectedToolObject.metadata.length.toFixed(2)} in
                                 </span>
                             </div>
                         )}

@@ -27,7 +27,7 @@ const DraggableTool: React.FC<DraggableToolProps> = ({ tool }) => {
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium text-gray-900">{tool.name}</span>
           <div className="bg-red-600 text-white text-xs px-2 py-0.5 rounded font-medium">
-            {tool.brand}
+            {tool.toolBrand}
           </div>
         </div>
       </div>

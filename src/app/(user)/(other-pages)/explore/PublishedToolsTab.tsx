@@ -11,17 +11,35 @@ interface UserInteraction {
 
 interface ToolWithInteraction {
     _id: string;
+    userEmail: string;
+    toolBrand: string;
     toolType: string;
-    brand: string;
-    paperType: string;
-    annotatedImg?: string;
-    backgroundImg?: string;
-    createdBy?: { username?: string; email?: string };
+    length: number;
+    depth: number;
+    unit: string;
+    imageUrl: string;
+    userInteraction?: UserInteraction;
+    processingStatus: "pending" | "completed" | "failed";
+    cvResponse?: {
+        success?: boolean;
+        dxf_url?: string;
+        annotated_image_url?: string;
+        expanded_contour_image_url?: string;
+        contour_points_count?: number;
+        expansion_pixels?: number;
+        dimensions?: {
+            length_inches?: number;
+            depth_inches?: number;
+        };
+        [key: string]: string | number | boolean | object | undefined;
+    } | null;
+    published: boolean;
     likes: number;
     dislikes: number;
     downloads: number;
-    publishedDate?: string;
-    userInteraction?: UserInteraction;
+    publishedDate?: string | null;
+    trendingScore?: number;
+    createdBy?: { username?: string; email?: string };
 }
 
 const PublishedToolsTab = () => {
@@ -58,11 +76,10 @@ const PublishedToolsTab = () => {
     const filteredTools = publishedTools.filter((tool) => {
         const matchesSearch =
             tool.toolType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            tool.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            tool.paperType.toLowerCase().includes(searchTerm.toLowerCase());
+            tool.toolBrand.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesType = selectedToolType ? tool.toolType === selectedToolType : true;
-        const matchesBrand = selectedBrand ? tool.brand === selectedBrand : true;
+        const matchesBrand = selectedBrand ? tool.toolBrand === selectedBrand : true;
 
         return matchesSearch && matchesType && matchesBrand;
     });
@@ -287,22 +304,15 @@ const PublishedToolsTab = () => {
                                 {/* Tool Image */}
                                 <div className="w-[258px] sm:w-[242px]">
                                     <div className="relative w-full h-[150px]">
-                                        {tool.annotatedImg ? (
+                                        {tool.imageUrl ? (
                                             <Image
-                                                src={tool.annotatedImg}
+                                                src={tool.imageUrl}
                                                 alt={`${tool.toolType} outlines`}
                                                 fill
                                                 style={{
                                                     objectFit: "contain",
                                                     backgroundColor: "#f9f9f9",
                                                 }}
-                                            />
-                                        ) : tool.backgroundImg ? (
-                                            <Image
-                                                src={tool.backgroundImg}
-                                                alt={tool.toolType}
-                                                fill
-                                                style={{ objectFit: "cover" }}
                                             />
                                         ) : (
                                             <div className="relative w-[80px] h-[80px]">
@@ -372,12 +382,9 @@ const PublishedToolsTab = () => {
                                                 {tool.toolType}
                                             </h3>
                                             <span className="text-[14px] font-medium">
-                                                ({tool.brand})
+                                                ({tool.toolBrand})
                                             </span>
                                         </div>
-                                        <p className="text-[12px] text-[#b3b3b3] font-medium">
-                                            {tool.paperType}
-                                        </p>
                                         {tool.createdBy && (
                                             <p className="text-[12px] text-[#b3b3b3] font-medium mt-1 flex items-center gap-2">
                                                 <span className="w-5 h-5 flex items-center justify-center bg-primary rounded-full text-[10px] text-white">

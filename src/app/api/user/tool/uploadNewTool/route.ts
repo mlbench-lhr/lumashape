@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import jwt from "jsonwebtoken";
 import axios, { AxiosResponse } from "axios";
 import FormData from "form-data";
 import dbConnect from "@/utils/dbConnect";
 import Tool from "@/lib/models/Tool";
+import { IncomingForm, Fields, Files } from "formidable";
+import { PassThrough } from "stream";
+import { IncomingMessage } from "http";
+import fs from "fs";
 
 // ===============================
 // CONSTANTS
@@ -48,7 +51,6 @@ interface ToolUpdateData {
   processingStatus: "completed" | "failed";
   cvResponse?: CvApiResponse;
   imageUrl?: string;
-  dxfLink?: string;
   processingError?: string;
 }
 
@@ -63,30 +65,65 @@ function convertToInches(value: number, unit: string): number {
   return value;
 }
 
-async function uploadToSpaces(buffer: Buffer, filename: string): Promise<string> {
-  const s3Client = new S3Client({
-    region: process.env.DO_SPACES_REGION!,
-    endpoint: process.env.DO_SPACES_ENDPOINT!,
-    credentials: {
-      accessKeyId: process.env.DO_SPACES_KEY!,
-      secretAccessKey: process.env.DO_SPACES_SECRET!,
-    },
+// Convert Next.js Request to a proper Node.js stream for formidable
+async function parseFormData(req: Request): Promise<{ fields: Fields; files: Files }> {
+  const form = new IncomingForm({
+    maxFileSize: 10 * 1024 * 1024, // 10MB
+    keepExtensions: true,
   });
 
-  const fileName = `tools/tool-${Date.now()}-${filename}`;
+  const stream = new PassThrough();
 
-  const command = new PutObjectCommand({
-    Bucket: process.env.DO_SPACES_BUCKET!,
-    Key: fileName,
-    Body: buffer,
-    ContentType: "image/jpeg",
-    ACL: "public-read",
+  const headers: Record<string, string> = {};
+  req.headers.forEach((value, key) => {
+    headers[key.toLowerCase()] = value;
   });
 
-  await s3Client.send(command);
+  // ✅ Type-safe mock IncomingMessage
+  const mockReq = Object.assign(stream, {
+    headers,
+    method: req.method,
+    url: new URL(req.url).pathname,
+    httpVersion: "1.1",
+    httpVersionMajor: 1,
+    httpVersionMinor: 1,
+  }) as unknown as IncomingMessage;
 
-  return `https://${process.env.DO_SPACES_BUCKET}.${process.env.DO_SPACES_REGION}.digitaloceanspaces.com/${fileName}`;
+
+  const reader = req.body?.getReader();
+  if (reader) {
+    (async () => {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            stream.end();
+            break;
+          }
+          stream.write(Buffer.from(value));
+        }
+      } catch (err) {
+        stream.destroy(err as Error);
+      }
+    })();
+  } else {
+    const buffer = await req.arrayBuffer();
+    stream.write(Buffer.from(buffer));
+    stream.end();
+  }
+
+  return new Promise((resolve, reject) => {
+    form.parse(mockReq, (err, fields, files) => {
+      if (err) {
+        console.error("Formidable parse error:", err);
+        reject(err);
+      } else {
+        resolve({ fields, files });
+      }
+    });
+  });
 }
+
 
 // ===============================
 // ROUTE HANDLER
@@ -98,7 +135,7 @@ export async function POST(req: Request) {
     // 1. Verify JWT token
     const authHeader = req.headers.get("Authorization");
     const token = authHeader?.split(" ")[1];
-    
+
     if (!token) {
       return NextResponse.json({ error: "Unauthorized - No token provided" }, { status: 401 });
     }
@@ -112,38 +149,36 @@ export async function POST(req: Request) {
     }
 
     // 2. Parse multipart form data
-    const formData = await req.formData();
-    const image = formData.get("image") as File | null;
-    const dataJson = formData.get("data") as string | null;
+    let fields: Fields;
+    let files: Files;
 
-    // 3. Validate image
-    if (!image) {
+    try {
+      const parsed = await parseFormData(req);
+      fields = parsed.fields;
+      files = parsed.files;
+      console.log("Parsed fields:", fields);
+      console.log("Parsed files:", Object.keys(files));
+    } catch (parseError) {
+      console.error("Failed to parse form data:", parseError);
+      return NextResponse.json({
+        error: "Failed to parse form data",
+        details: parseError instanceof Error ? parseError.message : String(parseError)
+      }, { status: 400 });
+    }
+
+    // 3. Extract fields from form data
+    const length = Array.isArray(fields.length) ? fields.length[0] : fields.length;
+    const depth = Array.isArray(fields.depth) ? fields.depth[0] : fields.depth;
+    const toolType = Array.isArray(fields.toolType) ? fields.toolType[0] : fields.toolType;
+    const toolBrand = Array.isArray(fields.toolBrand) ? fields.toolBrand[0] : fields.toolBrand;
+    const unit = Array.isArray(fields.unit) ? fields.unit[0] : fields.unit;
+
+    // 4. Extract and validate image file
+    const imageFile = Array.isArray(files.image) ? files.image[0] : files.image;
+
+    if (!imageFile) {
       return NextResponse.json({ error: "Image file is required" }, { status: 400 });
     }
-
-    if (!image.size || image.size === 0) {
-      return NextResponse.json({ error: "Image file is empty or invalid" }, { status: 400 });
-    }
-
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-    if (image.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: "Image file too large. Max 10MB allowed" }, { status: 400 });
-    }
-
-    // 4. Parse and validate data JSON
-    if (!dataJson) {
-      return NextResponse.json({ error: "Tool data is required" }, { status: 400 });
-    }
-
-    let toolData: AddToolDTO;
-    try {
-      toolData = JSON.parse(dataJson);
-    } catch (parseError) {
-      console.error("Failed to parse tool data:", parseError);
-      return NextResponse.json({ error: "Invalid JSON in data field" }, { status: 400 });
-    }
-
-    const { length, depth, toolBrand, toolType, unit } = toolData;
 
     // 5. Validate required fields
     if (!length || !depth || !toolBrand || !toolType) {
@@ -156,48 +191,53 @@ export async function POST(req: Request) {
             hasToolBrand: !!toolBrand,
             hasToolType: !!toolType,
           },
+          allFields: Object.keys(fields),
         },
         { status: 400 }
       );
     }
 
-    const lengthNum = typeof length === 'number' ? length : parseFloat(String(length));
-    const depthNum = typeof depth === 'number' ? depth : parseFloat(String(depth));
+    const lengthNum = parseFloat(String(length));
+    const depthNum = parseFloat(String(depth));
 
-    if (isNaN(lengthNum) || isNaN(depthNum) || lengthNum <= 0 || depthNum <= 0) {
+    if (isNaN(lengthNum) || isNaN(depthNum) || lengthNum <= 0 || depthNum < 0) {
       return NextResponse.json(
-        { error: "Length and depth must be valid positive numbers" },
+        {
+          error: "Length must be a positive number and depth must be non-negative",
+          received: {
+            length: lengthNum,
+            depth: depthNum,
+          }
+        },
         { status: 400 }
       );
     }
 
-    const unitValue = unit || "inches";
+    const unitValue = unit ? String(unit) : "inches";
     const lengthInches = convertToInches(lengthNum, unitValue);
     const depthInches = convertToInches(depthNum, unitValue);
 
     console.log("Processing tool upload:", {
       email: decoded.email,
+      length: lengthNum,
+      depth: depthNum,
       lengthInches,
       depthInches,
-      toolBrand,
-      toolType,
-      imageSize: image.size,
+      toolBrand: String(toolBrand),
+      toolType: String(toolType),
+      unit: unitValue,
+      imageSize: imageFile.size,
     });
 
-    // 6. Convert image to buffer synchronously before async operations
-    const imageBuffer = Buffer.from(await image.arrayBuffer());
-    const imageName = image.name || "tool_image.jpg";
-    const imageType = image.type || "image/jpeg";
-
-    // 7. Save initial tool data to MongoDB (without imageUrl yet)
+    // 6. Save initial tool data to MongoDB (with pending status)
     const tool = new Tool({
       userEmail: decoded.email,
       length: lengthNum,
       depth: depthNum,
       unit: unitValue.toLowerCase().trim(),
-      toolBrand: toolBrand,
-      toolType: toolType,
-      imageUrl: "", // Will be updated after upload
+      toolBrand: String(toolBrand),
+      toolType: String(toolType),
+      imageUrl: "", // Will be updated after CV processing
       processingStatus: "pending",
       likes: 0,
       dislikes: 0,
@@ -210,36 +250,21 @@ export async function POST(req: Request) {
     });
 
     await tool.save();
-    console.log("Tool saved with ID:", tool._id);
+    console.log("Tool saved successfully with ID:", tool._id);
 
-    // 8. Start background processing (upload to Spaces + CV processing)
+    // 7. Start background CV processing
     setImmediate(async () => {
       try {
-        console.log(`Starting background processing for tool ${tool._id}`);
-        
-        // Step 1: Upload to DigitalOcean Spaces
-        let uploadedImageUrl: string;
-        try {
-          uploadedImageUrl = await uploadToSpaces(imageBuffer, imageName);
-          console.log(`Image uploaded to Spaces for tool ${tool._id}:`, uploadedImageUrl);
-          
-          // Update tool with image URL
-          await dbConnect();
-          await Tool.findByIdAndUpdate(tool._id, { imageUrl: uploadedImageUrl });
-        } catch (uploadError) {
-          console.error(`Failed to upload image to Spaces for tool ${tool._id}:`, uploadError);
-          
-          await dbConnect();
-          await Tool.findByIdAndUpdate(tool._id, {
-            processingStatus: "failed",
-            processingError: "Failed to upload image to storage"
-          });
-          return; // Exit background process if upload fails
-        }
-
-        // Step 2: Send to CV endpoint
         console.log(`Starting CV processing for tool ${tool._id}`);
-        
+
+        // Read image file from disk
+        const imageBuffer = fs.readFileSync(imageFile.filepath);
+        const imageName = imageFile.originalFilename || "tool_image.jpg";
+        const imageType = imageFile.mimetype || "image/jpeg";
+
+        console.log(`Image loaded: ${imageName}, size: ${imageBuffer.length} bytes`);
+
+        // Prepare form data for CV API
         const form = new FormData();
         form.append("image", imageBuffer, {
           filename: imageName,
@@ -249,11 +274,13 @@ export async function POST(req: Request) {
         form.append("depth", depthInches.toString());
 
         console.log("Sending to CV endpoint:", {
+          endpoint: CV_ENDPOINT,
           lengthInches,
           depthInches,
           imageSize: imageBuffer.length,
         });
 
+        // Call CV API
         const cvResponse: AxiosResponse<CvApiResponse> = await axios.post(
           CV_ENDPOINT,
           form,
@@ -265,31 +292,37 @@ export async function POST(req: Request) {
           }
         );
 
-        console.log("CV response received:", cvResponse.data);
+        console.log(`CV response received for tool ${tool._id}:`, cvResponse.data);
 
         // Check if CV processing was successful
         if (!cvResponse.data.success) {
           throw new Error("CV processing failed: success=false in response");
         }
 
+        // Prepare update data
         const updateData: ToolUpdateData = {
           processingStatus: "completed",
           cvResponse: cvResponse.data,
         };
 
-        // Map CV response fields to Tool model
+        // Use annotated image URL if available
         if (cvResponse.data.annotated_image_url) {
           updateData.imageUrl = cvResponse.data.annotated_image_url;
         }
-        
-        if (cvResponse.data.dxf_url) {
-          updateData.dxfLink = cvResponse.data.dxf_url;
-        }
 
+        // Update tool with CV response
         await dbConnect();
         await Tool.findByIdAndUpdate(tool._id, updateData);
         console.log(`Tool ${tool._id} updated successfully with CV response`);
-        
+
+        // Clean up temp file
+        try {
+          fs.unlinkSync(imageFile.filepath);
+          console.log(`Temp file deleted: ${imageFile.filepath}`);
+        } catch (cleanupError) {
+          console.error("Failed to delete temp file:", cleanupError);
+        }
+
       } catch (cvError: unknown) {
         console.error(`Error processing CV endpoint for tool ${tool._id}:`, cvError);
 
@@ -305,6 +338,7 @@ export async function POST(req: Request) {
           });
         }
 
+        // Update tool with failed status
         const failUpdate: ToolUpdateData = {
           processingStatus: "failed",
           processingError: errorMessage,
@@ -317,20 +351,40 @@ export async function POST(req: Request) {
         } catch (updateError) {
           console.error("Failed to update tool status:", updateError);
         }
+
+        // Clean up temp file even on failure
+        try {
+          fs.unlinkSync(imageFile.filepath);
+        } catch (cleanupError) {
+          console.error("Failed to delete temp file:", cleanupError);
+        }
       }
     });
 
-    // 9. Respond immediately to client (before background processing completes)
+    // 8. Respond immediately to client (before CV processing completes)
     return NextResponse.json({
       success: true,
-      message: "Tool data saved successfully. Processing in background.",
+      message: "Tool created successfully. Processing in background.",
       toolId: tool._id,
-      processingStatus: "pending",
+      tool: {
+        id: tool._id,
+        userEmail: tool.userEmail,
+        length: tool.length,
+        depth: tool.depth,
+        unit: tool.unit,
+        toolBrand: tool.toolBrand,
+        toolType: tool.toolType,
+        processingStatus: tool.processingStatus,
+        likes: tool.likes,
+        dislikes: tool.dislikes,
+        downloads: tool.downloads,
+        published: tool.published,
+      }
     }, { status: 201 });
 
   } catch (err: unknown) {
     console.error("Error in tool upload route:", err);
-    
+
     const errorMessage =
       err instanceof Error ? err.message : "Failed to process tool creation";
 

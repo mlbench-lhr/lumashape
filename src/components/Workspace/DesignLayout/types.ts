@@ -2,27 +2,24 @@ export interface Tool {
   id: string;
   name: string;
   icon: string;
-  brand: string;
+  toolBrand: string;
   image?: string;
   // Store all extracted data for potential future use
   metadata?: {
     userEmail?: string;
-    paperType?: string;
-    description?: string;
-    purchaseLink?: string;
-    backgroundImg?: string;
-    annotatedImg?: string;
+    toolBrand?: string;
+    toolType?: string;
+    imageUrl?: string;
     outlinesImg?: string;
-    diagonalInches?: number;
-    dxfLink?: string;   // ✅ new
-    scaleFactor?: number;      // ✅ new (mm/px)
+    length?: number;
+    dxfLink?: string;
+    scaleFactor?: number;
     createdAt?: string;
     updatedAt?: string;
     version?: number;
     naturalWidth?: number;
     naturalHeight?: number;
-    originalId?: string; // ✅ Store original database ID
-    // ✅ NEW: Finger cut specific metadata
+    originalId?: string;
     isFingerCut?: boolean;
     fingerCutWidth?: number;
     fingerCutLength?: number;
@@ -47,8 +44,8 @@ export interface DroppedTool extends Tool {
   groupId?: string;
   isSelected?: boolean;
   // NEW: Real calculated dimensions based on scale info
-  realWidth?: number;   // Calculated from scaleFactor + diagonalInches
-  realHeight?: number;  // Calculated from scaleFactor + diagonalInches
+  realWidth?: number;   // Calculated from scaleFactor + length
+  realHeight?: number;  // Calculated from scaleFactor + length
 }
 
 export interface ToolGroup {
@@ -67,6 +64,5 @@ export interface ClipboardData {
 // ✅ Updated scale information (matches DB fields)
 export interface ScaleInfo {
   scaleFactor: number;    // mm/px
-  diagonalInches: number; // reference size in inches
-  paperType?: string;
+  length: number; // reference size in inches
 }

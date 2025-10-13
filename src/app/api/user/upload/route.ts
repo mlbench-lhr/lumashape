@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
-import formidable, { File } from "formidable";
-import fs from "fs";
 import AWS from "aws-sdk";
+import { IncomingForm, Fields, Files } from "formidable";
+import { PassThrough } from "stream";
+import { IncomingMessage } from "http";
 
 export const config = {
   api: {
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
       .promise();
 
     const url = `https://${process.env.DO_SPACES_BUCKET}.${process.env.DO_SPACES_ENDPOINT}/${fileName}`;
-    return new Response(JSON.stringify({ url }), { status: 200 });
+    return new Response(JSON.stringify({ url, success: true }), { status: 200 });
   } catch (err) {
     console.error(err);
     return new Response(JSON.stringify({ error: "Upload failed" }), {

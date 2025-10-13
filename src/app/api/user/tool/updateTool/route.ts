@@ -34,12 +34,8 @@ export async function PUT(request: NextRequest) {
         const body = await request.json();
         const {
             toolId,
-            paperType,
-            brand,
+            toolBrand,
             toolType,
-            description,
-            purchaseLink,
-            backgroundImg
         } = body;
 
         // Validate required fields
@@ -50,22 +46,11 @@ export async function PUT(request: NextRequest) {
             );
         }
 
-        if (!paperType || !brand || !toolType) {
+        if (!toolBrand || !toolType) {
             return NextResponse.json(
-                { error: 'Paper type, brand, and tool type are required' },
+                { error: 'Brand and tool type are required' },
                 { status: 400 }
             );
-        }
-
-        // Validate URL if provided
-        if (purchaseLink && purchaseLink.trim()) {
-            const urlRegex = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
-            if (!urlRegex.test(purchaseLink)) {
-                return NextResponse.json(
-                    { error: 'Invalid purchase link URL format' },
-                    { status: 400 }
-                );
-            }
         }
 
         // Connect to database
@@ -86,12 +71,8 @@ export async function PUT(request: NextRequest) {
 
         // Prepare update data
         const updateData = {
-            paperType,
-            brand,
-            // toolType,
-            // description: description || '',
-            // purchaseLink: purchaseLink || '',
-            // backgroundImg: backgroundImg || existingTool.backgroundImg,
+            toolBrand,
+            toolType,
             updatedAt: new Date()
         };
 

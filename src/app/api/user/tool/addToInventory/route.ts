@@ -41,20 +41,18 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create a copy of the tool for the user's inventory
+    // Create a copy of the tool for the user's inventory using new schema
     const newTool = new Tool({
       userEmail: decoded.email,
-      // paperType: originalTool.paperType,
       toolBrand: originalTool.toolBrand,
       toolType: originalTool.toolType,
-      // description: originalTool.description,
-      // purchaseLink: originalTool.purchaseLink,
-      // dxfLink: originalTool.dxfLink,
-      // backgroundImg: originalTool.backgroundImg,
-      // annotatedImg: originalTool.annotatedImg,
-      // outlinesImg: originalTool.outlinesImg,
-      // diagonalInches: originalTool.diagonalInches,
-      // scaleFactor: originalTool.scaleFactor,
+      length: originalTool.length,
+      depth: originalTool.depth,
+      unit: originalTool.unit,
+      imageUrl: originalTool.imageUrl,
+      processingStatus: originalTool.processingStatus,
+      cvResponse: originalTool.cvResponse,
+      processingError: originalTool.processingError,
       published: false, // User's copy is not published
       likes: 0,
       dislikes: 0,
@@ -66,7 +64,10 @@ export async function POST(req: Request) {
     await newTool.save();
 
     // Increment download count on the original published tool
-    await Tool.findByIdAndUpdate(toolId, { $inc: { downloads: 1 } });
+    await Tool.findByIdAndUpdate(toolId, { 
+      $inc: { downloads: 1 },
+      $addToSet: { downloadedByUsers: decoded.email }
+    });
 
     return NextResponse.json({
       success: true,

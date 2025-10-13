@@ -253,7 +253,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             const isSelected = selectedTools.includes(tool.id);
             const isPrimarySelection = selectedTool === tool.id;
             const isOverlapping = overlappingTools.includes(tool.id);
-            const isShape = tool.brand === 'SHAPE';
+            const isShape = tool.toolBrand === 'SHAPE';
             const isFingerCut = tool.metadata?.isFingerCut;
 
             // Calculate opacity and blur values
@@ -442,7 +442,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 )}
 
                 {/* Resize handles - only for shapes and when selected */}
-                {isSelected && tool.brand === 'SHAPE' && (
+                {isSelected && tool.toolBrand === 'SHAPE' && (
                   <>
                     {/* Corner resize handles */}
                     <div
