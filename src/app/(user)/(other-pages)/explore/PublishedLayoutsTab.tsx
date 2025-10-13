@@ -36,6 +36,7 @@ interface LayoutWithInteraction {
         width: number;
         length: number;
         units: string;
+        thickness: number;
     };
     tools?: Array<{
         id: string;
@@ -569,7 +570,7 @@ const PublishedLayoutsTab = () => {
 
                                             {/* Dimensions */}
                                             <p className="text-[12px] text-[#b3b3b3] font-medium">
-                                                {`Custom (${layout.metadata?.width || layout.canvas?.width}" × ${layout.metadata?.length || layout.canvas?.height}")`}
+                                                {`Custom (${layout.metadata?.width || layout.canvas?.width}" × ${layout.metadata?.length || layout.canvas?.height}" × ${layout.metadata?.thickness || layout.canvas?.thickness}" )`}
                                             </p>
                                         </div>
 
