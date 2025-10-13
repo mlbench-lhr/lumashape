@@ -119,9 +119,9 @@ export const useCanvas = ({
 
   // Tool-specific dimensions based on tool type
   const getToolDimensions = useCallback((tool: DroppedTool) => {
-    if (tool.metadata?.diagonalInches) {
+    if (tool.metadata?.length) {
       // 🔹 Now this is actually the HEIGHT of the tool, not the diagonal
-      const toolHeightPx = inchesToPx(tool.metadata.diagonalInches);
+      const toolHeightPx = inchesToPx(tool.metadata.length);
 
       // Default aspect ratio if natural dimensions are missing
       let aspectRatio = 1.6;
@@ -478,7 +478,7 @@ export const useCanvas = ({
 
     // Find the tool being resized to check if it's a perfect shape
     const currentTool = droppedTools.find(t => t.id === resizingToolId);
-    const isPerfectShape = currentTool && currentTool.brand === 'SHAPE' && 
+    const isPerfectShape = currentTool && currentTool.toolBrand === 'SHAPE' && 
                           (currentTool.name.toLowerCase().includes('circle') || 
                            currentTool.name.toLowerCase().includes('square'));
 
@@ -801,7 +801,7 @@ export const useCanvas = ({
       id: `fingercut-${Date.now()}`,
       name: 'Finger Cut',
       icon: '⭕',
-      brand: 'FINGERCUT',
+      toolBrand: 'FINGERCUT',
       x: canvasPos.x - 25, // Center the finger cut
       y: canvasPos.y - 15,
       rotation: 0,
@@ -817,7 +817,7 @@ export const useCanvas = ({
         isFingerCut: true,
         fingerCutWidth: 50,
         fingerCutLength: 30,
-        diagonalInches: 2.0, // Default size for finger cuts
+        length: 2.0, // Default size for finger cuts
       },
     };
 

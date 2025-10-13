@@ -18,14 +18,9 @@ type Tool = {
   _id: string;
   userEmail: string;
   paperType: string;
-  brand: string;
+  toolBrand: string;
   toolType: string;
-  description?: string;
-  purchaseLink?: string;
-  backgroundImg?: string;
-  outlinesImg?: string;
-  annotatedImg?: string;
-  maskImg?: string;
+  imageUrl?: string;
   processingData?: string;
   published?: boolean; // Add published field
 };
@@ -33,15 +28,15 @@ type Tool = {
 const BRANDS_DESKTOP: Brand[] = [
   { id: 0, brand_logo: "Custom" },
   { id: 1, brand_logo: "/images/icons/milwaukee.svg" },
-  { id: 2, brand_logo: "/images/icons/bosch.svg" },
-  { id: 3, brand_logo: "/images/icons/makita.svg" },
+  { id: 2, brand_logo: "/images/icons/dewalt.svg" },
+  { id: 3, brand_logo: "/images/icons/husky.svg" },
 ];
 
 const BRANDS_MOBILE: Brand[] = [
   { id: 0, brand_logo: "Custom" },
   { id: 1, brand_logo: "/images/icons/milwaukee_mobile.svg" },
-  { id: 2, brand_logo: "/images/icons/bosch_mobile.svg" },
-  { id: 3, brand_logo: "/images/icons/makita_mobile.svg" },
+  { id: 2, brand_logo: "/images/icons/dewalt_mobile.svg" },
+  { id: 3, brand_logo: "/images/icons/husky_mobile.svg" },
 ];
 
 const MobileToolsInventory = () => {
@@ -145,19 +140,19 @@ const MobileToolsInventory = () => {
       }
 
       const data = await res.json();
-      
+
       // Update the tool in local state
-      setTools(prev => prev.map(tool => 
-        tool._id === toolId 
+      setTools(prev => prev.map(tool =>
+        tool._id === toolId
           ? { ...tool, published: true }
           : tool
       ));
 
       console.log("Tool published successfully:", data);
-      
+
       // Optionally show a success message to the user
       // You could add a toast notification here
-      
+
     } catch (error) {
       console.error("Error publishing tool:", error);
       // Optionally show an error message to the user
@@ -207,13 +202,13 @@ const MobileToolsInventory = () => {
   const filteredTools = tools.filter((tool) => {
     const matchesSearch =
       tool.toolType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tool.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tool.toolBrand.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tool.paperType.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesBrand =
       !selectedBrand ||
       selectedBrand.brand_logo === "Custom" ||
-      tool.brand
+      tool.toolBrand
         .toLowerCase()
         .includes(
           selectedBrand.brand_logo
@@ -236,7 +231,7 @@ const MobileToolsInventory = () => {
           <div className="flex items-center justify-between w-full h-full sm:h-[64px]">
             <h1 className="text-2xl font-bold text-gray-900">Tool Inventory</h1>
             <div className="flex sm:flex hidden">
-              <Button
+              {/* <Button
                 onClick={() => router.push("/tools-inventory/upload-new-tool/upload-new-tool-page1")}
                 variant="primary"
                 size="lg"
@@ -248,7 +243,7 @@ const MobileToolsInventory = () => {
                   alt="add"
                 />
                 Upload New Tool
-              </Button>
+              </Button> */}
               <div className="flex text-[#bababa] rounded-[14px] border justify-center px-2 mx-2">
                 <Image
                   src="/images/icons/bell.svg"
@@ -393,9 +388,13 @@ const MobileToolsInventory = () => {
                     <Image src="/images/icons/wrench.svg" fill style={{ objectFit: "contain" }} alt="wrench" />
                   </div>
                 </div>
-                <p className="text-gray-500 font-medium text-center mt-[19px]">
-                  Tool Inventory is empty
+                <p className="text-gray-500 font-medium text-[11px] sm:text-[20px] text-center mt-[19px]">
+                  To start adding tools to your inventory please download our mobile
                 </p>
+                <p className="text-gray-500 font-medium text-[11px] sm:text-[20px] text-center mt-[8px]">
+                  app. Scan and manage your tools on the go with ease.
+                </p>
+
               </>
             )}
 
@@ -413,23 +412,16 @@ const MobileToolsInventory = () => {
                           Published
                         </div>
                       )}
-          
+
                       <div className="relative inline-block" data-dropdown>
                         <div className="w-[258px] sm:w-[242px]">
                           <div className="relative w-full h-[150px]">
-                            {tool.annotatedImg ? (
+                            {tool.imageUrl ? (
                               <Image
-                                src={tool.annotatedImg}
+                                src={tool.imageUrl}
                                 alt={`${tool.toolType} outlines`}
                                 fill
                                 style={{ objectFit: "contain", backgroundColor: "#f9f9f9" }}
-                              />
-                            ) : tool.backgroundImg ? (
-                              <Image
-                                src={tool.backgroundImg}
-                                alt={tool.toolType}
-                                fill
-                                style={{ objectFit: "cover" }}
                               />
                             ) : (
                               <div className="relative w-[80px] h-[80px]">
@@ -473,14 +465,12 @@ const MobileToolsInventory = () => {
                                     handleMenuClick("Publish to profile", tool);
                                   }}
                                   disabled={tool.published}
-                                  className={`w-full px-1 py-1 sm:px-3 sm:py-2 text-left flex items-center gap-[5px] hover:bg-gray-50 ${
-                                    tool.published ? 'opacity-50 cursor-not-allowed' : ''
-                                  }`}
+                                  className={`w-full px-1 py-1 sm:px-3 sm:py-2 text-left flex items-center gap-[5px] hover:bg-gray-50 ${tool.published ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
                                 >
                                   <Image src="/images/icons/share.svg" width={16} height={16} alt="share" />
-                                  <span className={`text-[10px] sm:text-[14px] font-medium ${
-                                    tool.published ? 'text-gray-400' : 'text-[#808080]'
-                                  }`}>
+                                  <span className={`text-[10px] sm:text-[14px] font-medium ${tool.published ? 'text-gray-400' : 'text-[#808080]'
+                                    }`}>
                                     {tool.published ? 'Already Published' : 'Publish to profile'}
                                   </span>
                                 </button>
@@ -504,9 +494,8 @@ const MobileToolsInventory = () => {
                         <div className="w-full h-[70px] flex flex-col justify-center">
                           <div className="flex items-baseline gap-[3px]">
                             <h3 className="font-bold text-[16px]">{tool.toolType}</h3>
-                            <span className="text-[14px] font-medium">({tool.brand})</span>
+                            <span className="text-[14px] font-medium">({tool.toolBrand})</span>
                           </div>
-                          <p className="text-[12px] text-[#b3b3b3] font-medium">{tool.paperType}</p>
                         </div>
                       </div>
                     </div>
@@ -518,7 +507,7 @@ const MobileToolsInventory = () => {
         </div>
       </div>
 
-      {/* Floating Add Button */}
+      {/* Floating Add Button
       <div className="fixed bottom-6 right-6 sm:hidden">
         <button
           className="w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-lg transition-colors"
@@ -526,9 +515,42 @@ const MobileToolsInventory = () => {
         >
           <Plus className="w-6 h-6 text-white" />
         </button>
-      </div>
+      </div> */}
+
+      {/* Show footer only when no tools */}
+      {filteredTools.length === 0 && (
+        <footer className="w-full text-center py-6 mt-auto absolute bottom-4 left-0">
+          <div className="flex flex-col justify-center items-center gap-[6px] mx-auto lg:ml-[300px] lg:mb-[40px]">
+            <p className="text-gray-500 text-sm sm:text-base">
+              Download the LUMASHAPE mobile app to get started
+            </p>
+            <p className="text-gray-500 text-sm sm:text-base">
+              <a
+                href="https://apps.apple.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                App Store
+              </a>{" "}
+              or{" "}
+              <a
+                href="https://play.google.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                Play Store
+              </a>
+            </p>
+          </div>
+        </footer>
+      )}
+
+
     </div>
   );
 };
+
 
 export default MobileToolsInventory;

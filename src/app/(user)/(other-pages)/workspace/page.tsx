@@ -383,7 +383,7 @@ const MyLayouts = () => {
                         {/* Layout details */}
                         <div className="w-full h-[70px] flex flex-col justify-center px-2">
                           <div className="flex items-baseline gap-[3px]">
-                            <h3 className="font-bold text-[16px] truncate">{`${layout.name} (${layout.brand})`}</h3>
+                            <h3 className="font-bold text-[16px] truncate">{`${layout.name}`}</h3>
                           </div>
                           <p className="text-[12px] text-[#666666] font-medium truncate">
                             {`Custom ${formatDimensions(layout.canvas)}`}

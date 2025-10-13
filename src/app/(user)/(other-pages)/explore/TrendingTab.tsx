@@ -9,20 +9,38 @@ interface UserInteraction {
     hasDownloaded: boolean;
 }
 
+// Update the TrendingTool interface to match new schema
 interface TrendingTool {
     _id: string;
+    userEmail: string;
+    toolBrand: string;
     toolType: string;
-    brand: string;
-    paperType: string;
-    annotatedImg?: string;
-    backgroundImg?: string;
-    createdBy?: { username?: string; email?: string };
+    length: number;
+    depth: number;
+    unit: string;
+    imageUrl: string;
+    userInteraction?: UserInteraction;
+    processingStatus: "pending" | "completed" | "failed";
+    cvResponse?: {
+        success?: boolean;
+        dxf_url?: string;
+        annotated_image_url?: string;
+        expanded_contour_image_url?: string;
+        contour_points_count?: number;
+        expansion_pixels?: number;
+        dimensions?: {
+            length_inches?: number;
+            depth_inches?: number;
+        };
+        [key: string]: string | number | boolean | object | undefined;
+    } | null;
+    published: boolean;
     likes: number;
     dislikes: number;
     downloads: number;
-    publishedDate?: string;
-    userInteraction?: UserInteraction;
+    publishedDate?: string | null;
     trendingScore?: number;
+    createdBy?: { username?: string; email?: string };
 }
 
 interface TrendingLayout {
@@ -349,8 +367,7 @@ const TrendingTab = () => {
         const searchLower = searchTerm.toLowerCase().trim();
         return (
             tool.toolType.toLowerCase().includes(searchLower) ||
-            tool.brand.toLowerCase().includes(searchLower) ||
-            tool.paperType.toLowerCase().includes(searchLower) ||
+            tool.toolBrand.toLowerCase().includes(searchLower) ||
             tool.createdBy?.username?.toLowerCase().includes(searchLower) ||
             tool.createdBy?.email?.toLowerCase().includes(searchLower)
         );
@@ -417,22 +434,15 @@ const TrendingTab = () => {
                                     {/* Tool Image */}
                                     <div className="w-[258px] sm:w-[242px]">
                                         <div className="relative w-full h-[150px]">
-                                            {tool.annotatedImg ? (
+                                            {tool.imageUrl ? (
                                                 <Image
-                                                    src={tool.annotatedImg}
+                                                    src={tool.imageUrl}
                                                     alt={`${tool.toolType} outlines`}
                                                     fill
                                                     style={{
                                                         objectFit: "contain",
                                                         backgroundColor: "#f9f9f9",
                                                     }}
-                                                />
-                                            ) : tool.backgroundImg ? (
-                                                <Image
-                                                    src={tool.backgroundImg}
-                                                    alt={tool.toolType}
-                                                    fill
-                                                    style={{ objectFit: "cover" }}
                                                 />
                                             ) : (
                                                 <div className="relative w-[80px] h-[80px] mx-auto mt-8">
@@ -502,12 +512,9 @@ const TrendingTab = () => {
                                                     {tool.toolType}
                                                 </h3>
                                                 <span className="text-[14px] font-medium">
-                                                    ({tool.brand})
+                                                    ({tool.toolBrand})
                                                 </span>
                                             </div>
-                                            <p className="text-[12px] text-[#b3b3b3] font-medium">
-                                                {tool.paperType}
-                                            </p>
                                             {tool.createdBy && (
                                                 <p className="text-[12px] text-[#b3b3b3] font-medium mt-1 flex items-center gap-2">
                                                     <span className="w-5 h-5 flex items-center justify-center bg-primary rounded-full text-[10px] text-white">

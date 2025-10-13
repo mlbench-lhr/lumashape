@@ -222,8 +222,8 @@ const Header: React.FC<HeaderProps> = ({
         const DPI = 96;
         const inchesToPx = (inches: number) => inches * DPI;
 
-        if (tool.metadata?.diagonalInches) {
-            const toolHeightPx = inchesToPx(tool.metadata.diagonalInches);
+        if (tool.metadata?.length) {
+            const toolHeightPx = inchesToPx(tool.metadata.length);
             let aspectRatio = 1.6;
 
             if (
@@ -431,7 +431,7 @@ const Header: React.FC<HeaderProps> = ({
             content += `  ID: ${tool.id}\n`;
             content += `  Original ID: ${tool.metadata?.originalId || 'N/A'}\n`;
             content += `  Name: ${tool.name}\n`;
-            content += `  Brand: ${tool.brand}\n`;
+            content += `  Brand: ${tool.toolBrand}\n`;
 
             // Convert position from pixels to inches
             const xInches = convertPositionToInches(tool.x, canvasWidth);
@@ -441,9 +441,9 @@ const Header: React.FC<HeaderProps> = ({
 
             content += `  Rotation: ${tool.rotation}°\n`;
 
-            // Use diagonal inches instead of width × length
-            if (tool.metadata?.diagonalInches) {
-                content += `  Height (Diagonal): ${tool.metadata.diagonalInches} inches\n`;
+            // Use length instead of width × length
+            if (tool.metadata?.length) {
+                content += `  Height (Diagonal): ${tool.metadata.length} inches\n`;
             } else if (tool.width && tool.length) {
                 const diagonal = Math.sqrt(tool.width ** 2 + tool.length ** 2);
                 const diagInches = tool.unit === 'mm' ? mmToInches(diagonal).toFixed(2) : diagonal.toFixed(2);
@@ -468,7 +468,7 @@ const Header: React.FC<HeaderProps> = ({
         // Summary Statistics
         content += `SUMMARY\n`;
         content += `${'-'.repeat(20)}\n`;
-        const brands = [...new Set(droppedTools.map(tool => tool.brand))];
+        const brands = [...new Set(droppedTools.map(tool => tool.toolBrand))];
         const toolTypes = [...new Set(droppedTools.map(tool => tool.name))];
 
         content += `Unique Brands: ${brands.join(', ')}\n`;

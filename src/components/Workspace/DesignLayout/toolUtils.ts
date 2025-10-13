@@ -478,7 +478,7 @@ export const createShape = (
     id: `${shapeType}_${Date.now()}`,
     name: name,
     icon: icon,
-    brand: 'SHAPE',
+    toolBrand: 'SHAPE',
     image: `/images/workspace/${shapeType}.svg`,
     x: position.x,
     y: position.y,
@@ -492,7 +492,7 @@ export const createShape = (
     opacity: 100,
     smooth: 0,
     metadata: {
-      diagonalInches: sizeInInches,
+      length: sizeInInches,
       naturalWidth: 23,  // SVG viewBox dimensions
       naturalHeight: 24, // SVG viewBox dimensions
     }
@@ -514,7 +514,7 @@ export const createFingerCut = (
     id: `fingercut-${Date.now()}`,
     name: 'Finger Cut',
     icon: '⭕', // Changed from 'hand' to cylinder icon
-    brand: 'FINGERCUT',
+    toolBrand: 'FINGERCUT',
     x: position.x - 25,
     y: position.y - 15,
     rotation: 0,
@@ -530,7 +530,7 @@ export const createFingerCut = (
       isFingerCut: true,
       fingerCutWidth: 50,
       fingerCutLength: 30,
-      diagonalInches: 2.0,
+      length: 2.0,
     },
   };
 
