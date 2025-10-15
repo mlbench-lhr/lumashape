@@ -217,15 +217,34 @@ const Header: React.FC<HeaderProps> = ({
         return Number(inches.toFixed(2));
     };
 
-    // Helper function to get tool dimensions (replicated from useCanvas)
+    // Helper function to get tool dimensions (aligned with Canvas.tsx)
     const getToolDimensions = (tool: DroppedTool) => {
         const DPI = 96;
+        const mmToPx = (mm: number) => (mm / 25.4) * DPI;
         const inchesToPx = (inches: number) => inches * DPI;
 
+        // Shapes and finger cuts: convert stored width/length (mm/inches) to pixels
+        if (tool.toolBrand === 'SHAPE' || tool.metadata?.isFingerCut) {
+            const widthPx =
+                tool.unit === 'mm'
+                    ? mmToPx(tool.width || 0)
+                    : inchesToPx(tool.width || 0);
+            const heightPx =
+                tool.unit === 'mm'
+                    ? mmToPx(tool.length || 0)
+                    : inchesToPx(tool.length || 0);
+
+            return {
+                toolWidth: Math.max(20, widthPx),
+                toolHeight: Math.max(20, heightPx),
+            };
+        }
+
+        // Image tools: use metadata.length (treated as height) + aspect ratio
         if (tool.metadata?.length) {
             const toolHeightPx = inchesToPx(tool.metadata.length);
-            let aspectRatio = 1.6;
 
+            let aspectRatio = 1.6;
             if (
                 tool.metadata?.naturalWidth &&
                 tool.metadata?.naturalHeight &&
@@ -243,6 +262,7 @@ const Header: React.FC<HeaderProps> = ({
             };
         }
 
+        // Fallback for legacy cases
         return {
             toolWidth: tool.width || 50,
             toolHeight: tool.length || 50,
@@ -250,7 +270,7 @@ const Header: React.FC<HeaderProps> = ({
     };
 
     // Generate DXF file using Gradio
-    // Update the generateDxfFile function
+    // Inside Header.tsx
     const generateDxfFile = async () => {
         if (droppedTools.length === 0) {
             setSaveError("Cannot generate DXF with no tools. Please add at least one tool.");
@@ -281,24 +301,79 @@ const Header: React.FC<HeaderProps> = ({
             const authToken = localStorage.getItem("auth-token");
             if (!authToken) throw new Error("Missing auth token");
 
-            // Prepare tools array for the API request
-            const tools = [];
+            // Prepare arrays for tools and shapes
+            const tools: any[] = [];
+            const shapes: any[] = [];
 
-            // Inside the generateDxfFile function where we prepare tools for the API
+            // Process all dropped items
             for (const droppedTool of droppedTools) {
-                // Get the original tool ID
-                const toolId = droppedTool.metadata?.originalId || droppedTool.id.split('-').slice(0, -1).join('-');
-
                 // Get tool dimensions to calculate bottom-left position
                 const { toolHeight } = getToolDimensions(droppedTool);
 
-                // Convert positions to inches using the same logic as Canvas tooltip
-                // X position stays the same (left edge)
+                // Convert positions to inches with bottom-left origin for Y
                 const xInches = convertPositionToInches(droppedTool.x, canvasWidth, true);
-                // Y position uses bottom edge of tool (tool.y + toolHeight) for bottom-left origin
                 const yInches = convertPositionToInches(droppedTool.y + toolHeight, canvasHeight, false);
 
-                // Get tool data
+                // Treat shapes and finger cuts as custom shapes
+                const isShape = droppedTool.toolBrand === 'SHAPE';
+                const isFingerCut = droppedTool.toolBrand === 'FINGERCUT' || droppedTool.metadata?.isFingerCut;
+
+                if (isShape || isFingerCut) {
+                    let shapeType: 'rectangle' | 'circle' | 'polygon' = 'rectangle';
+                    let shapeData: any = {};
+                    let name = droppedTool.name;
+
+                    if (isFingerCut || droppedTool.name.toLowerCase().includes('finger')) {
+                        // Finger Cut: rectangle using width × length
+                        const widthInches = unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
+                        const heightInches = unit === "mm" ? mmToInches(droppedTool.length) : droppedTool.length;
+                        shapeData = { width_inches: widthInches, height_inches: heightInches };
+                        shapeType = 'rectangle';
+                        name = "Finger Cut Rectangle";
+                    } else if (droppedTool.name.toLowerCase().includes('circle') || droppedTool.image?.includes('circle.svg')) {
+                        // Circle: radius from diameter (max of width/length)
+                        shapeType = 'circle';
+                        const diameter = Math.max(droppedTool.width, droppedTool.length);
+                        const radiusInches = unit === "mm" ? mmToInches(diameter / 2) : diameter / 2;
+                        shapeData = { radius_inches: radiusInches };
+                    } else if (droppedTool.name.toLowerCase().includes('polygon')) {
+                        // Polygon: simple rectangle path (extend as needed)
+                        shapeType = 'polygon';
+                        const widthInches = unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
+                        const heightInches = unit === "mm" ? mmToInches(droppedTool.length) : droppedTool.length;
+                        shapeData = {
+                            points: [
+                                { x: 0, y: 0 },
+                                { x: widthInches, y: 0 },
+                                { x: widthInches, y: heightInches },
+                                { x: 0, y: heightInches }
+                            ]
+                        };
+                    } else {
+                        // Default rectangle
+                        const widthInches = unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
+                        const heightInches = unit === "mm" ? mmToInches(droppedTool.length) : droppedTool.length;
+                        shapeData = { width_inches: widthInches, height_inches: heightInches };
+                        shapeType = 'rectangle';
+                    }
+
+                    // Push shape entry in the payload
+                    shapes.push({
+                        tool_id: droppedTool.id,
+                        name,
+                        brand: "Custom",
+                        is_custom_shape: true,
+                        shape_type: shapeType,
+                        shape_data: shapeData,
+                        position_inches: { x: xInches, y: yInches },
+                        rotation_degrees: droppedTool.rotation || 0
+                    });
+
+                    continue; // Skip the regular tool branch for shapes
+                }
+
+                // Regular tool: fetch dxf_link and include standard fields
+                const toolId = droppedTool.metadata?.originalId || droppedTool.id.split('-').slice(0, -1).join('-');
                 const toolRes = await fetch(`/api/user/tool/getTool?toolId=${toolId}`, {
                     headers: { Authorization: `Bearer ${authToken}` },
                 });
@@ -313,12 +388,11 @@ const Header: React.FC<HeaderProps> = ({
                     throw new Error(`Tool ${toolId} has no DXF link`);
                 }
 
-                // Add tool to the array with properly calculated positions
                 tools.push({
                     tool_id: toolId,
                     name: droppedTool.name,
                     brand: tool.toolBrand || "Brand",
-                    dxf_link: tool.cvResponse.dxf_url,
+                    dxf_link: (tool.cvResponse.dxf_url || '').trim(),
                     position_inches: { x: xInches, y: yInches },
                     rotation_degrees: droppedTool.rotation || 0,
                     height_diagonal_inches: tool.length || 5.0,
@@ -330,7 +404,7 @@ const Header: React.FC<HeaderProps> = ({
                 });
             }
 
-            // Prepare the request data
+            // Prepare the request data (tools + shapes together)
             const requestData = {
                 canvas_information: {
                     width_inches: canvasWidthInches,
@@ -340,8 +414,10 @@ const Header: React.FC<HeaderProps> = ({
                 },
                 layout_metadata: {
                     layout_name: layoutName,
+                    brand: "CustomBrand",      // TODO: wire to sessionForm if available
+                    container_type: "Drawer",  // TODO: wire to sessionForm if available
                 },
-                tools: tools,
+                tools: [...tools, ...shapes],
                 output_filename: `${layoutName.replace(/\s+/g, "_")}-layout.dxf`,
                 upload_to_s3: true,
             };
