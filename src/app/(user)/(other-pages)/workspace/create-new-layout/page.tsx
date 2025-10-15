@@ -72,6 +72,11 @@ const CreateNewLayout = () => {
     if (!validateForm()) {
       e.preventDefault(); // stop navigation
     }
+    // Clear any stale edit-mode ID so navigation to canvas uses POST
+    useEffect(() => {
+        try { sessionStorage.removeItem('editingLayoutId'); } catch {}
+    }, []);
+
   };
 
   return (

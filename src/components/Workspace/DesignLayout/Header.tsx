@@ -858,8 +858,14 @@ const Header: React.FC<HeaderProps> = ({
                 try { return sessionStorage.getItem('editingLayoutId'); } catch { return null; }
             })();
 
-            const endpoint = editingLayoutId ? `/api/layouts?id=${editingLayoutId}` : `/api/layouts`;
-            const method = editingLayoutId ? "PUT" : "POST";
+            const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+            const isEditPath = pathname.startsWith('/workspace/edit-layout/');
+
+            const endpoint = editingLayoutId && isEditPath
+                ? `/api/layouts?id=${editingLayoutId}`
+                : `/api/layouts`;
+
+            const method = editingLayoutId && isEditPath ? "PUT" : "POST";
 
             const response = await fetch(endpoint, {
                 method,

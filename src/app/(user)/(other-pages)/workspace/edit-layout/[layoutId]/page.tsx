@@ -29,11 +29,11 @@ function getAuthToken(): string | null {
   }
 }
 
-export default function EditLayoutPage({ params }: { params: { layoutId: string } }) {
+export default function EditLayoutPage({ params }: { params: Promise<{ layoutId: string }> }) {
   const [initialTools, setInitialTools] = useState<DroppedTool[]>([]);
   const [initialCanvas, setInitialCanvas] = useState<CanvasInit | null>(null);
   const [ready, setReady] = useState(false);
-  const layoutId = params.layoutId;
+  const { layoutId } = React.use(params);
 
   useEffect(() => {
     async function loadLayout() {
@@ -161,12 +161,24 @@ export default function EditLayoutPage({ params }: { params: { layoutId: string 
       });
 
       setInitialTools(mapped);
+      // Persist name and canvas settings for Header save
       try {
-        sessionStorage.setItem('editingLayoutId', layoutId);
+          sessionStorage.setItem('layoutForm', JSON.stringify({
+              layoutName: layout.name,
+              canvasWidth: layout.canvas.width,
+              canvasHeight: layout.canvas.height,
+              units: layout.canvas.unit,
+              thickness: layout.canvas.thickness,
+          }));
       } catch {}
+      
+      // Keep edit-mode state for PUT
+      try {
+          sessionStorage.setItem('editingLayoutId', layoutId);
+      } catch {}
+      
       setReady(true);
     }
-
     loadLayout();
   }, [layoutId]);
 
