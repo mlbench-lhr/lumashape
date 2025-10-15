@@ -221,7 +221,7 @@ const MyLayouts = () => {
 
   // Format canvas dimensions
   const formatDimensions = (canvas: CanvasData) => {
-    return `(${canvas.width}" × ${canvas.height}")`;
+    return `(${canvas.width}" × ${canvas.height}" x ${canvas.thickness}) ${canvas.unit}`
   };
 
   return (

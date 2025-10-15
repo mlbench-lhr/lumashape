@@ -696,7 +696,7 @@ const TrendingTab = () => {
 
                                                 {/* Dimensions */}
                                                 <p className="text-[12px] text-[#b3b3b3] font-medium">
-                                                    {`Custom (${layout.metadata?.width}" × ${layout.metadata?.length}" × ${layout.metadata?.thickness}" )`}
+                                                    {`Custom (${layout.metadata?.width}" × ${layout.metadata?.length}" × ${layout.metadata?.thickness}" ) ${layout.metadata?.units}`}
                                                 </p>
                                             </div>
 

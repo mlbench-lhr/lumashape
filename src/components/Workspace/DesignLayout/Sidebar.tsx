@@ -9,7 +9,6 @@ import Image from 'next/image';
 import { DroppedTool, Tool, ToolGroup } from './types';
 import DraggableTool from './DraggableTool';
 import {
-    rotateTool,
     flipToolRelativeToRotation,
     groupSelectedTools,
     ungroupSelectedTools,
@@ -38,7 +37,6 @@ interface SidebarProps {
     canRedo?: boolean;
     onUndo?: () => void;
     onRedo?: () => void;
-    // Add canvas properties for shape creation
     canvasWidth?: number;
     canvasHeight?: number;
     unit?: 'mm' | 'inches';
@@ -46,7 +44,6 @@ interface SidebarProps {
 }
 
 
-// Database tool interface
 // Database tool interface
 interface DatabaseTool {
     _id: string;
@@ -56,11 +53,14 @@ interface DatabaseTool {
     imageUrl: string;
     outlinesImg: string;
     length: number;
-    dxfLink: string;   // ✅ new
-    scaleFactor: number;      // ✅ new
+    dxfLink: string;
+    scaleFactor: number;
     createdAt: string;
     updatedAt: string;
     __v: number;
+    cvResponse?: {
+        expanded_contour_image_url?: string;
+    };
 }
 
 
@@ -74,14 +74,10 @@ const Sidebar: React.FC<SidebarProps> = ({
     setGroups = () => { },
     setSelectedTools = () => { },
     onHistoryChange,
-    canUndo = false,
-    canRedo = false,
-    onUndo = () => { },
-    onRedo = () => { },
     canvasWidth,
     canvasHeight,
     unit,
-    setActiveTool = () => {}
+    setActiveTool = () => { }
 }) => {
 
     const [activeTab, setActiveTab] = useState<'inventory' | 'edit'>('inventory');
@@ -89,6 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     const [tools, setTools] = useState<Tool[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isContourMode, setIsContourMode] = useState(false);
 
     const selectedToolObject = selectedTool ? droppedTools.find(tool => tool.id === selectedTool) : null;
     const isFingerCutSelected = selectedToolObject?.metadata?.isFingerCut;
@@ -107,7 +104,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             scaleFactor,
             createdAt,
             updatedAt,
-            __v
+            __v,
+            cvResponse
         } = dbTool;
 
         return {
@@ -117,6 +115,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             toolType,
             imageUrl,
             outlinesImg,
+            expanded_contour_image_url: cvResponse?.expanded_contour_image_url,
             length,
             dxfLink,
             scaleFactor,
@@ -189,6 +188,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     toolType: extractedData.toolType,
                     imageUrl: extractedData.imageUrl,
                     outlinesImg: extractedData.outlinesImg,
+                    expanded_contour_image_url: extractedData.expanded_contour_image_url,
                     length: extractedData.length,
                     dxfLink: extractedData.dxfLink,
                     scaleFactor: extractedData.scaleFactor,
@@ -350,18 +350,41 @@ const Sidebar: React.FC<SidebarProps> = ({
         onHistoryChange?.();
     }, [droppedTools, effectiveSelectedTools, setDroppedTools, onHistoryChange]);
 
-        const handleCreateShape = useCallback((shapeType: 'circle' | 'square' | 'cylinder') => {
+    const handleCreateShape = useCallback((shapeType: 'circle' | 'square' | 'cylinder') => {
         const position = { x: 200, y: 150 };
         createShape(droppedTools, setDroppedTools, shapeType, position, canvasWidth, canvasHeight, unit);
         onHistoryChange?.();
     }, [droppedTools, setDroppedTools, onHistoryChange, canvasWidth, canvasHeight, unit]);
 
-    const handleAppearanceChange = useCallback((property: 'opacity' | 'smooth', value: number) => {
-        if (selectedTool) {
-            const clampedValue = Math.max(0, Math.min(100, value));
-            updateToolAppearance(selectedTool, droppedTools, setDroppedTools, property, clampedValue);
-        }
-    }, [selectedTool, droppedTools, setDroppedTools]);
+    const handleAssignContour = useCallback(() => {
+        const newContourMode = !isContourMode;
+        setIsContourMode(newContourMode);
+
+        setDroppedTools(prevTools =>
+            prevTools.map(tool => {
+                const expandedContourUrl = tool.metadata?.expanded_contour_image_url;
+                const originalUrl = tool.metadata?.imageUrl;
+
+                if (newContourMode && expandedContourUrl) {
+                    // Switch to contour image
+                    return {
+                        ...tool,
+                        image: expandedContourUrl
+                    };
+                } else if (!newContourMode && originalUrl) {
+                    // Switch back to original image
+                    return {
+                        ...tool,
+                        image: originalUrl
+                    };
+                }
+
+                return tool;
+            })
+        );
+
+        onHistoryChange?.();
+    }, [isContourMode, setDroppedTools, onHistoryChange]);
 
     const ToolInventoryView = () => (
         <>
@@ -435,41 +458,37 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div className="grid grid-cols-2 gap-2">
                     <button
                         onClick={() => setActiveTool('cursor')}
-                        className={`p-2 rounded text-sm font-medium transition-colors ${
-                            activeTool === 'cursor' 
-                                ? 'bg-blue-500 text-white' 
+                        className={`p-2 rounded text-sm font-medium transition-colors ${activeTool === 'cursor'
+                                ? 'bg-blue-500 text-white'
                                 : 'bg-white text-gray-700 hover:bg-gray-100'
-                        }`}
+                            }`}
                     >
                         Select
                     </button>
                     <button
                         onClick={() => setActiveTool('hand')}
-                        className={`p-2 rounded text-sm font-medium transition-colors ${
-                            activeTool === 'hand' 
-                                ? 'bg-blue-500 text-white' 
+                        className={`p-2 rounded text-sm font-medium transition-colors ${activeTool === 'hand'
+                                ? 'bg-blue-500 text-white'
                                 : 'bg-white text-gray-700 hover:bg-gray-100'
-                        }`}
+                            }`}
                     >
                         Pan
                     </button>
                     <button
                         onClick={() => setActiveTool('box')}
-                        className={`p-2 rounded text-sm font-medium transition-colors ${
-                            activeTool === 'box' 
-                                ? 'bg-blue-500 text-white' 
+                        className={`p-2 rounded text-sm font-medium transition-colors ${activeTool === 'box'
+                                ? 'bg-blue-500 text-white'
                                 : 'bg-white text-gray-700 hover:bg-gray-100'
-                        }`}
+                            }`}
                     >
                         Select Box
                     </button>
                     <button
                         onClick={() => setActiveTool('fingercut')}
-                        className={`p-2 rounded text-sm font-medium transition-colors flex items-center justify-center gap-1 ${
-                            activeTool === 'fingercut' 
-                                ? 'bg-blue-500 text-white' 
+                        className={`p-2 rounded text-sm font-medium transition-colors flex items-center justify-center gap-1 ${activeTool === 'fingercut'
+                                ? 'bg-blue-500 text-white'
                                 : 'bg-white text-gray-700 hover:bg-gray-100'
-                        }`}
+                            }`}
                     >
                         <Hand className="w-4 h-4" />
                         Finger Cut
@@ -549,6 +568,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             action: handleAutoLayout,
             disabled: effectiveSelectedTools.length < 2
         },
+        {
+            icon: "/images/workspace/layout.svg",
+            label: isContourMode ? 'Remove Contour' : 'Assign Contour',
+            action: handleAssignContour,
+            disabled: droppedTools.length === 0
+        },
     ];
 
     const EditLayoutView = () => (
@@ -598,7 +623,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
             </div>
 
-             {/* Finger Cut Controls */}
+            {/* Finger Cut Controls */}
             {isFingerCutSelected && selectedToolObject && (
                 <div className="bg-blue-50 p-4 rounded-lg">
                     <h3 className="text-sm font-medium text-blue-800 mb-3 flex items-center gap-2">
@@ -690,7 +715,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
             </div>
 
-                        {/* Add Shapes Section */}
+            {/* Add Shapes Section */}
             <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Add Shapes</h3>
                 <div className="flex space-x-4">

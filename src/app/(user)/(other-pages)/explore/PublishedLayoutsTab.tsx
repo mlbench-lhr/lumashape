@@ -114,6 +114,54 @@ const PublishedLayoutsTab = () => {
         setAvailableToolBrands(Array.from(toolBrands).sort());
     };
 
+    // Conversion helper functions
+    const convertToMm = (value: number, unit: string): number => {
+        if (unit === "inches") {
+            return value * 25.4; // 1 inch = 25.4 mm
+        }
+        return value;
+    };
+
+    const convertToInches = (value: number, unit: string): number => {
+        if (unit === "mm") {
+            return value / 25.4;
+        }
+        return value;
+    };
+
+    // Normalize layout values to selected unit for comparison
+    const normalizeToSelectedUnit = (value: number, layoutUnit: string): number => {
+        if (selectedUnit === "mm") {
+            return convertToMm(value, layoutUnit);
+        } else if (selectedUnit === "inches") {
+            return convertToInches(value, layoutUnit);
+        }
+        return value;
+    };
+
+    // Get thickness options based on selected unit
+    const getThicknessOptions = () => {
+        if (selectedUnit === "mm") {
+            return [
+                { value: "12.7", label: "12.7" },  // 0.5 inches
+                { value: "25.4", label: "25.4" },  // 1.0 inch
+                { value: "38.1", label: "38.1" },  // 1.5 inches
+                { value: "50.8", label: "50.8" },  // 2.0 inches
+                { value: "63.5", label: "63.5" },  // 2.5 inches
+                { value: "76.2", label: "76.2" },  // 3.0 inches
+            ];
+        } else {
+            return [
+                { value: "0.5", label: "0.5" },
+                { value: "1.0", label: "1.0" },
+                { value: "1.5", label: "1.5" },
+                { value: "2.0", label: "2.0" },
+                { value: "2.5", label: "2.5" },
+                { value: "3.0", label: "3.0" },
+            ];
+        }
+    };
+
     const applyFilters = () => {
         let filtered = [...publishedLayouts];
 
@@ -142,35 +190,50 @@ const PublishedLayoutsTab = () => {
             );
         }
 
-        // Thickness filter
-        if (selectedThickness) {
-            const thickness = parseFloat(selectedThickness);
-            filtered = filtered.filter(layout =>
-                layout.canvas?.thickness === thickness
-            );
-        }
-
-        // Unit filter
+        // Unit filter - filter first, then apply unit-specific filters
         if (selectedUnit) {
             filtered = filtered.filter(layout =>
-                layout.canvas?.unit === selectedUnit
+                (layout.canvas?.unit === selectedUnit || layout.metadata?.units === selectedUnit)
             );
         }
 
-        // Length filter
-        if (selectedLength) {
-            const length = parseFloat(selectedLength);
-            filtered = filtered.filter(layout =>
-                (layout.canvas?.height || layout.metadata?.length) === length
-            );
+        // Thickness filter - convert to selected unit for comparison
+        if (selectedThickness && selectedUnit) {
+            const targetThickness = parseFloat(selectedThickness);
+            filtered = filtered.filter(layout => {
+                const layoutThickness = layout.canvas?.thickness || layout.metadata?.thickness;
+                const layoutUnit = layout.canvas?.unit || layout.metadata?.units;
+                if (!layoutThickness || !layoutUnit) return false;
+
+                const normalizedThickness = normalizeToSelectedUnit(layoutThickness, layoutUnit);
+                return Math.abs(normalizedThickness - targetThickness) < 0.01; // Small tolerance for float comparison
+            });
         }
 
-        // Width filter
-        if (selectedWidth) {
-            const width = parseFloat(selectedWidth);
-            filtered = filtered.filter(layout =>
-                (layout.canvas?.width || layout.metadata?.width) === width
-            );
+        // Length filter - convert to selected unit for comparison
+        if (selectedLength && parseFloat(selectedLength) > 0 && selectedUnit) {
+            const targetLength = parseFloat(selectedLength);
+            filtered = filtered.filter(layout => {
+                const layoutLength = layout.canvas?.height || layout.metadata?.length;
+                const layoutUnit = layout.canvas?.unit || layout.metadata?.units;
+                if (!layoutLength || !layoutUnit) return false;
+
+                const normalizedLength = normalizeToSelectedUnit(layoutLength, layoutUnit);
+                return Math.abs(normalizedLength - targetLength) < 0.01;
+            });
+        }
+
+        // Width filter - convert to selected unit for comparison
+        if (selectedWidth && parseFloat(selectedWidth) > 0 && selectedUnit) {
+            const targetWidth = parseFloat(selectedWidth);
+            filtered = filtered.filter(layout => {
+                const layoutWidth = layout.canvas?.width || layout.metadata?.width;
+                const layoutUnit = layout.canvas?.unit || layout.metadata?.units;
+                if (!layoutWidth || !layoutUnit) return false;
+
+                const normalizedWidth = normalizeToSelectedUnit(layoutWidth, layoutUnit);
+                return Math.abs(normalizedWidth - targetWidth) < 0.01;
+            });
         }
 
         // Tool Type filter
@@ -212,7 +275,6 @@ const PublishedLayoutsTab = () => {
 
             const data = await res.json();
 
-            // Update local state to reflect the change
             setPublishedLayouts(prev => prev.map(layout =>
                 layout._id === layoutId
                     ? {
@@ -262,15 +324,15 @@ const PublishedLayoutsTab = () => {
             setPublishedLayouts(prevLayouts =>
                 prevLayouts.map(l =>
                     l._id === layout._id
-                        ? { 
-                            ...l, 
+                        ? {
+                            ...l,
                             downloads: (l.downloads || 0) + 1,
-                            userInteraction: { 
+                            userInteraction: {
                                 hasLiked: l.userInteraction?.hasLiked || false,
                                 hasDisliked: l.userInteraction?.hasDisliked || false,
-                                hasDownloaded: true 
+                                hasDownloaded: true
                             }
-                          }
+                        }
                         : l
                 )
             );
@@ -319,6 +381,27 @@ const PublishedLayoutsTab = () => {
         selectedThickness || selectedUnit || selectedLength || selectedWidth ||
         selectedToolType || selectedToolBrand;
 
+    const handleLengthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        if (value === '' || parseFloat(value) >= 0) {
+            setSelectedLength(value);
+        }
+    };
+
+    const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        if (value === '' || parseFloat(value) >= 0) {
+            setSelectedWidth(value);
+        }
+    };
+
+    // Reset thickness when unit changes
+    const handleUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setSelectedUnit(e.target.value);
+        setSelectedThickness(""); // Reset thickness when unit changes
+    };
+
+
     return (
         <div>
             {/* Filter Section */}
@@ -342,31 +425,12 @@ const PublishedLayoutsTab = () => {
 
                     {/* First Row of Filters */}
                     <div className="flex flex-wrap items-center gap-3">
-                        {/* Thickness */}
-                        <div className="relative">
-                            <select
-                                className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[120px]"
-                                value={selectedThickness}
-                                onChange={(e) => setSelectedThickness(e.target.value)}
-                            >
-                                <option value="">Thickness</option>
-                                <option value="3">0.5</option>
-                                <option value="4">1.0</option>
-                                <option value="5">1.5</option>
-                            </select>
-                            <img
-                                src="/images/icons/explore/published_layouts/thickness.svg"
-                                alt="thickness"
-                                className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4"
-                            />
-                        </div>
-
-                        {/* Unit */}
+                        {/* Unit - Place first so it affects other filters */}
                         <div className="relative">
                             <select
                                 className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[100px]"
                                 value={selectedUnit}
-                                onChange={(e) => setSelectedUnit(e.target.value)}
+                                onChange={handleUnitChange}
                             >
                                 <option value="">Unit</option>
                                 <option value="mm">mm</option>
@@ -375,14 +439,39 @@ const PublishedLayoutsTab = () => {
                             <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
                         </div>
 
+                        {/* Thickness - Options change based on unit */}
+                        <div className="relative">
+                            <select
+                                className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[120px]"
+                                value={selectedThickness}
+                                onChange={(e) => setSelectedThickness(e.target.value)}
+                                disabled={!selectedUnit}
+                            >
+                                <option value="">Thickness</option>
+                                {getThicknessOptions().map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <img
+                                src="/images/icons/explore/published_layouts/thickness.svg"
+                                alt="thickness"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4"
+                            />
+                        </div>
+
                         {/* Length */}
                         <div className="relative">
                             <input
                                 type="number"
-                                placeholder="L 50mm"
+                                placeholder={selectedUnit === "mm" ? "L mm" : selectedUnit === "inches" ? "L inches" : "L"}
                                 value={selectedLength}
-                                onChange={(e) => setSelectedLength(e.target.value)}
-                                className="appearance-none py-2 pl-3 pr-10 border rounded-md text-gray-700 focus:outline-none w-[120px]"
+                                onChange={handleLengthChange}
+                                min="0"
+                                step={selectedUnit === "mm" ? "1" : "0.1"}
+                                disabled={!selectedUnit}
+                                className="appearance-none py-2 pl-3 pr-10 border rounded-md text-gray-700 focus:outline-none w-[120px] disabled:bg-gray-100"
                             />
                             <img
                                 src="/images/icons/explore/published_layouts/length.svg"
@@ -395,10 +484,13 @@ const PublishedLayoutsTab = () => {
                         <div className="relative">
                             <input
                                 type="number"
-                                placeholder="W 14mm"
+                                placeholder={selectedUnit === "mm" ? "W mm" : selectedUnit === "inches" ? "W inches" : "W"}
                                 value={selectedWidth}
-                                onChange={(e) => setSelectedWidth(e.target.value)}
-                                className="appearance-none py-2 pl-3 pr-10 border rounded-md text-gray-700 focus:outline-none w-[120px]"
+                                onChange={handleWidthChange}
+                                min="0"
+                                step={selectedUnit === "mm" ? "1" : "0.1"}
+                                disabled={!selectedUnit}
+                                className="appearance-none py-2 pl-3 pr-10 border rounded-md text-gray-700 focus:outline-none w-[120px] disabled:bg-gray-100"
                             />
                             <img
                                 src="/images/icons/explore/published_layouts/width.svg"
@@ -570,7 +662,7 @@ const PublishedLayoutsTab = () => {
 
                                             {/* Dimensions */}
                                             <p className="text-[12px] text-[#b3b3b3] font-medium">
-                                                {`Custom (${layout.metadata?.width || layout.canvas?.width}" × ${layout.metadata?.length || layout.canvas?.height}" × ${layout.metadata?.thickness || layout.canvas?.thickness}" )`}
+                                                {`Custom (${layout.metadata?.width || layout.canvas?.width}" × ${layout.metadata?.length || layout.canvas?.height}" × ${layout.metadata?.thickness || layout.canvas?.thickness}" ) ${layout.metadata?.units || layout.canvas?.unit}`}
                                             </p>
                                         </div>
 
