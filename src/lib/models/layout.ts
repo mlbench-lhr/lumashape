@@ -17,6 +17,10 @@ interface Tool {
   smooth: number;
   image: string;
   groupId?: string | null;
+  // NEW: Shape-specific fields
+  isCustomShape?: boolean;
+  shapeType?: "rectangle" | "circle" | "polygon";
+  shapeData?: Record<string, unknown>;
 }
 
 interface Canvas {
@@ -91,6 +95,10 @@ const ToolSchema = new mongoose.Schema<Tool>(
     smooth: { type: Number, min: 0, max: 100, default: 0 },
     image: { type: String, default: "" },
     groupId: { type: String, default: null },
+    // NEW: Shape-specific fields
+    isCustomShape: { type: Boolean, default: false },
+    shapeType: { type: String, enum: ["rectangle", "circle", "polygon"], required: false },
+    shapeData: { type: mongoose.Schema.Types.Mixed, required: false },
   },
   { _id: false }
 );
