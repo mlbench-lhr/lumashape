@@ -119,6 +119,24 @@ export const useCanvas = ({
 
   // Tool-specific dimensions based on tool type
   const getToolDimensions = useCallback((tool: DroppedTool) => {
+    // Use explicit width/length for shapes so resizing reflects visually
+    if (tool.toolBrand === 'SHAPE') {
+      const widthPx =
+        tool.unit === 'mm'
+          ? mmToPx(tool.width || 0)
+          : inchesToPx(tool.width || 0);
+      const heightPx =
+        tool.unit === 'mm'
+          ? mmToPx(tool.length || 0)
+          : inchesToPx(tool.length || 0);
+
+      return {
+        toolWidth: Math.max(20, widthPx),
+        toolHeight: Math.max(20, heightPx),
+      };
+    }
+
+    // Image tools: use metadata length (treated as height) + aspect ratio
     if (tool.metadata?.length) {
       // 🔹 Now this is actually the HEIGHT of the tool, not the diagonal
       const toolHeightPx = inchesToPx(tool.metadata.length);
@@ -143,12 +161,12 @@ export const useCanvas = ({
       };
     }
 
-    // Legacy fallback if no diagonalInches
+    // Fallback
     return {
       toolWidth: tool.width || 50,
       toolHeight: tool.length || 50,
     };
-  }, [inchesToPx]);
+  }, [mmToPx, inchesToPx]);
 
 
   // Constrain tool position to canvas boundaries
