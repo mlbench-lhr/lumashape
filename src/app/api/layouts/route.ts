@@ -194,9 +194,7 @@ const validateTools = (tools: unknown): ToolData[] => {
     if ('shapeData' in toolObj && typeof toolObj.shapeData === 'object' && toolObj.shapeData !== null) {
       validatedTool.shapeData = toolObj.shapeData as Record<string, unknown>;
     }
-
-
-
+    
     // Store metadata and real dimensions
     if (metadata && typeof metadata === 'object') {
       validatedTool.metadata = metadata as ToolData['metadata'];
