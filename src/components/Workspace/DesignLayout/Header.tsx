@@ -28,6 +28,36 @@ interface LayoutFormData {
     thickness?: number;
 }
 
+interface ToolPayload {
+    tool_id: string;
+    name: string;
+    brand: string;
+    dxf_link?: string;
+    position_inches: { x: number; y: number };
+    rotation_degrees: number;
+    height_diagonal_inches?: number;
+    thickness_inches?: number;
+    flip_horizontal?: boolean;
+    flip_vertical?: boolean;
+    opacity?: number;
+    smooth?: number;
+}
+
+interface ShapePayload {
+    tool_id: string;
+    name: string;
+    brand: string;
+    is_custom_shape: true;
+    shape_type: 'rectangle' | 'circle' | 'polygon';
+    shape_data:
+    | { width_inches: number; height_inches: number }
+    | { radius_inches: number }
+    | { points: { x: number; y: number }[] };
+    position_inches: { x: number; y: number };
+    rotation_degrees: number;
+}
+
+
 // conversion helper
 const mmToInches = (mm: number) => mm / 25.4;
 
@@ -63,7 +93,7 @@ const Header: React.FC<HeaderProps> = ({
 
         try {
             // Do NOT call handleSaveAndExit here as it's causing overlap errors
-            
+
             const authToken = getAuthToken();
             if (!authToken) throw new Error("Authentication required. Please log in again.");
 
@@ -136,14 +166,14 @@ const Header: React.FC<HeaderProps> = ({
             });
 
             toast.success("Layout added to cart successfully!");
-            
+
             // After successfully adding to cart, save the layout
             // But don't await it to avoid blocking the cart confirmation
             handleSaveAndExit().catch(error => {
                 console.error("Background save failed:", error);
                 // Don't show error to user since cart operation succeeded
             });
-            
+
         } catch (error) {
             console.error("Error adding to cart:", error);
             setSaveError(error instanceof Error ? error.message : "Failed to add layout to cart");
@@ -302,8 +332,8 @@ const Header: React.FC<HeaderProps> = ({
             if (!authToken) throw new Error("Missing auth token");
 
             // Prepare arrays for tools and shapes
-            const tools: any[] = [];
-            const shapes: any[] = [];
+            const tools: ToolPayload[] = [];
+            const shapes: ShapePayload[] = [];
 
             // Process all dropped items
             for (const droppedTool of droppedTools) {
@@ -320,7 +350,12 @@ const Header: React.FC<HeaderProps> = ({
 
                 if (isShape || isFingerCut) {
                     let shapeType: 'rectangle' | 'circle' | 'polygon' = 'rectangle';
-                    let shapeData: any = {};
+                    type ShapeData =
+                        | { width_inches: number; height_inches: number }
+                        | { radius_inches: number }
+                        | { points: { x: number; y: number }[] };
+
+                    let shapeData: ShapeData;
                     let name = droppedTool.name;
 
                     if (isFingerCut || droppedTool.name.toLowerCase().includes('finger')) {
