@@ -808,8 +808,33 @@ const Header: React.FC<HeaderProps> = ({
                         smooth: tool.smooth || 0,
                         image: tool.image,
                         groupId: tool.groupId,
-                        realWidth: tool.realWidth,
-                        realHeight: tool.realHeight,
+                        // NEW: compute and persist real physical dimensions
+                        realWidth: (() => {
+                            if (tool.metadata?.length) {
+                                const heightInches = tool.metadata.length;
+                                let aspect = 1.6;
+                                if (
+                                    tool.metadata?.naturalWidth &&
+                                    tool.metadata?.naturalHeight &&
+                                    tool.metadata.naturalHeight > 0
+                                ) {
+                                    aspect = tool.metadata.naturalWidth / tool.metadata.naturalHeight;
+                                }
+                                const widthInches = heightInches * aspect;
+                                return tool.unit === 'mm' ? widthInches * 25.4 : widthInches;
+                            }
+                            // shapes and non-image tools: use current width/length (already in tool.unit)
+                            if (typeof tool.width === 'number') return tool.width;
+                            return undefined;
+                        })(),
+                        realHeight: (() => {
+                            if (tool.metadata?.length) {
+                                const heightInches = tool.metadata.length;
+                                return tool.unit === 'mm' ? heightInches * 25.4 : heightInches;
+                            }
+                            if (typeof tool.length === 'number') return tool.length;
+                            return undefined;
+                        })(),
                         metadata: tool.metadata,
                     };
 
@@ -871,12 +896,6 @@ const Header: React.FC<HeaderProps> = ({
 
 
     const exportOptions = [
-        {
-            icon: FileText,
-            label: 'Download Text File',
-            action: downloadTextFile,
-            disabled: false
-        },
         {
             icon: File,
             label: 'Generate DXF File',

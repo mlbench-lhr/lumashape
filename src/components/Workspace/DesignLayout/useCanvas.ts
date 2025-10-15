@@ -136,6 +136,24 @@ export const useCanvas = ({
       };
     }
 
+    // Prefer real physical dimensions if present
+    if (
+      typeof tool.realWidth === 'number' &&
+      typeof tool.realHeight === 'number' &&
+      tool.realWidth > 0 &&
+      tool.realHeight > 0
+    ) {
+      const widthPx =
+        tool.unit === 'mm' ? mmToPx(tool.realWidth) : inchesToPx(tool.realWidth);
+      const heightPx =
+        tool.unit === 'mm' ? mmToPx(tool.realHeight) : inchesToPx(tool.realHeight);
+
+      return {
+        toolWidth: Math.max(20, widthPx),
+        toolHeight: Math.max(20, heightPx),
+      };
+    }
+
     // Image tools: use metadata length (treated as height) + aspect ratio
     if (tool.metadata?.length) {
       // 🔹 Now this is actually the HEIGHT of the tool, not the diagonal

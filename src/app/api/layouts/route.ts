@@ -26,21 +26,11 @@ interface ToolData {
   isCustomShape?: boolean;
   shapeType?: 'rectangle' | 'circle' | 'polygon';
   shapeData?: Record<string, unknown>;
-  // New fields for real sizing support
-  metadata?: {
-    userEmail?: string;
-    paperType?: string;
-    brand?: string;
-    purchaseLink?: string;
-    backgroundImg?: string;
-    outlinesImg?: string;
-    processIngData?: string; // Contains the scale info
-    createdAt?: string;
-    updatedAt?: string;
-    version?: number;
-  };
-  realWidth?: number;  // Calculated real width
-  realHeight?: number; // Calculated real height
+  // NEW: Persist metadata and real sizes
+  originalId?: string;
+  metadata?: Record<string, unknown>;
+  realWidth?: number;
+  realHeight?: number;
 }
 
 interface CanvasData {
@@ -133,7 +123,7 @@ const validateTools = (tools: unknown): ToolData[] => {
     }
 
     const toolObj = tool as Record<string, unknown>;
-    const { id, name, x, y, rotation, flipHorizontal, flipVertical, thickness, unit, opacity, smooth, image, groupId, metadata, realWidth, realHeight } = toolObj;
+    const { id, name, x, y, rotation, flipHorizontal, flipVertical, thickness, unit, opacity, smooth, image, groupId, metadata, realWidth, realHeight, originalId } = toolObj;
 
     if (typeof id !== 'string' || typeof name !== 'string' || !id || !name) {
       throw new Error(`Tool at index ${index} must have valid id and name`);
@@ -199,6 +189,7 @@ const validateTools = (tools: unknown): ToolData[] => {
     if (metadata && typeof metadata === 'object') {
       validatedTool.metadata = metadata as ToolData['metadata'];
     }
+    if (typeof originalId === 'string') validatedTool.originalId = originalId;
     if (typeof realWidth === 'number') validatedTool.realWidth = realWidth;
     if (typeof realHeight === 'number') validatedTool.realHeight = realHeight;
 
