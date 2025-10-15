@@ -279,6 +279,19 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (id) {
+      const layout = await Layout.findOne({ _id: id, userEmail: decoded.email }).lean();
+      if (!layout) {
+        return NextResponse.json(
+          { success: false, error: 'Layout not found or access denied' },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json({ success: true, data: layout });
+    }
+
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search') || '';

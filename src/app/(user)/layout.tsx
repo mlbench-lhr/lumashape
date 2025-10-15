@@ -33,8 +33,10 @@ export default function AdminLayout({
   const shouldHideSidebar =
     hideSidebarRoutes.includes(pathname) ||
     hideSidebarPrefixes.some((prefix) => pathname.startsWith(prefix));
-  const isDesignLayoutRoute = pathname === '/workspace/create-new-layout/design-layout' ||
-    pathname === '/workspace/create-new-layout/design-layout/';
+  const isDesignLayoutRoute =
+    pathname === '/workspace/create-new-layout/design-layout' ||
+    pathname === '/workspace/create-new-layout/design-layout/' ||
+    pathname.startsWith('/workspace/edit-layout/');
   const sidebarMargin = shouldHideSidebar
     ? "ml-0"
     : isMobileOpen

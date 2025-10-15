@@ -829,8 +829,15 @@ const Header: React.FC<HeaderProps> = ({
 
             console.log("Saving layout data:", { ...layoutData, snapshotUrl: imageUrl ? "✅ Included" : "❌ Failed" });
 
-            const response = await fetch("/api/layouts", {
-                method: "POST",
+            const editingLayoutId = (() => {
+                try { return sessionStorage.getItem('editingLayoutId'); } catch { return null; }
+            })();
+
+            const endpoint = editingLayoutId ? `/api/layouts?id=${editingLayoutId}` : `/api/layouts`;
+            const method = editingLayoutId ? "PUT" : "POST";
+
+            const response = await fetch(endpoint, {
+                method,
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${authToken}`,
@@ -847,6 +854,7 @@ const Header: React.FC<HeaderProps> = ({
             setSaveError(null);
             setSaveSuccess(true);
             sessionStorage.removeItem("layoutForm");
+            try { sessionStorage.removeItem('editingLayoutId'); } catch {}
 
             setTimeout(() => {
                 onSaveLayout?.();

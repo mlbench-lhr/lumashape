@@ -7,24 +7,42 @@ import Sidebar from "./Sidebar";
 import { DroppedTool, Tool } from "./types";
 import { useUndoRedo } from './toolUtils';
 
-function DesignLayout() {
-  const [droppedTools, setDroppedTools] = useState<DroppedTool[]>([]);
+function DesignLayout({
+  initialDroppedTools,
+  initialCanvas,
+  editingLayoutId,
+}: {
+  initialDroppedTools?: DroppedTool[];
+  initialCanvas?: { width: number; height: number; unit: 'mm' | 'inches'; thickness: number };
+  editingLayoutId?: string;
+}) {
+  // Seed with initial values if provided
+  const [droppedTools, setDroppedTools] = useState<DroppedTool[]>(initialDroppedTools || []);
   const {
     pushState,
     undo,
     redo,
     canUndo,
     canRedo,
-  } = useUndoRedo([]);
+  } = useUndoRedo(initialDroppedTools || []);
 
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
 
   // Canvas dimensions (controlled by ControlBar)
-  const [canvasWidth, setCanvasWidth] = useState<number>(400);
-  const [canvasHeight, setCanvasHeight] = useState<number>(300);
-  const [thickness, setThickness] = useState<number>(12.7);
-  const [unit, setUnit] = useState<'mm' | 'inches'>('mm');
+  const [canvasWidth, setCanvasWidth] = useState<number>(initialCanvas?.width ?? 400);
+  const [canvasHeight, setCanvasHeight] = useState<number>(initialCanvas?.height ?? 300);
+  const [thickness, setThickness] = useState<number>(initialCanvas?.thickness ?? 12.7);
+  const [unit, setUnit] = useState<'mm' | 'inches'>(initialCanvas?.unit ?? 'mm');
+
+  useEffect(() => {
+    if (editingLayoutId) {
+      try { sessionStorage.setItem('editingLayoutId', editingLayoutId); } catch {}
+    }
+    if (initialDroppedTools && initialDroppedTools.length) {
+      pushState(initialDroppedTools);
+    }
+  }, [editingLayoutId, initialDroppedTools, pushState]);
 
   // State for active tool (cursor, hand, box)
   const [activeTool, setActiveTool] = useState<'cursor' | 'hand' | 'box'>('cursor');
