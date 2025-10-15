@@ -754,25 +754,69 @@ const Header: React.FC<HeaderProps> = ({
                     unit: additionalData.units ?? unit,
                     thickness: additionalData.thickness ?? thickness,
                 },
-                tools: droppedTools.map((tool) => ({
-                    id: tool.id,
-                    originalId: tool.metadata?.originalId,
-                    name: tool.name,
-                    x: convertPositionToInches(tool.x, canvasWidth, true),
-                    y: convertPositionToInches(tool.y, canvasHeight, false),
-                    rotation: tool.rotation,
-                    flipHorizontal: tool.flipHorizontal,
-                    flipVertical: tool.flipVertical,
-                    thickness: tool.thickness,
-                    unit: tool.unit,
-                    opacity: tool.opacity || 100,
-                    smooth: tool.smooth || 0,
-                    image: tool.image,
-                    groupId: tool.groupId,
-                    realWidth: tool.realWidth,
-                    realHeight: tool.realHeight,
-                    metadata: tool.metadata,
-                })),
+                tools: droppedTools.map((tool) => {
+                    // Determine shape info
+                    const isShape = tool.toolBrand === 'SHAPE';
+                    const isFingerCut = tool.toolBrand === 'FINGERCUT' || tool.metadata?.isFingerCut;
+
+                    let shapeType: 'rectangle' | 'circle' | 'polygon' | undefined;
+                    let shapeData: Record<string, unknown> | undefined;
+
+                    if (isShape || isFingerCut) {
+                        if (isFingerCut || tool.name.toLowerCase().includes('finger')) {
+                            const widthInches = unit === "mm" ? mmToInches(tool.width) : tool.width;
+                            const heightInches = unit === "mm" ? mmToInches(tool.length) : tool.length;
+                            shapeType = 'rectangle';
+                            shapeData = { width_inches: widthInches, height_inches: heightInches };
+                        } else if (tool.name.toLowerCase().includes('circle') || (tool.image || '').includes('circle.svg')) {
+                            const diameter = Math.max(tool.width, tool.length);
+                            const radiusInches = unit === "mm" ? mmToInches(diameter / 2) : diameter / 2;
+                            shapeType = 'circle';
+                            shapeData = { radius_inches: radiusInches };
+                        } else if (tool.name.toLowerCase().includes('polygon')) {
+                            const widthInches = unit === "mm" ? mmToInches(tool.width) : tool.width;
+                            const heightInches = unit === "mm" ? mmToInches(tool.length) : tool.length;
+                            shapeType = 'polygon';
+                            shapeData = {
+                                points: [
+                                    { x: 0, y: 0 },
+                                    { x: widthInches, y: 0 },
+                                    { x: widthInches, y: heightInches },
+                                    { x: 0, y: heightInches }
+                                ]
+                            };
+                        } else {
+                            const widthInches = unit === "mm" ? mmToInches(tool.width) : tool.width;
+                            const heightInches = unit === "mm" ? mmToInches(tool.length) : tool.length;
+                            shapeType = 'rectangle';
+                            shapeData = { width_inches: widthInches, height_inches: heightInches };
+                        }
+                    }
+
+                    const base = {
+                        id: tool.id,
+                        originalId: tool.metadata?.originalId,
+                        name: tool.name,
+                        x: convertPositionToInches(tool.x, canvasWidth, true),
+                        y: convertPositionToInches(tool.y, canvasHeight, false),
+                        rotation: tool.rotation,
+                        flipHorizontal: tool.flipHorizontal,
+                        flipVertical: tool.flipVertical,
+                        thickness: tool.thickness,
+                        unit: tool.unit,
+                        opacity: tool.opacity || 100,
+                        smooth: tool.smooth || 0,
+                        image: tool.image,
+                        groupId: tool.groupId,
+                        realWidth: tool.realWidth,
+                        realHeight: tool.realHeight,
+                        metadata: tool.metadata,
+                    };
+
+                    return shapeType
+                        ? { ...base, isCustomShape: true, shapeType, shapeData }
+                        : base;
+                }),
                 stats: {
                     totalTools: droppedTools.length,
                     validLayout: !hasOverlaps,

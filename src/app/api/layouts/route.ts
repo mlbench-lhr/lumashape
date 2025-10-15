@@ -22,6 +22,10 @@ interface ToolData {
   smooth?: number;
   image?: string;
   groupId?: string;
+  // NEW: Shape-specific fields
+  isCustomShape?: boolean;
+  shapeType?: 'rectangle' | 'circle' | 'polygon';
+  shapeData?: Record<string, unknown>;
   // New fields for real sizing support
   metadata?: {
     userEmail?: string;
@@ -167,13 +171,33 @@ const validateTools = (tools: unknown): ToolData[] => {
       unit: unit as 'mm' | 'inches'
     };
 
-    // Add optional properties if they exist and are valid
+    // Optional properties
     if (typeof opacity === 'number') validatedTool.opacity = opacity;
     if (typeof smooth === 'number') validatedTool.smooth = smooth;
     if (typeof image === 'string') validatedTool.image = image;
     if (typeof groupId === 'string') validatedTool.groupId = groupId;
 
-    // Store metadata and real dimensions for overlap calculation
+    function isShapeType(value: unknown): value is 'rectangle' | 'circle' | 'polygon' {
+      return typeof value === 'string' && ['rectangle', 'circle', 'polygon'].includes(value);
+    }
+
+
+    if (typeof (toolObj as Record<string, unknown>).isCustomShape === 'boolean') {
+      validatedTool.isCustomShape = (toolObj as Record<string, unknown>).isCustomShape as boolean;
+    }
+
+    const shapeTypeVal = (toolObj as Record<string, unknown>).shapeType;
+    if (isShapeType(shapeTypeVal)) {
+      validatedTool.shapeType = shapeTypeVal;
+    }
+
+    if ('shapeData' in toolObj && typeof toolObj.shapeData === 'object' && toolObj.shapeData !== null) {
+      validatedTool.shapeData = toolObj.shapeData as Record<string, unknown>;
+    }
+
+
+
+    // Store metadata and real dimensions
     if (metadata && typeof metadata === 'object') {
       validatedTool.metadata = metadata as ToolData['metadata'];
     }
