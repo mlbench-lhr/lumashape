@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import dbConnect from "@/utils/dbConnect";
-import Tool from "@/lib/models/Tool";
+import Tool from '@/lib/models/Tool';
+import User from '@/lib/models/User';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -15,6 +16,13 @@ export async function POST(req: Request) {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET) as { email: string };
+
+    // Reject if user no longer exists (deleted)
+    const user = await User.findOne({ email: decoded.email });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
     const body = await req.json();
     const { toolId } = body;
 

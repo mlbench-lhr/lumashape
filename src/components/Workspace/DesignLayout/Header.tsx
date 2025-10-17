@@ -869,14 +869,14 @@ const Header: React.FC<HeaderProps> = ({
                 : (result.data?.snapshotUrl ?? null);
 
             // Persist editing id for subsequent updates (no duplicates)
-            try { sessionStorage.setItem('editingLayoutId', savedLayoutId); } catch {}
+            try { sessionStorage.setItem('editingLayoutId', savedLayoutId); } catch { }
 
             setSaveError(null);
             setSaveSuccess(true);
 
             // Only clear form data when redirecting; keep it for Add to Cart
             if (!options?.skipRedirect) {
-                try { sessionStorage.removeItem("layoutForm"); } catch {}
+                try { sessionStorage.removeItem("layoutForm"); } catch { }
             }
 
             if (!options?.skipRedirect) {
@@ -1060,6 +1060,7 @@ const Header: React.FC<HeaderProps> = ({
             )}
 
             {/* Layout Status */}
+
             <div className="mt-3 flex items-center justify-between text-sm">
                 <div className="flex items-center space-x-4">
                     <span className="text-gray-600">
@@ -1070,25 +1071,28 @@ const Header: React.FC<HeaderProps> = ({
                     </span>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                    {hasOverlaps ? (
-                        <>
-                            <AlertTriangle className="w-4 h-4 text-red-600" />
-                            <span className="text-red-600">Invalid Layout</span>
-                        </>
-                    ) : droppedTools.length === 0 ? (
-                        <>
-                            <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                            <span className="text-yellow-600">No Tools</span>
-                        </>
-                    ) : (
-                        <>
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span className="text-green-600">Ready to Save</span>
-                        </>
-                    )}
-                </div>
+                {!readOnly && (
+                    <div className="flex items-center space-x-2">
+                        {hasOverlaps ? (
+                            <>
+                                <AlertTriangle className="w-4 h-4 text-red-600" />
+                                <span className="text-red-600">Invalid Layout</span>
+                            </>
+                        ) : droppedTools.length === 0 ? (
+                            <>
+                                <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                                <span className="text-yellow-600">No Tools</span>
+                            </>
+                        ) : (
+                            <>
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-green-600">Ready to Save</span>
+                            </>
+                        )}
+                    </div>
+                )}
             </div>
+
         </div>
     );
 };
