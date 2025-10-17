@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react';
-import { Download, RefreshCw, MoreVertical } from 'lucide-react';
+import { Download, RefreshCw, MoreVertical, ThumbsDown, ThumbsUp, } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
@@ -46,6 +46,14 @@ interface Layout {
     published?: boolean;
     publishedDate?: string | Date;
     downloads?: number;
+    likes?: number;
+    dislikes?: number;
+    userInteraction?: {
+        hasLiked: boolean;
+        hasDisliked: boolean;
+        hasDownloaded: boolean;
+    };
+
 }
 
 const MyLayouts = () => {
@@ -111,7 +119,7 @@ const MyLayouts = () => {
 
     // Format canvas dimensions
     const formatDimensions = (canvas: CanvasData) => {
-        return `(${canvas.width}" × ${canvas.height}")`;
+        return `(${canvas.width}" × ${canvas.height} x ${canvas.thickness}) ${canvas.unit === 'mm' ? 'mm' : 'inches'}`;
     };
 
     // Format published date
@@ -174,7 +182,7 @@ const MyLayouts = () => {
                     {layouts.map((layout) => (
                         <div
                             key={layout._id}
-                            className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[248px] sm:w-[266px] sm:h-[248px] relative"
+                            className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[260px] sm:w-[266px] sm:h-[270px] relative"
                         >
                             <div className="w-[258px] sm:w-[242px]">
                                 <div className="relative w-full h-[150px]">
@@ -251,7 +259,7 @@ const MyLayouts = () => {
                             {/* Layout details */}
                             <div className="w-full flex flex-col px-2 py-2 space-y-1">
                                 <div className="flex items-baseline gap-[3px]">
-                                    <h3 className="font-bold text-[16px] truncate">{`${layout.name} (${layout.brand})`}</h3>
+                                    <h3 className="font-bold text-[16px] truncate">{`${layout.name}`}</h3>
                                 </div>
 
                                 <p className="text-[12px] text-[#666666] font-medium truncate">
@@ -261,6 +269,30 @@ const MyLayouts = () => {
                                 {/* Downloads and Published Date */}
                                 <div className="flex justify-between items-center">
                                     <div className="flex items-center gap-1">
+                                        <div
+                                                    className={`flex items-center gap-1 px-1 py-1 rounded ${layout.userInteraction?.hasLiked ? 'text-blue-600' : 'text-gray-400'
+                                                        }`}
+                                                >
+                                                    <ThumbsUp
+                                                        className={`w-3 h-3 ${layout.userInteraction?.hasLiked ? 'fill-current text-blue-600' : ''
+                                                            }`}
+                                                    />
+                                                    <span className="text-[11px]">
+                                                        {layout.likes || 0}
+                                                    </span>
+                                                </div>
+                                                <div
+                                                    className={`flex items-center gap-1 px-1 py-1 rounded ${layout.userInteraction?.hasDisliked ? 'text-blue-600' : 'text-gray-400'
+                                                        }`}
+                                                >
+                                                    <ThumbsDown
+                                                        className={`w-3 h-3 ${layout.userInteraction?.hasDisliked ? 'fill-current text-blue-600' : ''
+                                                            }`}
+                                                    />
+                                                    <span className="text-[11px]">
+                                                        {layout.dislikes || 0}
+                                                    </span>
+                                                </div>
                                         <Download className="w-3 h-3 text-gray-400" />
                                         <span className="text-[10px] text-[#666666] font-medium">
                                             {formatDownloads(layout.downloads || layout.stats?.downloads)}
