@@ -13,11 +13,16 @@ interface CanvasInit {
   thickness: number;
 }
 
+interface ShapePoint {
+  x: number;
+  y: number;
+}
+
 interface ShapeData {
   width_inches?: number;
   height_inches?: number;
   radius_inches?: number;
-  points?: Array<{ x: number; y: number }>;
+  points?: ShapePoint[];
 }
 
 interface ToolMetadata {
@@ -52,7 +57,6 @@ interface LayoutTool {
 }
 
 interface LayoutData {
-  _id: string;
   name: string;
   canvas: {
     width: number;
@@ -65,11 +69,8 @@ interface LayoutData {
 
 const inchesToPx = (inches: number) => inches * 96;
 const mmToPx = (mm: number) => (mm / 25.4) * 96;
-
-const convertUnits = (value: number, from: Unit, to: Unit) => {
-  if (from === to) return value;
-  return from === 'mm' ? value / 25.4 : value * 25.4;
-};
+const convertUnits = (value: number, from: Unit, to: Unit) =>
+  from === to ? value : from === 'mm' ? value / 25.4 : value * 25.4;
 
 function getAuthToken(): string | null {
   try {
@@ -79,7 +80,7 @@ function getAuthToken(): string | null {
   }
 }
 
-export default function EditLayoutPage({
+export default function InspectLayoutPage({
   params,
 }: {
   params: Promise<{ layoutId: string }>;
@@ -106,18 +107,17 @@ export default function EditLayoutPage({
       }
 
       const layout: LayoutData = json.data;
-      const canvasUnit = layout.canvas.unit;
+      const canvasUnit: Unit = layout.canvas.unit;
       const canvasHeightPx =
         canvasUnit === 'inches'
           ? inchesToPx(layout.canvas.height)
           : mmToPx(layout.canvas.height);
 
-      const mapped: DroppedTool[] = layout.tools.map((t) => {
+      const mapped: DroppedTool[] = (layout.tools ?? []).map((t) => {
         const toolUnit: Unit = t.unit || canvasUnit;
 
-        // Convert DB positions (inches, bottom-left origin) to top-left pixels
-        const xPx = toolUnit === 'inches' ? inchesToPx(t.x || 0) : mmToPx(t.x || 0);
-        const yPxRaw = toolUnit === 'inches' ? inchesToPx(t.y || 0) : mmToPx(t.y || 0);
+        const xPx = toolUnit === 'inches' ? inchesToPx(t.x ?? 0) : mmToPx(t.x ?? 0);
+        const yPxRaw = toolUnit === 'inches' ? inchesToPx(t.y ?? 0) : mmToPx(t.y ?? 0);
         const yPx = canvasHeightPx - yPxRaw;
 
         let widthCanvasUnits = 0;
@@ -127,40 +127,41 @@ export default function EditLayoutPage({
 
         let toolBrand: string = t.metadata?.toolBrand || '';
 
-        // Handle shapes
         if (t.isCustomShape && t.shapeType && t.shapeData) {
           toolBrand = 'SHAPE';
-          const sd = t.shapeData;
+          const shapeData = t.shapeData;
 
           if (
             t.shapeType === 'rectangle' &&
-            typeof sd.width_inches === 'number' &&
-            typeof sd.height_inches === 'number'
+            typeof shapeData.width_inches === 'number' &&
+            typeof shapeData.height_inches === 'number'
           ) {
-            const wInches = sd.width_inches;
-            const hInches = sd.height_inches;
+            const wInches = shapeData.width_inches;
+            const hInches = shapeData.height_inches;
             widthCanvasUnits = canvasUnit === 'mm' ? wInches * 25.4 : wInches;
             lengthCanvasUnits = canvasUnit === 'mm' ? hInches * 25.4 : hInches;
           } else if (
             t.shapeType === 'circle' &&
-            typeof sd.radius_inches === 'number'
+            typeof shapeData.radius_inches === 'number'
           ) {
-            const diameterInches = sd.radius_inches * 2;
-            widthCanvasUnits = canvasUnit === 'mm' ? diameterInches * 25.4 : diameterInches;
+            const diameterInches = shapeData.radius_inches * 2;
+            widthCanvasUnits =
+              canvasUnit === 'mm' ? diameterInches * 25.4 : diameterInches;
             lengthCanvasUnits = widthCanvasUnits;
-          } else if (Array.isArray(sd.points)) {
-            const points = sd.points;
+          } else if (Array.isArray(shapeData.points)) {
+            const points = shapeData.points;
             const minX = Math.min(...points.map((p) => p.x));
             const maxX = Math.max(...points.map((p) => p.x));
             const minY = Math.min(...points.map((p) => p.y));
             const maxY = Math.max(...points.map((p) => p.y));
             const widthInches = maxX - minX;
             const heightInches = maxY - minY;
-            widthCanvasUnits = canvasUnit === 'mm' ? widthInches * 25.4 : widthInches;
-            lengthCanvasUnits = canvasUnit === 'mm' ? heightInches * 25.4 : heightInches;
+            widthCanvasUnits =
+              canvasUnit === 'mm' ? widthInches * 25.4 : widthInches;
+            lengthCanvasUnits =
+              canvasUnit === 'mm' ? heightInches * 25.4 : heightInches;
           }
         } else {
-          // Non-shape tools
           if (t.metadata?.length) {
             const heightPx = inchesToPx(t.metadata.length);
             const aspect =
@@ -195,7 +196,7 @@ export default function EditLayoutPage({
           flipVertical: !!t.flipVertical,
           width: widthCanvasUnits || widthPxFallback || 50,
           length: lengthCanvasUnits || heightPxFallback || 50,
-          thickness: convertUnits(t.thickness || 1, toolUnit, canvasUnit),
+          thickness: convertUnits(t.thickness ?? 1, toolUnit, canvasUnit),
           unit: canvasUnit,
           opacity: t.opacity ?? 100,
           smooth: t.smooth ?? 0,
@@ -216,17 +217,21 @@ export default function EditLayoutPage({
 
       setInitialTools(mapped);
 
-      sessionStorage.setItem(
-        'layoutForm',
-        JSON.stringify({
-          layoutName: layout.name,
-          canvasWidth: layout.canvas.width,
-          canvasHeight: layout.canvas.height,
-          units: layout.canvas.unit,
-          thickness: layout.canvas.thickness,
-        })
-      );
-      sessionStorage.setItem('editingLayoutId', layoutId);
+      try {
+        sessionStorage.setItem(
+          'layoutForm',
+          JSON.stringify({
+            layoutName: layout.name,
+            canvasWidth: layout.canvas.width,
+            canvasHeight: layout.canvas.height,
+            units: layout.canvas.unit,
+            thickness: layout.canvas.thickness,
+          })
+        );
+      } catch {
+        // ignore storage errors
+      }
+
       setReady(true);
     }
 
@@ -245,7 +250,7 @@ export default function EditLayoutPage({
     <DesignLayout
       initialDroppedTools={initialTools}
       initialCanvas={initialCanvas}
-      editingLayoutId={layoutId}
+      readOnly={true}
     />
   );
 }

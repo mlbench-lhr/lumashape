@@ -36,7 +36,8 @@ export default function AdminLayout({
   const isDesignLayoutRoute =
     pathname === '/workspace/create-new-layout/design-layout' ||
     pathname === '/workspace/create-new-layout/design-layout/' ||
-    pathname.startsWith('/workspace/edit-layout/');
+    pathname.startsWith('/workspace/edit-layout/') ||
+    pathname.startsWith('/inspect-layout/'); // NEW
   const sidebarMargin = shouldHideSidebar
     ? "ml-0"
     : isMobileOpen

@@ -2,9 +2,10 @@ import { Tool } from "./types";
 
 interface DraggableToolProps {
   tool: Tool;
+  readOnly?: boolean;
 }
 
-const DraggableTool: React.FC<DraggableToolProps> = ({ tool }) => {
+const DraggableTool: React.FC<DraggableToolProps> = ({ tool, readOnly = false }) => {
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('application/json', JSON.stringify(tool));
     e.dataTransfer.effectAllowed = 'copy';
@@ -12,9 +13,11 @@ const DraggableTool: React.FC<DraggableToolProps> = ({ tool }) => {
 
   return (
     <div
-      draggable
-      onDragStart={handleDragStart}
-      className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-grab active:cursor-grabbing transition-colors"
+      draggable={!readOnly}
+      onDragStart={readOnly ? undefined : handleDragStart}
+      className={`flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors ${
+        readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
+      }`}
     >
       <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
         {tool.image ? (

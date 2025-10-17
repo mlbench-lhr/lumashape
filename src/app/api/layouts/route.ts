@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import dbConnect from '@/utils/dbConnect';
 import Layout from '@/lib/models/layout';
+import mongoose from 'mongoose';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -273,6 +274,13 @@ export async function GET(req: NextRequest) {
     const id = searchParams.get('id');
 
     if (id) {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid layout id format' },
+          { status: 400 }
+        );
+      }
+
       const layout = await Layout.findOne({ _id: id, userEmail: decoded.email }).lean();
       if (!layout) {
         return NextResponse.json(

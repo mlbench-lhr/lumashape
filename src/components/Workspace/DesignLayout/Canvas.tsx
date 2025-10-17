@@ -23,6 +23,7 @@ interface CanvasProps {
   unit: 'mm' | 'inches';
   activeTool: 'cursor' | 'hand' | 'box' | 'fingercut';
   onOverlapChange?: (hasOverlaps: boolean) => void;
+  readOnly?: boolean;
 }
 
 const Canvas: React.FC<CanvasProps> = (props) => {
@@ -174,9 +175,13 @@ const Canvas: React.FC<CanvasProps> = (props) => {
   // Handle keyboard shortcuts
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Delete' || e.key === 'Backspace') {
+      if (props.readOnly) return;
+      if ((e.ctrlKey || e.metaKey) && e.code === 'KeyA') {
+        e.preventDefault();
+        props.setSelectedTools(droppedTools.map(tool => tool.id));
+      } else if (e.code === 'Delete' || e.code === 'Backspace') {
+        e.preventDefault();
         if (selectedTools.length > 0) {
-          e.preventDefault();
           handleDeleteSelectedTools();
         }
       }
@@ -187,7 +192,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedTools, handleDeleteSelectedTools]);
+  }, [selectedTools, handleDeleteSelectedTools, props.readOnly, droppedTools]);
 
   return (
     <div className="flex-1 relative bg-gray-100 overflow-hidden">
@@ -293,7 +298,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                         filter: `blur(${blurAmount}px) ${isSelected
                           ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)) brightness(1.05)'
                           : ''
-                        }`,
+                          }`,
                       }}
                     >
                       {/* Main cylinder body */}
@@ -308,7 +313,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                         strokeDasharray="5,5"
                         className="transition-colors duration-200"
                       />
-                      
+
                       {/* Left ellipse (front) */}
                       <ellipse
                         cx="15"
@@ -320,7 +325,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                         strokeWidth="2"
                         className="transition-colors duration-200"
                       />
-                      
+
                       {/* Right ellipse (back) - dashed to show it's behind */}
                       <ellipse
                         cx="85"
@@ -333,7 +338,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                         strokeDasharray="3,3"
                         className="transition-colors duration-200"
                       />
-                      
+
                       {/* Center label */}
                       <text
                         x="50"
@@ -395,7 +400,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 )}
 
                 {/* Delete button - only when selected */}
-                {isSelected && (
+                {!props.readOnly && isSelected && (
                   <button
                     className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-30 shadow-sm"
                     onClick={(e) => {
@@ -407,15 +412,8 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                   </button>
                 )}
 
-                {/* Multi-select indicator */}
-                {isSelected && selectedTools.length > 1 && (
-                  <div className="absolute -top-1 -left-1 bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold z-30">
-                    {isPrimarySelection ? '1' : selectedTools.indexOf(tool.id) + 1}
-                  </div>
-                )}
-
                 {/* Rotation Wheel - show only for primary selected tool */}
-                {isPrimarySelection && (
+                {!props.readOnly && isPrimarySelection && (
                   <RotationWheel
                     toolId={tool.id}
                     currentRotation={tool.rotation}
@@ -432,7 +430,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 )}
 
                 {/* Resize handles - only for selected shapes */}
-                {isSelected && isShape && (
+                {!props.readOnly && isSelected && isShape && (
                   <ResizeHandles
                     tool={tool}
                     toolWidth={toolWidth}
@@ -441,10 +439,9 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                   />
                 )}
 
-                {/* Resize handles - only for shapes and when selected */}
-                {isSelected && tool.toolBrand === 'SHAPE' && (
+                {/* Corner resize handles for shapes */}
+                {!props.readOnly && isSelected && tool.toolBrand === 'SHAPE' && (
                   <>
-                    {/* Corner resize handles */}
                     <div
                       className="resize-handle absolute -top-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-nw-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
                       onMouseDown={(e) => handleResizeStart(e, tool.id, 'nw')}
@@ -502,19 +499,27 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           {droppedTools.length === 0 && (
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
               <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-500 text-sm">Drag tools from the sidebar to start designing</p>
+              <p className="text-gray-500 text-sm">
+                {props.readOnly
+                  ? 'No tools to display in this layout'
+                  : 'Drag tools from the sidebar to start designing'}
+              </p>
               <p className="text-gray-400 text-xs mt-1">
                 {`Canvas Size: ${canvasWidth} × ${canvasHeight} ${unit}`}
               </p>
-              <p className="text-gray-400 text-xs mt-1">
-                {`Tools display at real-world scale based on diagonal measurements`}
-              </p>
-              <p className="text-gray-400 text-xs mt-1">
-                Use <span className="font-semibold">Cursor</span> to select • <span className="font-semibold">Hand</span> to pan • <span className="font-semibold">Middle Mouse</span> to pan
-              </p>
-              <p className="text-gray-400 text-xs mt-1">
-                Hold <span className="font-semibold">Ctrl/Cmd</span> to multi-select • <span className="font-semibold">Scroll</span> to zoom
-              </p>
+              {!props.readOnly && (
+                <>
+                  <p className="text-gray-400 text-xs mt-1">
+                    {`Tools display at real-world scale based on diagonal measurements`}
+                  </p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Use <span className="font-semibold">Cursor</span> to select • <span className="font-semibold">Hand</span> to pan • <span className="font-semibold">Middle Mouse</span> to pan
+                  </p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Hold <span className="font-semibold">Ctrl/Cmd</span> to multi-select • <span className="font-semibold">Scroll</span> to zoom
+                  </p>
+                </>
+              )}
             </div>
           )}
         </div>

@@ -13,10 +13,8 @@ interface UseCanvasProps {
   canvasHeight: number;
   unit: 'mm' | 'inches';
   activeTool: 'cursor' | 'hand' | 'box' | 'fingercut';
+  readOnly?: boolean;
 }
-
-
-
 
 export const useCanvas = ({
   droppedTools,
@@ -30,6 +28,7 @@ export const useCanvas = ({
   canvasHeight,
   unit,
   activeTool,
+  readOnly,
 }: UseCanvasProps) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -55,7 +54,6 @@ export const useCanvas = ({
     mouseX: number;
     mouseY: number;
   } | null>(null);
-
 
   // Overlap detection state
   const [hasOverlaps, setHasOverlaps] = useState(false);
@@ -110,12 +108,6 @@ export const useCanvas = ({
       transformOrigin: '0 0'
     };
   }, [viewport]);
-
-  // Tool-specific dimensions based on tool type
-  // Inside useCanvas.ts
-
-
-
 
   // Tool-specific dimensions based on tool type
   const getToolDimensions = useCallback((tool: DroppedTool) => {
@@ -185,7 +177,6 @@ export const useCanvas = ({
       toolHeight: tool.length || 50,
     };
   }, [mmToPx, inchesToPx]);
-
 
   // Constrain tool position to canvas boundaries
   const constrainToCanvas = useCallback((tool: DroppedTool, x: number, y: number) => {
@@ -418,15 +409,18 @@ export const useCanvas = ({
     return () => clearTimeout(timeout);
   }, [droppedTools, onSave]);
 
-
-
   // Event handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (readOnly) {
+      e.preventDefault();
+      return;
+    }
     e.preventDefault();
-  }, []);
+  }, [readOnly]);
 
   // Updated handleDrop function in useCanvas.ts
   const handleDrop = useCallback((e: React.DragEvent) => {
+    if (readOnly) return;
     e.preventDefault();
 
     const toolData = e.dataTransfer.getData('application/json');
@@ -481,9 +475,10 @@ export const useCanvas = ({
 
       setDroppedTools(prev => [...prev, newTool]);
     }
-  }, [getToolDimensions, unit, setDroppedTools, screenToCanvas, constrainToCanvas, findNonOverlappingPosition, droppedTools]);
+  }, [getToolDimensions, unit, setDroppedTools, screenToCanvas, constrainToCanvas, findNonOverlappingPosition, droppedTools, readOnly]);
 
   const handleResizeStart = useCallback((e: React.MouseEvent, toolId: string, handle: 'nw' | 'ne' | 'sw' | 'se') => {
+    if (readOnly) return;
     e.preventDefault();
     e.stopPropagation();
 
@@ -503,10 +498,11 @@ export const useCanvas = ({
       mouseX: e.clientX,
       mouseY: e.clientY,
     });
-  }, [droppedTools, getToolDimensions]);
+  }, [droppedTools, getToolDimensions, readOnly]);
 
   // Handle resize during mouse move
   const handleResize = useCallback((e: React.MouseEvent) => {
+    if (readOnly) return;
     if (!isResizing || !resizeHandle || !resizingToolId || !initialResizeData) return;
 
     const deltaX = e.clientX - initialResizeData.mouseX;
@@ -597,7 +593,7 @@ export const useCanvas = ({
       }
       return tool;
     }));
-  }, [isResizing, resizeHandle, resizingToolId, initialResizeData, setDroppedTools, viewport.zoom, unit, canvasWidth, canvasHeight, canvasRef, droppedTools]);
+  }, [isResizing, resizeHandle, resizingToolId, initialResizeData, setDroppedTools, viewport.zoom, unit, canvasWidth, canvasHeight, canvasRef, droppedTools, readOnly]);
 
   // Handle resize end
   const handleResizeEnd = useCallback(() => {
@@ -663,6 +659,11 @@ export const useCanvas = ({
         }
       }
 
+      if (readOnly) {
+        // Do not start dragging in inspect mode.
+        return;
+      }
+
       // Setup drag for the tool(s)
       const canvasPos = screenToCanvas(e.clientX, e.clientY);
       const clickedTool = droppedTools.find(tool => tool.id === toolId);
@@ -691,7 +692,7 @@ export const useCanvas = ({
       // In hand mode, start panning the viewport
       startPan(e);
     }
-  }, [activeTool, selectedTool, selectedTools, setSelectedTool, setSelectedTools, startPan, screenToCanvas, droppedTools]);
+  }, [activeTool, selectedTool, selectedTools, setSelectedTool, setSelectedTools, startPan, screenToCanvas, droppedTools, readOnly]);
 
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
     // Check for middle mouse button - enable panning regardless of active tool
@@ -724,7 +725,6 @@ export const useCanvas = ({
   }, [activeTool, setSelectedTools, setSelectedTool, startPan, screenToCanvas]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-
     // Handle resizing first
     if (isResizing) {
       handleResize(e);
@@ -762,6 +762,9 @@ export const useCanvas = ({
         setSelectedTool(toolsInBox[toolsInBox.length - 1] || null);
       }
     }
+
+    // Dragging is disabled in read-only
+    if (readOnly) return;
 
     // Handle tool dragging (only in cursor mode) - WITH BOUNDARY CONSTRAINTS
     if (dragOffset && isDraggingSelection && activeTool === 'cursor' && selectedTool) {
@@ -810,7 +813,8 @@ export const useCanvas = ({
     initialPositions,
     selectedTools,
     setDroppedTools,
-    constrainToCanvas // Added this dependency
+    constrainToCanvas,
+    readOnly
   ]);
 
   const handleMouseUp = useCallback(() => {
@@ -825,8 +829,9 @@ export const useCanvas = ({
     setSelectionBox(null);
   }, [endPan]);
 
-    // Handle finger cut tool click
+  // Handle finger cut tool click
   const handleFingerCutClick = useCallback((e: React.MouseEvent) => {
+    if (readOnly) return;
     const canvasRect = canvasRef.current?.getBoundingClientRect();
     if (!canvasRect) return;
 
@@ -866,7 +871,7 @@ export const useCanvas = ({
     setDroppedTools(prev => [...prev, fingerCutTool]);
     setSelectedTool(fingerCutTool.id);
     setSelectedTools([fingerCutTool.id]);
-  }, [activeTool, screenToCanvas, constrainToCanvas, setDroppedTools, setSelectedTool, setSelectedTools, unit]);
+  }, [activeTool, screenToCanvas, constrainToCanvas, setDroppedTools, setSelectedTool, setSelectedTools, unit, readOnly]);
 
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -881,29 +886,33 @@ export const useCanvas = ({
     }
     // Handle finger cut tool click
     else if (activeTool === 'fingercut') {
+      if (readOnly) return;
       handleFingerCutClick(e);
     }
-  }, [selectionBox, activeTool, setSelectedTool, setSelectedTools, handleFingerCutClick]);
+  }, [selectionBox, activeTool, setSelectedTool, setSelectedTools, handleFingerCutClick, readOnly]);
 
   const handleDeleteTool = useCallback((toolId: string) => {
+    if (readOnly) return;
     setDroppedTools(prev => prev.filter(tool => tool.id !== toolId));
     setSelectedTools(prev => prev.filter(id => id !== toolId));
     if (selectedTool === toolId) {
       const remainingSelected = selectedTools.filter(id => id !== toolId);
       setSelectedTool(remainingSelected[0] || null);
     }
-  }, [setDroppedTools, selectedTool, selectedTools, setSelectedTool, setSelectedTools]);
+  }, [setDroppedTools, selectedTool, selectedTools, setSelectedTool, setSelectedTools, readOnly]);
 
   const handleDeleteSelectedTools = useCallback(() => {
+    if (readOnly) return;
     if (selectedTools.length > 0) {
       setDroppedTools(prev => prev.filter(tool => !selectedTools.includes(tool.id)));
       setSelectedTools([]);
       setSelectedTool(null);
     }
-  }, [selectedTools, setDroppedTools, setSelectedTools, setSelectedTool]);
+  }, [selectedTools, setDroppedTools, setSelectedTools, setSelectedTool, readOnly]);
 
   // Auto-fix overlaps function
   const autoFixOverlaps = useCallback(() => {
+    if (readOnly) return;
     const toolsToFix = droppedTools.filter(tool => overlappingTools.includes(tool.id));
 
     setDroppedTools(prev => {
@@ -929,29 +938,37 @@ export const useCanvas = ({
 
       return newTools;
     });
-  }, [droppedTools, overlappingTools, findNonOverlappingPosition, setDroppedTools]);
+  }, [droppedTools, overlappingTools, findNonOverlappingPosition, setDroppedTools, readOnly]);
 
   // Style helpers
   const getCanvasCursor = useCallback(() => {
     if (isPanning) return 'grabbing';
     if (isDraggingSelection) return 'grabbing';
+    if (readOnly) {
+      // Cursor acts passive in inspect mode unless hand tool is active
+      switch (activeTool) {
+        case 'hand': return 'grab';
+        default: return 'default';
+      }
+    }
     switch (activeTool) {
       case 'cursor': return 'default';
       case 'hand': return 'grab';
       case 'box': return 'crosshair';
       default: return 'default';
     }
-  }, [activeTool, isPanning, isDraggingSelection]);
+  }, [activeTool, isPanning, isDraggingSelection, readOnly]);
 
   const getToolCursor = useCallback((toolId: string) => {
     if (isPanning) return 'grabbing';
     if (activeTool === 'hand') return 'grab';
+    if (readOnly) return 'default';
     if (activeTool === 'cursor') {
       if (isDraggingSelection && selectedTools.includes(toolId)) return 'grabbing';
       return 'move';
     }
     return 'default';
-  }, [activeTool, isDraggingSelection, selectedTools, isPanning]);
+  }, [activeTool, isDraggingSelection, selectedTools, isPanning, readOnly]);
 
   // Fit canvas to view
   const fitToView = useCallback(() => {
@@ -997,8 +1014,6 @@ export const useCanvas = ({
       y: centerY
     }));
   }, [getCanvasStyle, viewport.zoom]);
-
-
 
   return {
     // Refs

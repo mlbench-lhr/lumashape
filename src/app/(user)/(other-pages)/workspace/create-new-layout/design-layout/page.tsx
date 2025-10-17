@@ -1,16 +1,17 @@
 'use client';
-import DesignLayout from '@/components/Workspace/DesignLayout/DesignLayout'
-import React from 'react'
 
-function page() {
+import DesignLayout from '@/components/Workspace/DesignLayout/DesignLayout';
+import React from 'react';
+
+function Page() {
   React.useEffect(() => {
     // Ensure new layouts don’t accidentally use edit mode
-    try { sessionStorage.removeItem('editingLayoutId'); } catch {}
+    try {
+      sessionStorage.removeItem('editingLayoutId');
+    } catch {}
   }, []);
 
-  return (
-    <DesignLayout />
-  )
+  return <DesignLayout />;
 }
 
-export default page
+export default Page;

@@ -11,10 +11,12 @@ function DesignLayout({
   initialDroppedTools,
   initialCanvas,
   editingLayoutId,
+  readOnly,
 }: {
   initialDroppedTools?: DroppedTool[];
   initialCanvas?: { width: number; height: number; unit: 'mm' | 'inches'; thickness: number };
   editingLayoutId?: string;
+  readOnly?: boolean;
 }) {
   // Seed with initial values if provided
   const [droppedTools, setDroppedTools] = useState<DroppedTool[]>(initialDroppedTools || []);
@@ -143,7 +145,7 @@ function DesignLayout({
   }, []);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
+    <div className="flex flex-col h-[calc(100vh-48px)]">
       <Header
         droppedTools={droppedTools}
         canvasWidth={canvasWidth}
@@ -152,6 +154,7 @@ function DesignLayout({
         unit={unit}
         hasOverlaps={hasOverlaps}
         onSaveLayout={handleSaveLayout}
+        readOnly={readOnly}
       />
       <ControlBar
         canvasWidth={canvasWidth}
@@ -169,6 +172,7 @@ function DesignLayout({
         canRedo={canRedo}
         onUndo={handleUndo}
         onRedo={handleRedo}
+        readOnly={readOnly}
       />
       <div className="flex flex-1 overflow-hidden min-h-0">
         <Canvas
@@ -182,7 +186,8 @@ function DesignLayout({
           canvasHeight={canvasHeight}
           unit={unit}
           activeTool={activeTool}
-          onOverlapChange={setHasOverlaps} // Add this prop to track overlaps
+          onOverlapChange={setHasOverlaps}
+          readOnly={readOnly}
         />
         <div className="w-80 flex-shrink-0">
           <Sidebar
@@ -194,6 +199,7 @@ function DesignLayout({
             canvasWidth={canvasWidth}
             canvasHeight={canvasHeight}
             unit={unit}
+            readOnly={readOnly}
           />
         </div>
       </div>
