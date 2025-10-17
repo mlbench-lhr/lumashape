@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
       _id: user._id,
       username: user.username,
       email: user.email,
+      profilePic: user.profilePic,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };

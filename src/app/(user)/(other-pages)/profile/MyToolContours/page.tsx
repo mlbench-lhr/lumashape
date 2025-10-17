@@ -13,10 +13,9 @@ interface UserInteraction {
 interface ToolWithInteraction {
     _id: string;
     toolType: string;
-    brand: string;
+    toolBrand: string;
     paperType: string;
-    annotatedImg?: string;
-    backgroundImg?: string;
+    imageUrl?: string;
     createdBy?: { username?: string; email?: string };
     likes: number;
     dislikes: number;
@@ -134,27 +133,20 @@ const MyToolContours = () => {
                         {myTools.map((tool) => (
                             <div
                                 key={tool._id}
-                                className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[280px] sm:w-[266px] sm:h-[280px] relative"
+                                className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[280px] sm:w-[266px] sm:h-[260px] relative"
                             >
                                 {/* Tool Image */}
                                 <div className="w-[258px] sm:w-[242px]" data-dropdown>
-                                    <div className="relative w-full h-[150px]">
-                                        {tool.annotatedImg ? (
+                                    <div className="relative w-full h-[140px]">
+                                        {tool.imageUrl ? (
                                             <Image
-                                                src={tool.annotatedImg}
+                                                src={tool.imageUrl}
                                                 alt={`${tool.toolType} outlines`}
                                                 fill
                                                 style={{
                                                     objectFit: "contain",
                                                     backgroundColor: "#f9f9f9",
                                                 }}
-                                            />
-                                        ) : tool.backgroundImg ? (
-                                            <Image
-                                                src={tool.backgroundImg}
-                                                alt={tool.toolType}
-                                                fill
-                                                style={{ objectFit: "cover" }}
                                             />
                                         ) : (
                                             <div className="relative w-[80px] h-[80px]">
@@ -218,32 +210,19 @@ const MyToolContours = () => {
 
                                     {/* Tool details */}
                                     <div className="w-full h-[102px] flex flex-col justify-center">
-                                        <div className="flex items-baseline gap-[3px]">
+                                        <div className="flex items-baseline gap-[2px]">
                                             <h3 className="font-bold text-[16px]">
                                                 {tool.toolType}
                                             </h3>
                                             <span className="text-[14px] font-medium">
-                                                ({tool.brand})
+                                                ({tool.toolBrand})
                                             </span>
                                         </div>
-                                        <p className="text-[12px] text-[#b3b3b3] font-medium">
-                                            {tool.paperType}
-                                        </p>
-                                        {tool.createdBy && (
-                                            <p className="text-[12px] text-[#b3b3b3] font-medium mt-1 flex items-center gap-2">
-                                                <span className="w-5 h-5 flex items-center justify-center bg-primary rounded-full text-[10px] text-white">
-                                                    {tool.createdBy?.username?.charAt(0).toUpperCase() || "U"}
-                                                </span>
-                                                <span>
-                                                    {tool.createdBy?.username || tool.createdBy?.email || "anonymous"}
-                                                </span>
-                                            </p>
-                                        )}
 
                                         {/* Stats Row (Read-only) */}
-                                        <div className="flex items-center justify-between mt-2">
+                                        <div className="flex items-center justify-between mt-1">
                                             {/* Left Stats */}
-                                            <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-1">
                                                 <div
                                                     className={`flex items-center gap-1 px-1 py-1 rounded ${tool.userInteraction?.hasLiked ? 'text-blue-600' : 'text-gray-400'
                                                         }`}
