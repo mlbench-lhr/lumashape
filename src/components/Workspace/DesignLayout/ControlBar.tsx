@@ -18,8 +18,8 @@ interface ControlBarProps {
   canRedo?: boolean;
   onUndo?: () => void;
   onRedo?: () => void;
+  readOnly?: boolean;
 }
-
 
 const ControlBar: React.FC<ControlBarProps> = ({
   canvasWidth,
@@ -36,6 +36,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
   canRedo = false,
   onUndo = () => { },
   onRedo = () => { },
+  readOnly = false,
 }) => {
   const [hasLoadedFromSession, setHasLoadedFromSession] = useState(false);
 
@@ -135,7 +136,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
           <select
             value={unit}
             onChange={(e) => setUnit(e.target.value as 'mm' | 'inches')}
-            className="bg-white text-gray-900 w-28 py-1 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400"
+            disabled={readOnly}
+            className="bg-white text-gray-900 w-28 py-1 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
           >
             <option value="mm">mm</option>
             <option value="inches">inches</option>
@@ -149,7 +151,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
             type="number"
             value={canvasHeight}
             onChange={(e) => handleHeightChange(Number(e.target.value))}
-            className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400"
+            disabled={readOnly}
+            className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
           />
           <span className="text-sm inline-block w-12">{unit}</span>
         </div>
@@ -161,77 +164,81 @@ const ControlBar: React.FC<ControlBarProps> = ({
             type="number"
             value={canvasWidth}
             onChange={(e) => handleWidthChange(Number(e.target.value))}
-            className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400"
+            disabled={readOnly}
+            className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
           />
           <span className="text-sm inline-block w-12">{unit}</span>
         </div>
 
         {/* Undo/Redo Controls */}
-        <div className="flex items-center space-x-1">
-          <button
-            className={`p-1 rounded transition-colors ${canUndo
-              ? 'hover:bg-blue-500 cursor-pointer'
-              : 'cursor-not-allowed opacity-50'
-              }`}
-            onClick={onUndo}
-            disabled={!canUndo}
-            title="Undo"
-          >
-            <Image
-              src={"/images/workspace/undo.svg"}
-              alt="Undo"
-              width={20}
-              height={20}
-              className="w-full h-full object-cover"
-            />
-          </button>
-          <button
-            className={`p-1 rounded transition-colors ${canRedo
-              ? 'hover:bg-blue-500 cursor-pointer'
-              : 'cursor-not-allowed opacity-50'
-              }`}
-            onClick={onRedo}
-            disabled={!canRedo}
-            title="Redo"
-          >
-            <Image
-              src={"/images/workspace/redo.svg"}
-              alt="Redo"
-              width={20}
-              height={20}
-              className="w-full h-full object-cover"
-            />
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="flex items-center space-x-1">
+            <button
+              className={`p-1 rounded transition-colors ${canUndo
+                ? 'hover:bg-blue-500 cursor-pointer'
+                : 'cursor-not-allowed opacity-50'
+                }`}
+              onClick={onUndo}
+              disabled={!canUndo}
+              title="Undo"
+            >
+              <Image
+                src={"/images/workspace/undo.svg"}
+                alt="Undo"
+                width={20}
+                height={20}
+                className="w-full h-full object-cover"
+              />
+            </button>
+            <button
+              className={`p-1 rounded transition-colors ${canRedo
+                ? 'hover:bg-blue-500 cursor-pointer'
+                : 'cursor-not-allowed opacity-50'
+                }`}
+              onClick={onRedo}
+              disabled={!canRedo}
+              title="Redo"
+            >
+              <Image
+                src={"/images/workspace/redo.svg"}
+                alt="Redo"
+                width={20}
+                height={20}
+                className="w-full h-full object-cover"
+              />
+            </button>
+          </div>
+        )}
 
         {/* Tools */}
-        <div className="flex items-center space-x-1">
-          <button
-            className={`p-1 rounded ${activeTool === 'cursor' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
-            onClick={() => setActiveTool('cursor')}
-          >
-            <Image
-              src={"/images/workspace/cursor.svg"}
-              alt="Cursor"
-              width={20}
-              height={20}
-              className="w-full h-full object-cover"
-            />
-          </button>
-          <button
-            className={`p-1 rounded ${activeTool === 'hand' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
-            onClick={() => setActiveTool('hand')}
-          >
-            <Image
-              src={"/images/workspace/hand.svg"}
-              alt="Hand"
-              width={20}
-              height={20}
-              className="w-full h-full object-cover"
-            />
-          </button>
-        </div>
-
+        {!readOnly && (
+          <div className="flex items-center space-x-1">
+            <button
+              className={`p-1 rounded ${activeTool === 'cursor' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
+              onClick={() => setActiveTool('cursor')}
+            >
+              <Image
+                src={"/images/workspace/cursor.svg"}
+                alt="Cursor"
+                width={20}
+                height={20}
+                className="w-full h-full object-cover"
+              />
+            </button>
+            <button
+              className={`p-1 rounded ${activeTool === 'hand' ? 'bg-blue-500' : 'hover:bg-blue-500'}`}
+              onClick={() => setActiveTool('hand')}
+            >
+              <Image
+                src={"/images/workspace/hand.svg"}
+                alt="Hand"
+                width={20}
+                height={20}
+                className="w-full h-full object-cover"
+              />
+            </button>
+          </div>
+        )}
 
         {/* Thickness */}
         <div className="flex items-center space-x-2">
@@ -239,7 +246,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
           <select
             value={thickness}
             onChange={(e) => setThickness(Number(e.target.value))}
-            className="bg-white text-gray-900 px-2 py-1 w-32 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400"
+            disabled={readOnly}
+            className="bg-white text-gray-900 px-2 py-1 w-32 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
           >
             {unit === "inches" ? (
               <>

@@ -21,6 +21,12 @@ interface Tool {
   isCustomShape?: boolean;
   shapeType?: "rectangle" | "circle" | "polygon";
   shapeData?: Record<string, unknown>;
+  // NEW: Persist real sizes and metadata
+  originalId?: string;
+  realWidth?: number;
+  realHeight?: number;
+  metadata?: Record<string, unknown>;
+  toolBrand?: string;
 }
 
 interface Canvas {
@@ -99,6 +105,12 @@ const ToolSchema = new mongoose.Schema<Tool>(
     isCustomShape: { type: Boolean, default: false },
     shapeType: { type: String, enum: ["rectangle", "circle", "polygon"], required: false },
     shapeData: { type: mongoose.Schema.Types.Mixed, required: false },
+    // NEW: Persist real sizes and metadata
+    originalId: { type: String, required: false },
+    realWidth: { type: Number, required: false },
+    realHeight: { type: Number, required: false },
+    metadata: { type: mongoose.Schema.Types.Mixed, required: false },
+    toolBrand: { type: String, required: false },
   },
   { _id: false }
 );

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import dbConnect from '@/utils/dbConnect';
 import Layout from '@/lib/models/layout';
+import mongoose from 'mongoose';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -26,21 +27,11 @@ interface ToolData {
   isCustomShape?: boolean;
   shapeType?: 'rectangle' | 'circle' | 'polygon';
   shapeData?: Record<string, unknown>;
-  // New fields for real sizing support
-  metadata?: {
-    userEmail?: string;
-    paperType?: string;
-    brand?: string;
-    purchaseLink?: string;
-    backgroundImg?: string;
-    outlinesImg?: string;
-    processIngData?: string; // Contains the scale info
-    createdAt?: string;
-    updatedAt?: string;
-    version?: number;
-  };
-  realWidth?: number;  // Calculated real width
-  realHeight?: number; // Calculated real height
+  // NEW: Persist metadata and real sizes
+  originalId?: string;
+  metadata?: Record<string, unknown>;
+  realWidth?: number;
+  realHeight?: number;
 }
 
 interface CanvasData {
@@ -133,7 +124,7 @@ const validateTools = (tools: unknown): ToolData[] => {
     }
 
     const toolObj = tool as Record<string, unknown>;
-    const { id, name, x, y, rotation, flipHorizontal, flipVertical, thickness, unit, opacity, smooth, image, groupId, metadata, realWidth, realHeight } = toolObj;
+    const { id, name, x, y, rotation, flipHorizontal, flipVertical, thickness, unit, opacity, smooth, image, groupId, metadata, realWidth, realHeight, originalId } = toolObj;
 
     if (typeof id !== 'string' || typeof name !== 'string' || !id || !name) {
       throw new Error(`Tool at index ${index} must have valid id and name`);
@@ -199,6 +190,7 @@ const validateTools = (tools: unknown): ToolData[] => {
     if (metadata && typeof metadata === 'object') {
       validatedTool.metadata = metadata as ToolData['metadata'];
     }
+    if (typeof originalId === 'string') validatedTool.originalId = originalId;
     if (typeof realWidth === 'number') validatedTool.realWidth = realWidth;
     if (typeof realHeight === 'number') validatedTool.realHeight = realHeight;
 
@@ -279,6 +271,26 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (id) {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid layout id format' },
+          { status: 400 }
+        );
+      }
+
+      const layout = await Layout.findOne({ _id: id, userEmail: decoded.email }).lean();
+      if (!layout) {
+        return NextResponse.json(
+          { success: false, error: 'Layout not found or access denied' },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json({ success: true, data: layout });
+    }
+
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search') || '';

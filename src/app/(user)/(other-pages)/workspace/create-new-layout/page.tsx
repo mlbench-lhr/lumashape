@@ -70,8 +70,11 @@ const CreateNewLayout = () => {
 
   const handleContinue = (e: React.MouseEvent) => {
     if (!validateForm()) {
-      e.preventDefault(); // stop navigation
+      e.preventDefault(); // stop navigation on invalid form
+      return;
     }
+    // Clear any stale edit-mode ID so navigation to canvas uses POST
+    try { sessionStorage.removeItem('editingLayoutId'); } catch {}
   };
 
   return (

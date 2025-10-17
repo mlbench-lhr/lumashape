@@ -41,6 +41,7 @@ interface SidebarProps {
     canvasHeight?: number;
     unit?: 'mm' | 'inches';
     setActiveTool?: (tool: 'cursor' | 'hand' | 'box' | 'fingercut') => void;
+    readOnly?: boolean;
 }
 
 
@@ -77,7 +78,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     canvasWidth,
     canvasHeight,
     unit,
-    setActiveTool = () => { }
+    setActiveTool = () => { },
+    readOnly = false,
 }) => {
 
     const [activeTab, setActiveTab] = useState<'inventory' | 'edit'>('inventory');
@@ -429,7 +431,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <>
                     <div className="space-y-2">
                         {filteredTools.map((tool) => (
-                            <DraggableTool key={tool.id} tool={tool} />
+                            <DraggableTool key={tool.id} tool={tool} readOnly={readOnly} />
                         ))}
                     </div>
 
@@ -842,30 +844,43 @@ const Sidebar: React.FC<SidebarProps> = ({
     return (
         <div className="w-80 bg-white border-l border-gray-200">
             <div className="p-4">
-                <div className="flex justify-between items-center space-x-2 mb-4 bg-gray-100 py-2 px-2 rounded-md">
-                    <button
-                        className={`px-4 py-2 rounded-md text-sm font-medium w-1/2 transition-colors ${activeTab === 'inventory'
-                            ? 'bg-primary text-white'
-                            : 'text-gray-600 hover:bg-gray-50'
-                            }`}
-                        onClick={() => setActiveTab('inventory')}
-                    >
-                        Tool Inventory
-                    </button>
-                    <button
-                        className={`px-4 py-2 rounded-md text-sm font-medium w-1/2 transition-colors ${activeTab === 'edit'
-                            ? 'bg-primary text-white'
-                            : 'text-gray-600 hover:bg-gray-50'
-                            }`}
-                        onClick={() => setActiveTab('edit')}
-                    >
-                        Edit Layout
-                    </button>
-                </div>
-
-                <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
-                    {activeTab === 'inventory' ? <ToolInventoryView /> : <EditLayoutView />}
-                </div>
+                {readOnly ? (
+                    <>
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">Tools List</h3>
+                        </div>
+                        <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+                            <ToolInventoryView />
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className="flex justify-between items-center space-x-2 mb-4 bg-gray-100 py-2 px-2 rounded-md">
+                            <button
+                                className={`px-4 py-2 rounded-md text-sm font-medium w-1/2 transition-colors ${activeTab === 'inventory'
+                                    ? 'bg-primary text-white'
+                                    : 'text-gray-600 hover:bg-gray-50'
+                                    }`}
+                                onClick={() => setActiveTab('inventory')}
+                            >
+                                Tool Inventory
+                            </button>
+                            <button
+                                className={`px-4 py-2 rounded-md text-sm font-medium w-1/2 transition-colors ${activeTab === 'edit'
+                                    ? 'bg-primary text-white'
+                                    : 'text-gray-600 hover:bg-gray-50'
+                                    }`}
+                                onClick={() => setActiveTab('edit')}
+                            >
+                                Edit Layout
+                            </button>
+                        </div>
+                
+                        <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+                            {activeTab === 'inventory' ? <ToolInventoryView /> : <EditLayoutView />}
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

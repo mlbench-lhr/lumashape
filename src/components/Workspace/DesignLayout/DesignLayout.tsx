@@ -7,24 +7,44 @@ import Sidebar from "./Sidebar";
 import { DroppedTool, Tool } from "./types";
 import { useUndoRedo } from './toolUtils';
 
-function DesignLayout() {
-  const [droppedTools, setDroppedTools] = useState<DroppedTool[]>([]);
+function DesignLayout({
+  initialDroppedTools,
+  initialCanvas,
+  editingLayoutId,
+  readOnly,
+}: {
+  initialDroppedTools?: DroppedTool[];
+  initialCanvas?: { width: number; height: number; unit: 'mm' | 'inches'; thickness: number };
+  editingLayoutId?: string;
+  readOnly?: boolean;
+}) {
+  // Seed with initial values if provided
+  const [droppedTools, setDroppedTools] = useState<DroppedTool[]>(initialDroppedTools || []);
   const {
     pushState,
     undo,
     redo,
     canUndo,
     canRedo,
-  } = useUndoRedo([]);
+  } = useUndoRedo(initialDroppedTools || []);
 
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
 
   // Canvas dimensions (controlled by ControlBar)
-  const [canvasWidth, setCanvasWidth] = useState<number>(400);
-  const [canvasHeight, setCanvasHeight] = useState<number>(300);
-  const [thickness, setThickness] = useState<number>(12.7);
-  const [unit, setUnit] = useState<'mm' | 'inches'>('mm');
+  const [canvasWidth, setCanvasWidth] = useState<number>(initialCanvas?.width ?? 400);
+  const [canvasHeight, setCanvasHeight] = useState<number>(initialCanvas?.height ?? 300);
+  const [thickness, setThickness] = useState<number>(initialCanvas?.thickness ?? 12.7);
+  const [unit, setUnit] = useState<'mm' | 'inches'>(initialCanvas?.unit ?? 'mm');
+
+  useEffect(() => {
+    if (editingLayoutId) {
+      try { sessionStorage.setItem('editingLayoutId', editingLayoutId); } catch {}
+    }
+    if (initialDroppedTools && initialDroppedTools.length) {
+      pushState(initialDroppedTools);
+    }
+  }, [editingLayoutId, initialDroppedTools, pushState]);
 
   // State for active tool (cursor, hand, box)
   const [activeTool, setActiveTool] = useState<'cursor' | 'hand' | 'box'>('cursor');
@@ -125,7 +145,7 @@ function DesignLayout() {
   }, []);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
+    <div className="flex flex-col h-[calc(100vh-48px)]">
       <Header
         droppedTools={droppedTools}
         canvasWidth={canvasWidth}
@@ -134,6 +154,7 @@ function DesignLayout() {
         unit={unit}
         hasOverlaps={hasOverlaps}
         onSaveLayout={handleSaveLayout}
+        readOnly={readOnly}
       />
       <ControlBar
         canvasWidth={canvasWidth}
@@ -151,6 +172,7 @@ function DesignLayout() {
         canRedo={canRedo}
         onUndo={handleUndo}
         onRedo={handleRedo}
+        readOnly={readOnly}
       />
       <div className="flex flex-1 overflow-hidden min-h-0">
         <Canvas
@@ -164,7 +186,8 @@ function DesignLayout() {
           canvasHeight={canvasHeight}
           unit={unit}
           activeTool={activeTool}
-          onOverlapChange={setHasOverlaps} // Add this prop to track overlaps
+          onOverlapChange={setHasOverlaps}
+          readOnly={readOnly}
         />
         <div className="w-80 flex-shrink-0">
           <Sidebar
@@ -176,6 +199,7 @@ function DesignLayout() {
             canvasWidth={canvasWidth}
             canvasHeight={canvasHeight}
             unit={unit}
+            readOnly={readOnly}
           />
         </div>
       </div>

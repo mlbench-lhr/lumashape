@@ -7,6 +7,7 @@ import * as htmlToImage from "html-to-image";
 import { useCart } from "@/context/CartContext";
 import { toast } from "react-toastify";
 import { calculatePriceFromLayoutData } from '@/utils/pricing';
+import router from 'next/router';
 
 interface HeaderProps {
     droppedTools: DroppedTool[];
@@ -16,6 +17,7 @@ interface HeaderProps {
     unit: 'mm' | 'inches';
     hasOverlaps: boolean;
     onSaveLayout?: () => void;
+    readOnly?: boolean;
 }
 
 interface LayoutFormData {
@@ -68,7 +70,8 @@ const Header: React.FC<HeaderProps> = ({
     thickness,
     unit,
     hasOverlaps,
-    onSaveLayout
+    onSaveLayout,
+    readOnly
 }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -92,11 +95,7 @@ const Header: React.FC<HeaderProps> = ({
         setSaveError(null);
 
         try {
-            // Do NOT call handleSaveAndExit here as it's causing overlap errors
-
-            const authToken = getAuthToken();
-            if (!authToken) throw new Error("Authentication required. Please log in again.");
-
+            // Read session for canvas dimensions and name (for containerSize)
             let additionalData: LayoutFormData = {};
             const sessionData = sessionStorage.getItem("layoutForm");
             if (sessionData) {
@@ -107,26 +106,24 @@ const Header: React.FC<HeaderProps> = ({
                 }
             }
 
-            // Capture and upload image
-            let imageUrl: string | null = null;
-            try {
-                const canvasBlob = await captureCanvasImage();
-                imageUrl = await uploadToDigitalOcean(canvasBlob);
-            } catch (imageError) {
-                console.warn("Failed to capture/upload image:", imageError);
-            }
-
-            // Create cart item with complete layout data
             const layoutName = additionalData.layoutName || `Layout ${new Date().toLocaleDateString()}`;
             const containerSize = `${additionalData.canvasWidth ?? canvasWidth}" × ${additionalData.canvasHeight ?? canvasHeight}"`;
 
-            // Prepare layout data to save with cart item
-            const layoutData = {
+            // Save layout via Save & Exit handler (single source of truth)
+            const saveResult = await handleSaveAndExit({ skipRedirect: true });
+            if (!saveResult || !saveResult.id) {
+                throw new Error("Failed to save layout");
+            }
+            const savedLayoutId = saveResult.id;
+            const snapshotUrl = saveResult.snapshotUrl || undefined;
+
+            // Prepare minimal cart layout data (cart schema)
+            const cartLayoutData = {
                 canvas: {
                     width: additionalData.canvasWidth ?? canvasWidth,
                     height: additionalData.canvasHeight ?? canvasHeight,
-                    unit: unit,
-                    thickness: thickness,
+                    unit,
+                    thickness,
                 },
                 tools: droppedTools.map(tool => ({
                     id: tool.id,
@@ -138,42 +135,25 @@ const Header: React.FC<HeaderProps> = ({
                     flipVertical: tool.flipVertical,
                     thickness: tool.thickness,
                     unit: tool.unit,
-                    opacity: tool.opacity,
-                    smooth: tool.smooth,
-                    image: tool.image,
-                    groupId: tool.groupId || null,
+                    opacity: tool.opacity ?? 100,
+                    smooth: tool.smooth ?? 0,
+                    image: tool.image ?? '',
+                    groupId: tool.groupId ?? null,
                 })),
             };
 
-            // Calculate price based on volume
-            const calculatedPrice = calculatePriceFromLayoutData(layoutData);
+            const calculatedPrice = calculatePriceFromLayoutData(cartLayoutData);
 
-            // Add to cart with layout data
             await addToCart({
-                id: `layout-${Date.now()}`,
+                id: savedLayoutId,            // use actual Mongo _id
                 name: layoutName,
-                containerSize: containerSize,
-                price: calculatedPrice, // Use calculated price instead of fixed $30
-                snapshotUrl: imageUrl || undefined,
-                layoutData: {
-                    ...layoutData,
-                    tools: layoutData.tools.map(tool => ({
-                        ...tool,
-                        image: tool.image ?? '', // ensure image is always a string
-                        groupId: tool.groupId ?? undefined, // convert null to undefined
-                    }))
-                }, // Include complete layout data
+                containerSize,
+                price: calculatedPrice,
+                snapshotUrl,                  // use saved snapshot url
+                layoutData: cartLayoutData,
             });
 
-            toast.success("Layout added to cart successfully!");
-
-            // After successfully adding to cart, save the layout
-            // But don't await it to avoid blocking the cart confirmation
-            handleSaveAndExit().catch(error => {
-                console.error("Background save failed:", error);
-                // Don't show error to user since cart operation succeeded
-            });
-
+            toast.success("Layout saved and added to cart successfully!");
         } catch (error) {
             console.error("Error adding to cart:", error);
             setSaveError(error instanceof Error ? error.message : "Failed to add layout to cart");
@@ -704,7 +684,7 @@ const Header: React.FC<HeaderProps> = ({
 
 
 
-    const handleSaveAndExit = async () => {
+    const handleSaveAndExit = async (options?: { skipRedirect?: boolean }) => {
         if (droppedTools.length === 0) {
             setSaveError("Cannot save empty layout. Please add at least one tool.");
             return;
@@ -808,8 +788,33 @@ const Header: React.FC<HeaderProps> = ({
                         smooth: tool.smooth || 0,
                         image: tool.image,
                         groupId: tool.groupId,
-                        realWidth: tool.realWidth,
-                        realHeight: tool.realHeight,
+                        // NEW: compute and persist real physical dimensions
+                        realWidth: (() => {
+                            if (tool.metadata?.length) {
+                                const heightInches = tool.metadata.length;
+                                let aspect = 1.6;
+                                if (
+                                    tool.metadata?.naturalWidth &&
+                                    tool.metadata?.naturalHeight &&
+                                    tool.metadata.naturalHeight > 0
+                                ) {
+                                    aspect = tool.metadata.naturalWidth / tool.metadata.naturalHeight;
+                                }
+                                const widthInches = heightInches * aspect;
+                                return tool.unit === 'mm' ? widthInches * 25.4 : widthInches;
+                            }
+                            // shapes and non-image tools: use current width/length (already in tool.unit)
+                            if (typeof tool.width === 'number') return tool.width;
+                            return undefined;
+                        })(),
+                        realHeight: (() => {
+                            if (tool.metadata?.length) {
+                                const heightInches = tool.metadata.length;
+                                return tool.unit === 'mm' ? heightInches * 25.4 : heightInches;
+                            }
+                            if (typeof tool.length === 'number') return tool.length;
+                            return undefined;
+                        })(),
                         metadata: tool.metadata,
                     };
 
@@ -829,8 +834,19 @@ const Header: React.FC<HeaderProps> = ({
 
             console.log("Saving layout data:", { ...layoutData, snapshotUrl: imageUrl ? "✅ Included" : "❌ Failed" });
 
-            const response = await fetch("/api/layouts", {
-                method: "POST",
+            const editingLayoutId = (() => {
+                try { return sessionStorage.getItem('editingLayoutId'); } catch { return null; }
+            })();
+
+            // Always update when an editing id exists
+            const endpoint = editingLayoutId
+                ? `/api/layouts?id=${editingLayoutId}`
+                : `/api/layouts`;
+
+            const method = editingLayoutId ? "PUT" : "POST";
+
+            const response = await fetch(endpoint, {
+                method,
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${authToken}`,
@@ -843,15 +859,35 @@ const Header: React.FC<HeaderProps> = ({
                 throw new Error(result.error || "Failed to save layout");
             }
 
-            // Clear any previous error if we got here
+            // Derive id + snapshotUrl from response
+            const savedLayoutId = method === "POST"
+                ? String(result.id)
+                : String(editingLayoutId || result.data?._id);
+
+            const savedSnapshotUrl: string | null = method === "POST"
+                ? (result.snapshotUrl ?? null)
+                : (result.data?.snapshotUrl ?? null);
+
+            // Persist editing id for subsequent updates (no duplicates)
+            try { sessionStorage.setItem('editingLayoutId', savedLayoutId); } catch {}
+
             setSaveError(null);
             setSaveSuccess(true);
-            sessionStorage.removeItem("layoutForm");
 
-            setTimeout(() => {
-                onSaveLayout?.();
-                window.location.href = "/workspace";
-            }, 1500);
+            // Only clear form data when redirecting; keep it for Add to Cart
+            if (!options?.skipRedirect) {
+                try { sessionStorage.removeItem("layoutForm"); } catch {}
+            }
+
+            if (!options?.skipRedirect) {
+                setTimeout(() => {
+                    onSaveLayout?.();
+                    window.location.href = "/workspace";
+                }, 1500);
+            }
+
+            // Return for callers like Add to Cart
+            return { id: savedLayoutId, snapshotUrl: savedSnapshotUrl };
 
         } catch (error) {
             console.error("Error saving layout:", error);
@@ -863,12 +899,6 @@ const Header: React.FC<HeaderProps> = ({
 
 
     const exportOptions = [
-        {
-            icon: FileText,
-            label: 'Download Text File',
-            action: downloadTextFile,
-            disabled: false
-        },
         {
             icon: File,
             label: 'Generate DXF File',
@@ -896,80 +926,84 @@ const Header: React.FC<HeaderProps> = ({
                         width={35}
                         height={35}
                     />
-                    <h1 className="ml-2 text-2xl font-bold text-gray-900">Design Your Tool Layout</h1>
+                    <h1 className="ml-2 text-2xl font-bold text-gray-900">{readOnly ? 'Inspect Layout' : 'Design Your Tool Layout'}</h1>
                 </div>
 
                 <div className="flex items-center space-x-3">
-                    <button
-                        className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors ${isSaving || hasOverlaps || droppedTools.length === 0
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : saveSuccess
-                                ? 'bg-green-500 hover:bg-green-600'
-                                : 'bg-primary hover:bg-primary/90'
-                            } text-white`}
-                        onClick={handleSaveAndExit}
-                        disabled={isSaving || hasOverlaps || droppedTools.length === 0}
-                    >
-                        {isSaving ? (
-                            <>
-                                <RefreshCw className="w-4 h-4 animate-spin" />
-                                <span>Saving...</span>
-                            </>
-                        ) : saveSuccess ? (
-                            <>
-                                <CheckCircle className="w-4 h-4" />
-                                <span>Saved!</span>
-                            </>
-                        ) : (
-                            <>
-                                <Save className="w-4 h-4" />
-                                <span>Save & Exit</span>
-                            </>
-                        )}
-                    </button>
+                    {!readOnly && (
+                        <button
+                            className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors ${isSaving || hasOverlaps || droppedTools.length === 0
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : saveSuccess
+                                    ? 'bg-green-500 hover:bg-green-600'
+                                    : 'bg-primary hover:bg-primary/90'
+                                } text-white`}
+                            onClick={() => handleSaveAndExit()}
+                            disabled={isSaving || hasOverlaps || droppedTools.length === 0}
+                        >
+                            {isSaving ? (
+                                <>
+                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                    <span>Saving...</span>
+                                </>
+                            ) : saveSuccess ? (
+                                <>
+                                    <CheckCircle className="w-4 h-4" />
+                                    <span>Saved!</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-4 h-4" />
+                                    <span>Save & Exit</span>
+                                </>
+                            )}
+                        </button>
+                    )}
 
                     {/* Export Options Dropdown */}
-                    <div className="relative" ref={dropdownRef}>
-                        <button
-                            className="px-4 py-4 rounded-2xl bg-primary hover:bg-primary/90 transition-colors"
-                            onClick={() => setShowDropdown(!showDropdown)}
-                        >
-                            <MoreHorizontal className="w-5 h-5 text-white" />
-                        </button>
+                    {!readOnly && (
+                        <div className="relative" ref={dropdownRef}>
+                            <button
+                                className="px-4 py-4 rounded-2xl bg-primary hover:bg-primary/90 transition-colors"
+                                onClick={() => setShowDropdown(!showDropdown)}
+                            >
+                                <MoreHorizontal className="w-5 h-5 text-white" />
+                            </button>
 
-                        {showDropdown && (
-                            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                                <div className="py-2">
-                                    <div className="px-4 py-2 text-sm font-medium text-gray-700 border-b border-gray-100">
-                                        Export Options
+                            {showDropdown && (
+                                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                                    <div className="py-2">
+                                        <div className="px-4 py-2 text-sm font-medium text-gray-700 border-b border-gray-100">
+                                            Export Options
+                                        </div>
+                                        {exportOptions.map((option, index) => (
+                                            <button
+                                                key={index}
+                                                className={`w-full px-4 py-3 text-left text-sm flex items-center space-x-3 transition-colors ${option.disabled
+                                                    ? 'text-gray-400 cursor-not-allowed'
+                                                    : 'text-gray-700 hover:bg-gray-50 cursor-pointer'
+                                                    }`}
+                                                onClick={option.disabled ? undefined : option.action}
+                                                disabled={option.disabled}
+                                            >
+                                                {option.loading ? (
+                                                    <RefreshCw className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                    <option.icon className="w-4 h-4" />
+                                                )}
+                                                <span>
+                                                    {option.loading ? 'Generating DXF...' : option.label}
+                                                </span>
+                                                {option.disabled && !option.loading && droppedTools.length === 0 && (
+                                                    <span className="ml-auto text-xs text-gray-400">(Add tools first)</span>
+                                                )}
+                                            </button>
+                                        ))}
                                     </div>
-                                    {exportOptions.map((option, index) => (
-                                        <button
-                                            key={index}
-                                            className={`w-full px-4 py-3 text-left text-sm flex items-center space-x-3 transition-colors ${option.disabled
-                                                ? 'text-gray-400 cursor-not-allowed'
-                                                : 'text-gray-700 hover:bg-gray-50 cursor-pointer'
-                                                }`}
-                                            onClick={option.disabled ? undefined : option.action}
-                                            disabled={option.disabled}
-                                        >
-                                            {option.loading ? (
-                                                <RefreshCw className="w-4 h-4 animate-spin" />
-                                            ) : (
-                                                <option.icon className="w-4 h-4" />
-                                            )}
-                                            <span>
-                                                {option.loading ? 'Generating DXF...' : option.label}
-                                            </span>
-                                            {option.disabled && !option.loading && droppedTools.length === 0 && (
-                                                <span className="ml-auto text-xs text-gray-400">(Add tools first)</span>
-                                            )}
-                                        </button>
-                                    ))}
                                 </div>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
