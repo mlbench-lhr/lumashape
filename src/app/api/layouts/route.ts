@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import dbConnect from '@/utils/dbConnect';
 import Layout from '@/lib/models/layout';
 import mongoose from 'mongoose';
+import User from '@/lib/models/User';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -501,7 +502,13 @@ export async function DELETE(req: NextRequest) {
     const decoded = jwt.verify(token, JWT_SECRET);
 
     if (!isValidJWTPayload(decoded)) {
-      return NextResponse.json({ error: "Invalid token payload" }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid token payload' }, { status: 401 });
+    }
+
+    // Reject if user no longer exists (deleted)
+    const user = await User.findOne({ email: decoded.email });
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const { searchParams } = new URL(req.url);

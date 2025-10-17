@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import dbConnect from "@/utils/dbConnect";
-import Tool from "@/lib/models/Tool";
+import Tool from '@/lib/models/Tool';
+import User from '@/lib/models/User';
 
 export async function PUT(request: NextRequest) {
     try {
@@ -55,6 +56,12 @@ export async function PUT(request: NextRequest) {
 
         // Connect to database
         await dbConnect();
+
+        // Reject if user no longer exists (deleted)
+        const user = await User.findOne({ email: userEmail });
+        if (!user) {
+            return NextResponse.json({ error: 'User not found' }, { status: 404 });
+        }
 
         // Check if tool exists and belongs to the user
         const existingTool = await Tool.findOne({
