@@ -17,7 +17,7 @@ export default function Home() {
       <HeroSection />
       <WhyChoose/>
       <HowItWorks />  
-      <Pricing/>
+      {/* <Pricing/> */}
     
     </Layout>
     </div>
