@@ -5,13 +5,18 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { JSX } from 'react'
 
-const Text = ({ as: Component = 'p', className = '', children, ...props }: {
-  as?: keyof JSX.IntrinsicElements;
-  className?: string;
-  children: React.ReactNode;
-  [key: string]: any;
-}) => {
-  return <Component className={className} {...props}>{children}</Component>
+interface TextProps {
+  as?: keyof JSX.IntrinsicElements
+  className?: string
+  children: React.ReactNode
+}
+
+const Text = ({ as: Component = 'p', className = '', children, ...rest }: TextProps) => {
+  return (
+    <Component className={className} {...(rest as Record<string, unknown>)}>
+      {children}
+    </Component>
+  )
 }
 
 type DataItem = {
