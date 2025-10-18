@@ -141,25 +141,14 @@ const PublishedLayoutsTab = () => {
 
     // Get thickness options based on selected unit
     const getThicknessOptions = () => {
-        if (selectedUnit === "mm") {
-            return [
-                { value: "12.7", label: "12.7" },  // 0.5 inches
-                { value: "25.4", label: "25.4" },  // 1.0 inch
-                { value: "38.1", label: "38.1" },  // 1.5 inches
-                { value: "50.8", label: "50.8" },  // 2.0 inches
-                { value: "63.5", label: "63.5" },  // 2.5 inches
-                { value: "76.2", label: "76.2" },  // 3.0 inches
-            ];
-        } else {
-            return [
-                { value: "0.5", label: "0.5" },
-                { value: "1.0", label: "1.0" },
-                { value: "1.5", label: "1.5" },
-                { value: "2.0", label: "2.0" },
-                { value: "2.5", label: "2.5" },
-                { value: "3.0", label: "3.0" },
-            ];
-        }
+        return [
+            { value: "0.5", label: "0.5" },
+            { value: "1.0", label: "1.0" },
+            { value: "1.5", label: "1.5" },
+            { value: "2.0", label: "2.0" },
+            { value: "2.5", label: "2.5" },
+            { value: "3.0", label: "3.0" },
+        ];
     };
 
     const applyFilters = () => {
@@ -197,18 +186,26 @@ const PublishedLayoutsTab = () => {
             );
         }
 
-        // Thickness filter - convert to selected unit for comparison
-        if (selectedThickness && selectedUnit) {
+        // Thickness filter — independent of unit
+        if (selectedThickness) {
             const targetThickness = parseFloat(selectedThickness);
+
             filtered = filtered.filter(layout => {
                 const layoutThickness = layout.canvas?.thickness || layout.metadata?.thickness;
                 const layoutUnit = layout.canvas?.unit || layout.metadata?.units;
-                if (!layoutThickness || !layoutUnit) return false;
 
-                const normalizedThickness = normalizeToSelectedUnit(layoutThickness, layoutUnit);
-                return Math.abs(normalizedThickness - targetThickness) < 0.01; // Small tolerance for float comparison
+                if (!layoutThickness) return false;
+
+                // If selectedUnit exists, normalize to it
+                let normalizedThickness = layoutThickness;
+                if (selectedUnit && layoutUnit) {
+                    normalizedThickness = normalizeToSelectedUnit(layoutThickness, layoutUnit);
+                }
+
+                return Math.abs(normalizedThickness - targetThickness) < 0.01;
             });
         }
+
 
         // Length filter - convert to selected unit for comparison
         if (selectedLength && parseFloat(selectedLength) > 0 && selectedUnit) {
@@ -395,10 +392,9 @@ const PublishedLayoutsTab = () => {
         }
     };
 
-    // Reset thickness when unit changes
     const handleUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         setSelectedUnit(e.target.value);
-        setSelectedThickness(""); // Reset thickness when unit changes
+        // thickness is independent of unit, do not reset it
     };
 
 
@@ -439,13 +435,12 @@ const PublishedLayoutsTab = () => {
                             <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
                         </div>
 
-                        {/* Thickness - Options change based on unit */}
+                        {/* Thickness - always inches; independent of unit */}
                         <div className="relative">
                             <select
                                 className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[120px]"
                                 value={selectedThickness}
                                 onChange={(e) => setSelectedThickness(e.target.value)}
-                                disabled={!selectedUnit}
                             >
                                 <option value="">Thickness</option>
                                 {getThicknessOptions().map(option => (

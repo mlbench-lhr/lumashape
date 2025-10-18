@@ -173,17 +173,17 @@ const Sidebar: React.FC<SidebarProps> = ({
         }
     };
 
-    // Convert database tools to the format expected by the component
+    // convertDatabaseToolsToTools()
     const convertDatabaseToolsToTools = (dbTools: DatabaseTool[]): Tool[] => {
         return dbTools.map((dbTool) => {
             const extractedData = extractToolData(dbTool);
-
+    
             return {
                 id: extractedData.id,
                 name: extractedData.toolType || 'Unknown Tool',
                 icon: getToolIcon(extractedData.toolType),
                 toolBrand: extractedData.toolBrand,
-                image: extractedData.imageUrl,
+                image: extractedData.expanded_contour_image_url || extractedData.imageUrl,
                 metadata: {
                     userEmail: extractedData.userEmail,
                     toolBrand: extractedData.toolBrand,
@@ -357,36 +357,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         createShape(droppedTools, setDroppedTools, shapeType, position, canvasWidth, canvasHeight, unit);
         onHistoryChange?.();
     }, [droppedTools, setDroppedTools, onHistoryChange, canvasWidth, canvasHeight, unit]);
-
-    const handleAssignContour = useCallback(() => {
-        const newContourMode = !isContourMode;
-        setIsContourMode(newContourMode);
-
-        setDroppedTools(prevTools =>
-            prevTools.map(tool => {
-                const expandedContourUrl = tool.metadata?.expanded_contour_image_url;
-                const originalUrl = tool.metadata?.imageUrl;
-
-                if (newContourMode && expandedContourUrl) {
-                    // Switch to contour image
-                    return {
-                        ...tool,
-                        image: expandedContourUrl
-                    };
-                } else if (!newContourMode && originalUrl) {
-                    // Switch back to original image
-                    return {
-                        ...tool,
-                        image: originalUrl
-                    };
-                }
-
-                return tool;
-            })
-        );
-
-        onHistoryChange?.();
-    }, [isContourMode, setDroppedTools, onHistoryChange]);
 
     const ToolInventoryView = () => (
         <>
@@ -569,12 +539,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             label: 'Auto Layout',
             action: handleAutoLayout,
             disabled: effectiveSelectedTools.length < 2
-        },
-        {
-            icon: "/images/workspace/layout.svg",
-            label: isContourMode ? 'Remove Contour' : 'Assign Contour',
-            action: handleAssignContour,
-            disabled: droppedTools.length === 0
         },
     ];
 

@@ -77,8 +77,7 @@ const WhyChoose = () => {
                             as="p1"
                             className="text-center text-secondary-light mx-auto max-w-[80%]"
                         >
-                            Share your tool scans and layouts with the Lumashape community to reduce redundant scanning and design work. When others import your published layouts, you earn 25% of the import fee turning your contributions into passive income.
-                        </Text>
+                            Publish your layout designs to the Lumashape ecosystem. When others import them, you earn 50% profit sharing on the import cost.                        </Text>
                     </motion.div>
                     {/* access Anytime */}
                     <motion.div
