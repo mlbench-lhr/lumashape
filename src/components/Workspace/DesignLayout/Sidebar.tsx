@@ -65,6 +65,7 @@ interface DatabaseTool {
 }
 
 
+// Sidebar (within component)
 const Sidebar: React.FC<SidebarProps> = ({
     droppedTools = [],
     selectedTool = null,
@@ -88,6 +89,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isContourMode, setIsContourMode] = useState(false);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [addedToolIds, setAddedToolIds] = useState<Set<string>>(new Set());
 
     const selectedToolObject = selectedTool ? droppedTools.find(tool => tool.id === selectedTool) : null;
     const isFingerCutSelected = selectedToolObject?.metadata?.isFingerCut;
@@ -125,6 +128,67 @@ const Sidebar: React.FC<SidebarProps> = ({
             updatedAt,
             version: __v
         };
+    };
+
+    const handleAddToInventoryFromLayout = async (tool: DroppedTool) => {
+        const originalId = tool.metadata?.originalId;
+        if (!originalId) {
+            alert("This tool cannot be added to inventory (missing original ID).");
+            return;
+        }
+
+        // Confirm intent
+        const confirmed = window.confirm("Are you sure you want to add this tool to your tool inventory?");
+        if (!confirmed) return;
+
+        // Duplicate checks: existing inventory or already added in this session
+        const alreadyInInventory = tools.some(t => t.id === originalId);
+        const alreadyAddedThisSession = addedToolIds.has(originalId);
+        if (alreadyInInventory || alreadyAddedThisSession) {
+            alert("Tool already exists in your inventory.");
+            return;
+        }
+
+        try {
+            setActionLoading(`add-${tool.id}`);
+            const token = localStorage.getItem("auth-token");
+            if (!token) {
+                throw new Error("Authentication required");
+            }
+            const res = await fetch("/api/user/tool/addToInventory", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ toolId: originalId })
+            });
+
+            if (!res.ok) {
+                const error = await res.json().catch(() => ({}));
+                const message = error?.error || "Failed to add tool to inventory";
+                // Normalize server duplicate errors to user-friendly text
+                if (/exist/i.test(message)) {
+                    alert("Tool already exists in your inventory.");
+                    return;
+                }
+                throw new Error(message);
+            }
+
+            // Mark as added in-session
+            setAddedToolIds(prev => {
+                const next = new Set(prev);
+                next.add(originalId);
+                return next;
+            });
+
+            alert("Tool added to your inventory successfully!");
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : "Failed to add tool to inventory";
+            alert(msg);
+        } finally {
+            setActionLoading(null);
+        }
     };
 
     // Handle finger cut creation
@@ -177,7 +241,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     const convertDatabaseToolsToTools = (dbTools: DatabaseTool[]): Tool[] => {
         return dbTools.map((dbTool) => {
             const extractedData = extractToolData(dbTool);
-    
+
             return {
                 id: extractedData.id,
                 name: extractedData.toolType || 'Unknown Tool',
@@ -422,72 +486,78 @@ const Sidebar: React.FC<SidebarProps> = ({
         </>
     );
 
-    const ToolsView = () => (
-        <>
-            {/* Tool Selection Buttons */}
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Canvas Tools</h3>
-                <div className="grid grid-cols-2 gap-2">
-                    <button
-                        onClick={() => setActiveTool('cursor')}
-                        className={`p-2 rounded text-sm font-medium transition-colors ${activeTool === 'cursor'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-white text-gray-700 hover:bg-gray-100'
-                            }`}
-                    >
-                        Select
-                    </button>
-                    <button
-                        onClick={() => setActiveTool('hand')}
-                        className={`p-2 rounded text-sm font-medium transition-colors ${activeTool === 'hand'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-white text-gray-700 hover:bg-gray-100'
-                            }`}
-                    >
-                        Pan
-                    </button>
-                    <button
-                        onClick={() => setActiveTool('box')}
-                        className={`p-2 rounded text-sm font-medium transition-colors ${activeTool === 'box'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-white text-gray-700 hover:bg-gray-100'
-                            }`}
-                    >
-                        Select Box
-                    </button>
-                    <button
-                        onClick={() => setActiveTool('fingercut')}
-                        className={`p-2 rounded text-sm font-medium transition-colors flex items-center justify-center gap-1 ${activeTool === 'fingercut'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-white text-gray-700 hover:bg-gray-100'
-                            }`}
-                    >
-                        <Hand className="w-4 h-4" />
-                        Finger Cut
-                    </button>
+    const LayoutToolsView = () => {
+        const filteredLayoutTools = droppedTools
+            .filter(t => !t.metadata?.isFingerCut && t.toolBrand !== 'SHAPE')
+            .filter(t =>
+                t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (t.toolBrand || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (t.metadata?.toolType || '').toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+        return (
+            <>
+                <div className="relative mb-4">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Search layout tools"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    />
                 </div>
-                {activeTool === 'fingercut' && (
-                    <div className="mt-2 p-2 bg-blue-50 rounded text-xs text-blue-700">
-                        Click on the canvas to add finger cut areas for easy tool removal
+
+                <div className="space-y-2">
+                    {filteredLayoutTools.map((tool) => {
+                        const originalId = tool.metadata?.originalId;
+                        const inInventory = originalId ? tools.some(t => t.id === originalId) : false;
+                        const addedSession = originalId ? addedToolIds.has(originalId) : false;
+                        const isLoading = actionLoading === `add-${tool.id}`;
+                        const canAdd = !!originalId && !isLoading && !inInventory && !addedSession;
+
+                        return (
+                            <DraggableTool
+                                key={tool.id}
+                                tool={tool}
+                                readOnly={true}
+                                actions={
+                                    <button
+                                        onClick={() => handleAddToInventoryFromLayout(tool)}
+                                        disabled={!canAdd}
+                                        className={`px-2 py-1 text-xs rounded border ${canAdd
+                                                ? 'text-blue-600 border-blue-200 hover:bg-blue-50'
+                                                : 'text-gray-400 border-gray-200 cursor-not-allowed'
+                                            }`}
+                                        title={
+                                            !originalId
+                                                ? 'Missing original ID'
+                                                : inInventory || addedSession
+                                                    ? 'Tool already exists'
+                                                    : ''
+                                        }
+                                    >
+                                        {inInventory || addedSession
+                                            ? 'Added'
+                                            : isLoading
+                                                ? 'Adding...'
+                                                : 'Add'}
+                                    </button>
+                                }
+                            />
+                        );
+                    })}
+                </div>
+
+                {filteredLayoutTools.length === 0 && (
+                    <div className="text-center text-gray-500 py-8">
+                        <p>No tools in this layout</p>
                     </div>
                 )}
-            </div>
+            </>
+        );
+    };
 
-            {/* Search */}
-            <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                    type="text"
-                    placeholder="Search tools..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-            </div>
-
-            {/* ... existing tools rendering ... */}
-        </>
-    );
 
     const editActions = [
         {
@@ -811,10 +881,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {readOnly ? (
                     <>
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold text-gray-900">Tools List</h3>
+                            <h3 className="text-lg font-semibold text-gray-900">Tools in Layout</h3>
                         </div>
                         <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
-                            <ToolInventoryView />
+                            <LayoutToolsView />
                         </div>
                     </>
                 ) : (
@@ -839,7 +909,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 Edit Layout
                             </button>
                         </div>
-                
+
                         <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
                             {activeTab === 'inventory' ? <ToolInventoryView /> : <EditLayoutView />}
                         </div>
@@ -847,6 +917,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
             </div>
         </div>
+
+
     );
 };
 

@@ -58,7 +58,7 @@ const navItems: NavItem[] = [
         height={24}
       />
     ),
-    name: "Tools Inventory",
+    name: "Tool Inventory",
     path: "/tools-inventory",
   },
   {

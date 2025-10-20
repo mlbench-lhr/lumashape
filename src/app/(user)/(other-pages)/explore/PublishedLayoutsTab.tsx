@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { MoreVertical, Download, Check, ChevronDown, ThumbsUp, ThumbsDown } from "lucide-react";
+import { useRouter } from 'next/navigation';
 
 interface UserInteraction {
     hasLiked: boolean;
@@ -52,6 +53,7 @@ const PublishedLayoutsTab = () => {
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [addedLayouts, setAddedLayouts] = useState<Set<string>>(new Set());
+    const router = useRouter();
 
     // Filter states
     const [searchTerm, setSearchTerm] = useState("");
@@ -352,9 +354,8 @@ const PublishedLayoutsTab = () => {
     const handleMenuClick = async (action: string, layout: LayoutWithInteraction) => {
         if (action === "Add") {
             await addToWorkspace(layout);
-        } else if (action === "Explore") {
-            console.log("Explore related tools for:", layout);
-            setOpenDropdown(null);
+        } else if (action === "Inspect") {
+            router.push(`/inspect-layout/${layout._id}`);
         }
     };
 
@@ -630,17 +631,17 @@ const PublishedLayoutsTab = () => {
                                                     </span>
                                                 </button>
                                                 <button
-                                                    onClick={() => handleMenuClick("Explore", layout)}
+                                                    onClick={() => handleMenuClick("Inspect", layout)}
                                                     className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-50"
                                                 >
                                                     <Image
                                                         src="/images/icons/share.svg"
                                                         width={16}
                                                         height={16}
-                                                        alt="explore"
+                                                        alt="inspect"
                                                     />
                                                     <span className="text-[#808080] text-sm font-medium">
-                                                        Explore Related Tools
+                                                        Inspect Layout
                                                     </span>
                                                 </button>
                                             </div>
