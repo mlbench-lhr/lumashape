@@ -60,7 +60,7 @@ interface DatabaseTool {
     updatedAt: string;
     __v: number;
     cvResponse?: {
-        expanded_contour_image_url?: string;
+        contour_image_url?: string;
     };
 }
 
@@ -120,7 +120,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             toolType,
             imageUrl,
             outlinesImg,
-            expanded_contour_image_url: cvResponse?.expanded_contour_image_url,
+            contour_image_url: cvResponse?.contour_image_url,
             length,
             dxfLink,
             scaleFactor,
@@ -247,14 +247,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                 name: extractedData.toolType || 'Unknown Tool',
                 icon: getToolIcon(extractedData.toolType),
                 toolBrand: extractedData.toolBrand,
-                image: extractedData.expanded_contour_image_url || extractedData.imageUrl,
+                image: extractedData.contour_image_url || extractedData.imageUrl,
                 metadata: {
                     userEmail: extractedData.userEmail,
                     toolBrand: extractedData.toolBrand,
                     toolType: extractedData.toolType,
                     imageUrl: extractedData.imageUrl,
                     outlinesImg: extractedData.outlinesImg,
-                    expanded_contour_image_url: extractedData.expanded_contour_image_url,
+                    contour_image_url: extractedData.contour_image_url,
                     length: extractedData.length,
                     dxfLink: extractedData.dxfLink,
                     scaleFactor: extractedData.scaleFactor,

@@ -4,7 +4,7 @@ export interface ICCVResponse {
   success?: boolean;
   dxf_url?: string;
   annotated_image_url?: string;
-  expanded_contour_image_url?: string;
+  contour_image_url?: string;
   contour_points_count?: number;
   expansion_pixels?: number;
   dimensions?: {
