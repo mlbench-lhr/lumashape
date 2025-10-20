@@ -24,6 +24,13 @@
 
 }
 
+@layer utilities {
+  .no-wrap {
+    flex-wrap: nowrap !important;
+  }
+}
+
+
 
 body {
   background: var(--background);

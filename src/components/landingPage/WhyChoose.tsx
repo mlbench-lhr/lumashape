@@ -21,12 +21,12 @@ const WhyChoose = () => {
                     <Text as="h2" className="text-center mb-3">
                         Why <span className="text-primary">Choose</span> Lumashape
                     </Text>
-                    <Text
+                    {/* <Text
                         as="p1"
                         className="text-center text-secondary-light mx-auto font-medium max-w-[75%]"
                     >
                         Lumashape makes it easy to create tool drawer foam inserts without manual tracing or CAD work. Scan individual tools, build layouts digitally, and export ready-to-cut files or submit for fulfillment.
-                    </Text>
+                    </Text> */}
                 </motion.div>
                 <div className="flex md:flex-row flex-col pt-20 justify-between items-start ">
                     {/* AI powered */}

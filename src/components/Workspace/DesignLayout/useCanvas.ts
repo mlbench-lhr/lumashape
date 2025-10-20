@@ -66,6 +66,45 @@ export const useCanvas = ({
     zoom: 1
   });
 
+  // Caches for loaded images
+  const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
+  const imageLoadPromisesRef = useRef<Map<string, Promise<HTMLImageElement>>>(new Map());
+
+  const getImageUrl = useCallback((tool: DroppedTool): string | null => {
+    const rawUrl = (tool as any).image || tool.metadata?.imageUrl || null;
+    if (!rawUrl) return null;
+    // Proxy only absolute external URLs; leave local or relative paths untouched
+    if (/^https?:\/\//i.test(rawUrl)) {
+      try {
+        return `/api/image-proxy?url=${encodeURIComponent(rawUrl)}`;
+      } catch {
+        return rawUrl;
+      }
+    }
+    return rawUrl;
+  }, []);
+
+  const loadImage = useCallback((url: string): Promise<HTMLImageElement> => {
+    if (imageCacheRef.current.has(url)) {
+      return Promise.resolve(imageCacheRef.current.get(url)!);
+    }
+    if (imageLoadPromisesRef.current.has(url)) {
+      return imageLoadPromisesRef.current.get(url)!;
+    }
+    const p = new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        imageCacheRef.current.set(url, img);
+        resolve(img);
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+    imageLoadPromisesRef.current.set(url, p);
+    return p;
+  }, []);
+
   const DPI = 96;
 
   const [isPanning, setIsPanning] = useState(false);
@@ -189,7 +228,7 @@ export const useCanvas = ({
     return { x: constrainedX, y: constrainedY };
   }, [getToolDimensions, getCanvasBounds]);
 
-  // Check if two tools overlap
+  // Check if two tools overlap (AABB sync, used elsewhere)
   const doToolsOverlap = useCallback((tool1: DroppedTool, tool2: DroppedTool) => {
     // Bypass overlap check if either tool is a cylinder
     const isTool1Cylinder = tool1.id.startsWith('cylinder_') || tool1.name === 'Finger Cut';
@@ -211,30 +250,135 @@ export const useCanvas = ({
       tool2.y + h2 <= tool1.y + buffer);
   }, [getToolDimensions]);
 
-  // Detect overlaps between tools
-  const detectOverlaps = useCallback(() => {
-    const overlaps: string[] = [];
+  // Fast AABB pre-check (used for quick rejection and fallback)
+  const doToolsAABBOverlap = useCallback((tool1: DroppedTool, tool2: DroppedTool) => {
+    const isTool1Cylinder = tool1.id.startsWith('cylinder_') || tool1.name === 'Finger Cut';
+    const isTool2Cylinder = tool2.id.startsWith('cylinder_') || tool2.name === 'Finger Cut';
+    if (isTool1Cylinder || isTool2Cylinder) return false;
+
+    const { toolWidth: w1, toolHeight: h1 } = getToolDimensions(tool1);
+    const { toolWidth: w2, toolHeight: h2 } = getToolDimensions(tool2);
+
+    const buffer = 2;
+    return !(
+      tool1.x + w1 <= tool2.x + buffer ||
+      tool2.x + w2 <= tool1.x + buffer ||
+      tool1.y + h1 <= tool2.y + buffer ||
+      tool2.y + h2 <= tool1.y + buffer
+    );
+  }, [getToolDimensions]);
+
+  // Pixel-perfect overlap using alpha masks and transforms
+  const doToolsOverlapPixel = useCallback(async (tool1: DroppedTool, tool2: DroppedTool) => {
+    // Skip cylinders (non-rectangular helper visual)
+    const isTool1Cylinder = tool1.id.startsWith('cylinder_') || tool1.name === 'Finger Cut';
+    const isTool2Cylinder = tool2.id.startsWith('cylinder_') || tool2.name === 'Finger Cut';
+    if (isTool1Cylinder || isTool2Cylinder) return false;
+
+    // Quick reject
+    if (!doToolsAABBOverlap(tool1, tool2)) return false;
+
+    // Client-only guard
+    if (typeof document === 'undefined') return doToolsAABBOverlap(tool1, tool2);
+
+    const url1 = getImageUrl(tool1);
+    const url2 = getImageUrl(tool2);
+    if (!url1 || !url2) return doToolsAABBOverlap(tool1, tool2);
+
+    // Load images
+    let img1: HTMLImageElement, img2: HTMLImageElement;
+    try {
+      [img1, img2] = await Promise.all([loadImage(url1), loadImage(url2)]);
+    } catch {
+      return doToolsAABBOverlap(tool1, tool2);
+    }
+
+    const { toolWidth: w1, toolHeight: h1 } = getToolDimensions(tool1);
+    const { toolWidth: w2, toolHeight: h2 } = getToolDimensions(tool2);
+
+    // Compute bounding overlap region
+    const left = Math.max(tool1.x, tool2.x);
+    const top = Math.max(tool1.y, tool2.y);
+    const right = Math.min(tool1.x + w1, tool2.x + w2);
+    const bottom = Math.min(tool1.y + h1, tool2.y + h2);
+    const ow = Math.floor(right - left);
+    const oh = Math.floor(bottom - top);
+
+    if (ow <= 0 || oh <= 0) return false;
+    // Avoid extremely large processing
+    if (ow * oh > 1_000_000) return doToolsAABBOverlap(tool1, tool2);
+
+    const off = document.createElement('canvas');
+    off.width = Math.max(1, ow);
+    off.height = Math.max(1, oh);
+    const ctx = off.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return doToolsAABBOverlap(tool1, tool2);
+
+    const drawTool = (tool: DroppedTool, img: HTMLImageElement, tw: number, th: number) => {
+      ctx.save();
+      // Translate so the overlap region's top-left is (0,0)
+      // Then move to the tool center for rotation
+      const cx = tool.x - left + tw / 2;
+      const cy = tool.y - top + th / 2;
+      ctx.translate(cx, cy);
+      const angle = (tool.rotation || 0) * Math.PI / 180;
+      ctx.rotate(angle);
+      ctx.scale(tool.flipHorizontal ? -1 : 1, tool.flipVertical ? -1 : 1);
+      ctx.translate(-tw / 2, -th / 2);
+      ctx.globalAlpha = (tool.opacity ?? 100) / 100;
+      // draw to match container (aspect ratio already respected by container sizing)
+      ctx.drawImage(img, 0, 0, tw, th);
+      ctx.restore();
+    };
+
+    try {
+      // First: draw tool1
+      drawTool(tool1, img1, w1, h1);
+      // Composite to intersection with tool2
+      ctx.globalCompositeOperation = 'source-in';
+      drawTool(tool2, img2, w2, h2);
+
+      const data = ctx.getImageData(0, 0, off.width, off.height).data;
+      for (let i = 3; i < data.length; i += 4) {
+        if (data[i] > 10) {
+          return true; // any intersecting non-transparent pixels
+        }
+      }
+      return false;
+    } catch {
+      // CORS-tainted canvas or other errors: fallback
+      return doToolsAABBOverlap(tool1, tool2);
+    }
+  }, [getToolDimensions, doToolsAABBOverlap, getImageUrl, loadImage]);
+
+  // Detect overlaps (async, pixel-perfect)
+  const detectOverlaps = useCallback(async () => {
+    const overlaps = new Set<string>();
 
     for (let i = 0; i < droppedTools.length; i++) {
       for (let j = i + 1; j < droppedTools.length; j++) {
-        if (doToolsOverlap(droppedTools[i], droppedTools[j])) {
-          if (!overlaps.includes(droppedTools[i].id)) {
-            overlaps.push(droppedTools[i].id);
-          }
-          if (!overlaps.includes(droppedTools[j].id)) {
-            overlaps.push(droppedTools[j].id);
-          }
+        // Only mark overlap when pixel-level detection confirms it
+        // Fast AABB pre-filter happens inside doToolsOverlapPixel
+        if (await doToolsOverlapPixel(droppedTools[i], droppedTools[j])) {
+          overlaps.add(droppedTools[i].id);
+          overlaps.add(droppedTools[j].id);
         }
       }
     }
 
-    setOverlappingTools(overlaps);
-    setHasOverlaps(overlaps.length > 0);
-  }, [droppedTools, doToolsOverlap]);
+    setOverlappingTools(Array.from(overlaps));
+    setHasOverlaps(overlaps.size > 0);
+  }, [droppedTools, doToolsOverlapPixel]);
 
   // Run overlap detection when tools change
   useEffect(() => {
-    detectOverlaps();
+    let cancelled = false;
+    (async () => {
+      await detectOverlaps();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [detectOverlaps]);
 
   // Find non-overlapping position for a tool
