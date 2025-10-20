@@ -343,16 +343,23 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                         alt={tool.name}
                         onLoad={(e) => {
                           const img = e.currentTarget;
-                          if (!tool.metadata) tool.metadata = {};
-                          tool.metadata.naturalWidth = img.naturalWidth;
-                          tool.metadata.naturalHeight = img.naturalHeight;
+                          props.setDroppedTools(prev =>
+                            prev.map(t =>
+                              t.id === tool.id
+                                ? {
+                                  ...t,
+                                  metadata: {
+                                    ...t.metadata,
+                                    naturalWidth: img.naturalWidth,
+                                    naturalHeight: img.naturalHeight,
+                                  },
+                                }
+                                : t
+                            )
+                          );
                         }}
                         className={`relative w-full h-full object-contain transition-all duration-200 ${isOverlapping ? 'brightness-75 saturate-150' : ''}`}
-                        style={{
-                          opacity: opacity,
-                          // removed blue glow on selection
-                          filter: `blur(${blurAmount}px)`,
-                        }}
+                        style={{ opacity: opacity, filter: `blur(${blurAmount}px)` }}
                         draggable={false}
                       />
                     </div>
