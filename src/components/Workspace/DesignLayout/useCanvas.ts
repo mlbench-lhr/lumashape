@@ -1098,7 +1098,6 @@ export const useCanvas = ({
     switch (activeTool) {
       case 'cursor': return 'default';
       case 'hand': return 'grab';
-      case 'box': return 'crosshair';
       default: return 'default';
     }
   }, [activeTool, isPanning, isDraggingSelection, readOnly]);

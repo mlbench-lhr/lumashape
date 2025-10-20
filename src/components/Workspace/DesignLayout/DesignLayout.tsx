@@ -66,26 +66,57 @@ function DesignLayout({
 
   // Handle unit change - converts canvas dimensions and tool thicknesses
   const handleUnitChange = useCallback((newUnit: 'mm' | 'inches') => {
-    if (newUnit !== unit) {
-      // Convert canvas dimensions
-      const convertedCanvasWidth = parseFloat(convertValue(canvasWidth, unit, newUnit).toFixed(3));
-      const convertedCanvasHeight = parseFloat(convertValue(canvasHeight, unit, newUnit).toFixed(3));
-      const convertedThickness = parseFloat(convertValue(thickness, unit, newUnit).toFixed(3));
+    if (newUnit === unit) return;
 
-      // Convert all existing tools' thickness (they keep fixed visual size)
-      const convertedTools = droppedTools.map(tool => ({
+    // Convert canvas dimensions
+    const convertedCanvasWidth = parseFloat(convertValue(canvasWidth, unit, newUnit).toFixed(3));
+    const convertedCanvasHeight = parseFloat(convertValue(canvasHeight, unit, newUnit).toFixed(3));
+    const convertedThickness = parseFloat(convertValue(thickness, unit, newUnit).toFixed(3));
+
+    // Convert all existing tools' width/length/real dims + thickness to preserve visual size
+    const convertedTools = droppedTools.map(tool => {
+      const convertedWidth =
+        typeof tool.width === 'number'
+          ? parseFloat(convertValue(tool.width, tool.unit, newUnit).toFixed(3))
+          : tool.width;
+
+      const convertedLength =
+        typeof tool.length === 'number'
+          ? parseFloat(convertValue(tool.length, tool.unit, newUnit).toFixed(3))
+          : tool.length;
+
+      const convertedRealWidth =
+        typeof tool.realWidth === 'number'
+          ? parseFloat(convertValue(tool.realWidth, tool.unit, newUnit).toFixed(3))
+          : tool.realWidth;
+
+      const convertedRealHeight =
+        typeof tool.realHeight === 'number'
+          ? parseFloat(convertValue(tool.realHeight, tool.unit, newUnit).toFixed(3))
+          : tool.realHeight;
+
+      const convertedToolThickness = parseFloat(
+        convertValue(tool.thickness, tool.unit, newUnit).toFixed(3)
+      );
+
+      // Leave metadata.length as inches; it's used as inches in rendering logic
+      return {
         ...tool,
-        thickness: parseFloat(convertValue(tool.thickness, tool.unit, newUnit).toFixed(3)),
-        unit: newUnit
-      }));
+        width: convertedWidth,
+        length: convertedLength,
+        realWidth: convertedRealWidth,
+        realHeight: convertedRealHeight,
+        thickness: convertedToolThickness,
+        unit: newUnit,
+      };
+    });
 
-      // Update all values
-      setCanvasWidth(convertedCanvasWidth);
-      setCanvasHeight(convertedCanvasHeight);
-      setThickness(convertedThickness);
-      setUnit(newUnit);
-      setDroppedTools(convertedTools);
-    }
+    // Update all values
+    setCanvasWidth(convertedCanvasWidth);
+    setCanvasHeight(convertedCanvasHeight);
+    setThickness(convertedThickness);
+    setUnit(newUnit);
+    setDroppedTools(convertedTools);
   }, [unit, canvasWidth, canvasHeight, thickness, droppedTools]);
 
   // Update dropped tools with history tracking
