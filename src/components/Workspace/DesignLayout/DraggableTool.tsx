@@ -1,11 +1,13 @@
+// DraggableTool (component)
 import { Tool } from "./types";
 
 interface DraggableToolProps {
   tool: Tool;
   readOnly?: boolean;
+  actions?: React.ReactNode;
 }
 
-const DraggableTool: React.FC<DraggableToolProps> = ({ tool, readOnly = false }) => {
+const DraggableTool: React.FC<DraggableToolProps> = ({ tool, readOnly = false, actions }) => {
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('application/json', JSON.stringify(tool));
     e.dataTransfer.effectAllowed = 'copy';
@@ -34,6 +36,7 @@ const DraggableTool: React.FC<DraggableToolProps> = ({ tool, readOnly = false })
           </div>
         </div>
       </div>
+      {actions && <div className="shrink-0">{actions}</div>}
     </div>
   );
 };
