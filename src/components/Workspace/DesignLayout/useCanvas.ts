@@ -65,6 +65,7 @@ export const useCanvas = ({
     y: 0,
     zoom: 1
   });
+  
 
   // Caches for loaded images
   const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
