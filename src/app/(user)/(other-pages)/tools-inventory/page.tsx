@@ -478,8 +478,8 @@ const MobileToolsInventory = () => {
 
                             {/* Dropdown menu */}
                             {openDropdown === tool._id && (
-                              <div className="absolute top-6 sm:top-5 right-0 sm:right-2 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[118px] h-[76px] sm:min-w-[171px] sm:h-[111px] overflow-hidden">
-                                <button
+                              <div className="absolute top-6 sm:top-5 right-0 sm:right-2 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[118px] h-[54px] sm:min-w-[171px] sm:h-[74px] overflow-hidden">
+                                {/* <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleMenuClick("Edit", tool);
@@ -488,7 +488,7 @@ const MobileToolsInventory = () => {
                                 >
                                   <Image src="/images/icons/edit.svg" width={16} height={16} alt="edit" />
                                   <span className="text-[#266ca8] text-[10px] sm:text-[14px] font-medium">Edit</span>
-                                </button>
+                                </button> */}
 
                                 <button
                                   onClick={(e) => {
