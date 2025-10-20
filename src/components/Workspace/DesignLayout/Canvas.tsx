@@ -117,23 +117,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
   // Render selection box
   const renderSelectionBox = () => {
     if (!selectionBox?.isSelecting) return null;
-
-    const minX = Math.min(selectionBox.startX, selectionBox.currentX);
-    const minY = Math.min(selectionBox.startY, selectionBox.currentY);
-    const width = Math.abs(selectionBox.currentX - selectionBox.startX);
-    const height = Math.abs(selectionBox.currentY - selectionBox.startY);
-
-    return (
-      <div
-        className="absolute border-2 border-blue-500 bg-blue-100 bg-opacity-20 pointer-events-none z-30"
-        style={{
-          left: minX,
-          top: minY,
-          width,
-          height,
-        }}
-      />
-    );
+    return null;
   };
 
   // Render overlap notification
@@ -156,7 +140,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 onClick={autoFixOverlaps}
                 className="mt-2 inline-flex items-center px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded transition-colors"
               >
-                <Check className="w-3 h-3 mr-1" />
+                <Check className="w-3 h-3" />
                 Auto-fix positions
               </button>
             </div>
@@ -272,8 +256,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             return (
               <div
                 key={tool.id}
-                className={`absolute select-none group ${isSelected ? 'z-20' : 'z-10'
-                  }`}
+                className={`absolute select-none group ${isSelected ? 'z-20' : 'z-10'}`}
                 style={{
                   left: tool.x,
                   top: tool.y,
@@ -355,7 +338,6 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                   // Regular tool rendering
                   tool.image && (
                     <div className="relative w-full h-full">
-                      {/* CLEAN: Main tool image without borders or 3D effects */}
                       <img
                         src={tool.image}
                         alt={tool.name}
@@ -365,14 +347,11 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                           tool.metadata.naturalWidth = img.naturalWidth;
                           tool.metadata.naturalHeight = img.naturalHeight;
                         }}
-                        className={`relative w-full h-full object-contain transition-all duration-200 ${isOverlapping ? 'brightness-75 saturate-150' : ''
-                          }`}
+                        className={`relative w-full h-full object-contain transition-all duration-200 ${isOverlapping ? 'brightness-75 saturate-150' : ''}`}
                         style={{
                           opacity: opacity,
-                          filter: `blur(${blurAmount}px) ${isSelected
-                            ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)) brightness(1.05)'
-                            : ''
-                            }`,
+                          // removed blue glow on selection
+                          filter: `blur(${blurAmount}px)`,
                         }}
                         draggable={false}
                       />
@@ -381,16 +360,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 )}
 
                 {/* CLEAN: Subtle selection indicator - tight border only */}
-                {isSelected && (
-                  <div
-                    className="absolute inset-0 pointer-events-none"
-                    style={{
-                      border: isPrimarySelection
-                        ? '2px solid rgba(59, 130, 246, 0.8)'
-                        : '1px solid rgba(59, 130, 246, 0.6)',
-                    }}
-                  />
-                )}
+                {isSelected && null}
 
                 {/* Minimal overlap indicator */}
                 {isOverlapping && (

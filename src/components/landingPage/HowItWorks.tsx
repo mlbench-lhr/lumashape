@@ -66,8 +66,8 @@ const data: { left: DataItem[]; right: DataItem[] } = {
     },
     {
       id: 6,
-      title: 'Download and Fulfill',
-      description: 'Export a DXF for cutting, or order a precision-cut foam insert.',
+      title: 'Download or Order',
+      description: 'Export your layouts locally as cut files, or submit them for professionally cut foam inserts, shipped right to your door.',
     },
     {
       id: 8,
@@ -270,38 +270,39 @@ function HowItWorks() {
                       {item.image && (
                         <div>
                           {item.hasBackground ? (
-                            <div className="bg-blue-50 rounded-3xl flex items-center justify-center">
+                            <div className="bg-blue-50 rounded-3xl flex flex-col items-center justify-center min-h-[200px] p-6">
                               <Image
                                 src={item.image}
                                 alt="image"
-                                width={150}
-                                height={75}
-                                className="mb-4"
+                                width={200}
+                                height={100}
+                                className="mb-5 w-[180px] sm:w-[220px]"
                               />
                               {item.showButtons && (
-                                <div className="flex flex-col gap-2 w-full">
+                                <div className="flex gap-3 w-full justify-center">
                                   <a href="#" className="block">
                                     <Image
                                       src="/images/icons/google-play.svg"
                                       alt="Get it on Google Play"
-                                      width={120}
-                                      height={35}
-                                      className="h-9 w-auto mx-auto"
+                                      width={150}
+                                      height={50}
+                                      className="w-[140px] sm:w-[160px] h-auto"
                                     />
                                   </a>
                                   <a href="#" className="block">
                                     <Image
                                       src="/images/icons/app-store.svg"
                                       alt="Download on the App Store"
-                                      width={120}
-                                      height={35}
-                                      className="h-9 w-auto mx-auto"
+                                      width={150}
+                                      height={50}
+                                      className="w-[140px] sm:w-[160px] h-auto"
                                     />
                                   </a>
                                 </div>
                               )}
                             </div>
                           ) : (
+
                             <Image
                               src={item.image}
                               alt="image"

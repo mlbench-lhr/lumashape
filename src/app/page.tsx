@@ -13,7 +13,7 @@ export default function Home() {
     <div>
     <Layout>
   
-      <Banner />
+      {/* <Banner /> */}
       <HeroSection />
       <WhyChoose/>
       <HowItWorks />  
