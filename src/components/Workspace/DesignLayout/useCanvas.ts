@@ -71,7 +71,7 @@ export const useCanvas = ({
   const imageLoadPromisesRef = useRef<Map<string, Promise<HTMLImageElement>>>(new Map());
 
   const getImageUrl = useCallback((tool: DroppedTool): string | null => {
-    const rawUrl = (tool as any).image || tool.metadata?.imageUrl || null;
+    const rawUrl = (tool as Tool).image || tool.metadata?.imageUrl || null;
     if (!rawUrl) return null;
     // Proxy only absolute external URLs; leave local or relative paths untouched
     if (/^https?:\/\//i.test(rawUrl)) {
