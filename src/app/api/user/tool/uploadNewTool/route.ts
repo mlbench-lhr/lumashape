@@ -35,9 +35,9 @@ interface AddToolDTO {
 
 interface CvApiResponse {
   success?: boolean;
-  annotated_image_url?: string;
+  original_img?: string;
   dxf_url?: string;
-  expanded_contour_image_url?: string;
+  contour_image_url?: string;
   contour_points_count?: number;
   expansion_pixels?: number;
   dimensions?: {
@@ -307,7 +307,7 @@ export async function POST(req: Request) {
 
         // Use annotated image URL if available
         if (cvResponse.data.annotated_image_url) {
-          updateData.imageUrl = cvResponse.data.annotated_image_url;
+          updateData.imageUrl = cvResponse.data.original_img;
         }
 
         // Update tool with CV response

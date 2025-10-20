@@ -11,7 +11,7 @@ export interface Tool {
     toolType?: string;
     imageUrl?: string;
     outlinesImg?: string;
-    expanded_contour_image_url?: string;
+    contour_image_url?: string;
     length?: number;
     dxfLink?: string;
     scaleFactor?: number;
