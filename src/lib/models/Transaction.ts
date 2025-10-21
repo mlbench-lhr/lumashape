@@ -22,7 +22,6 @@ export interface ITransaction extends Document {
   createdAt: Date
   updatedAt: Date
 }
-
 const TransactionSchema: Schema<ITransaction> = new mongoose.Schema(
   {
     buyerEmail: { type: String, required: true, lowercase: true, trim: true, index: true },

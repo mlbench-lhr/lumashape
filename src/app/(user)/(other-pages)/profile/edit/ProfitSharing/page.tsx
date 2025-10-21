@@ -67,7 +67,6 @@ export default function ProfitSharing() {
     const settleOwed = async () => {
         try {
             const res = await axios.post('/api/purchases/settle-owed', {}, { headers: authHeaders() })
-            console.log('Settle owed result:', res.data)
             const txRes = await axios.get<TransactionsResponse>('/api/purchases/transactions', { headers: authHeaders() })
             setPayments(txRes.data.payments || [])
             setEarnings(txRes.data.earnings || [])
@@ -79,7 +78,7 @@ export default function ProfitSharing() {
 
     useEffect(() => {
         const hasOwed = earnings.some(e => !e.paidToSeller)
-        if (hasOwed && status?.connected && status?.details_submitted && status?.payouts_enabled) {
+        if (hasOwed && status?.connected && status?.details_submitted && status?.transfers_active) {
             settleOwed()
         }
     }, [status, earnings])
