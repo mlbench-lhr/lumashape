@@ -119,10 +119,25 @@ export async function POST(req: NextRequest) {
     const sellerStripeAccountId = seller?.stripeAccountId
     let canDestinationCharge = false
 
+    // Get platform account country
+    let platformCountry: string | undefined
+    try {
+      const platformAccount = await stripe.accounts.retrieve()
+      platformCountry = platformAccount.country
+    } catch (e) {
+      console.warn('Failed to retrieve platform Stripe account:', e)
+    }
+
     if (sellerStripeAccountId) {
       try {
         const account = await stripe.accounts.retrieve(sellerStripeAccountId)
-        canDestinationCharge = account.capabilities?.transfers === 'active'
+        const sellerCountry = account.country
+        const transfersActive = account.capabilities?.transfers === 'active'
+
+        // Only allow destination charges if transfers are active AND same country
+        canDestinationCharge = Boolean(
+          transfersActive && platformCountry && sellerCountry && platformCountry === sellerCountry
+        )
       } catch (e) {
         console.warn('Failed to retrieve seller Stripe account:', e)
       }

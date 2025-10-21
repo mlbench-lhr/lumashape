@@ -23,6 +23,7 @@ type StripeStatus = {
     charges_enabled?: boolean
     payouts_enabled?: boolean
     details_submitted?: boolean
+    transfers_active?: boolean
 }
 
 type Totals = {
@@ -62,6 +63,26 @@ export default function ProfitSharing() {
 
     const filteredEarnings = earnings.filter(e => filter === 'all' ? true : e.itemType === filter)
     const filteredPayments = payments.filter(p => filter === 'all' ? true : p.itemType === filter)
+
+    const settleOwed = async () => {
+        try {
+            const res = await axios.post('/api/purchases/settle-owed', {}, { headers: authHeaders() })
+            console.log('Settle owed result:', res.data)
+            const txRes = await axios.get<TransactionsResponse>('/api/purchases/transactions', { headers: authHeaders() })
+            setPayments(txRes.data.payments || [])
+            setEarnings(txRes.data.earnings || [])
+            setTotals(txRes.data.totals || { spentCents: 0, earnedCents: 0 })
+        } catch (err) {
+            console.error('Settle owed error:', err)
+        }
+    }
+
+    useEffect(() => {
+        const hasOwed = earnings.some(e => !e.paidToSeller)
+        if (hasOwed && status?.connected && status?.details_submitted && status?.payouts_enabled) {
+            settleOwed()
+        }
+    }, [status, earnings])
 
     // --- Connect Stripe Bank Account ---
     const connectBank = async () => {

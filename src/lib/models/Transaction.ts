@@ -16,6 +16,7 @@ export interface ITransaction extends Document {
   sellerShareCents: number
   stripeSessionId?: string | null
   stripePaymentIntentId?: string | null
+  stripeTransferId?: string | null
   status: TxStatus
   paidToSeller: boolean
   createdAt: Date
@@ -38,6 +39,7 @@ const TransactionSchema: Schema<ITransaction> = new mongoose.Schema(
     stripePaymentIntentId: { type: String, default: null, index: true },
     status: { type: String, required: true, default: 'pending', enum: ['pending', 'paid', 'failed'] },
     paidToSeller: { type: Boolean, required: true, default: false },
+    stripeTransferId: { type: String, default: null, index: true },
   },
   { timestamps: true }
 )
