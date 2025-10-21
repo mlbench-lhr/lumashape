@@ -16,6 +16,8 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
     username: "",
     email: "",
     password: "",
@@ -45,7 +47,7 @@ const Signup = () => {
     }
 
     // Basic validation
-    if (!formData.username || !formData.email || !formData.password) {
+    if (!formData.firstName || !formData.lastName || !formData.username || !formData.email || !formData.password) {
       toast.error("Please fill in all fields", {
         position: "top-center",
         autoClose: 5000,
@@ -65,6 +67,8 @@ const Signup = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
           username: formData.username,
           email: formData.email,
           password: formData.password,
@@ -82,6 +86,8 @@ const Signup = () => {
         handleSendOtp();
 
         setFormData({
+          firstName: "",
+          lastName: "",
           username: "",
           email: "",
           password: "",
@@ -187,6 +193,36 @@ const Signup = () => {
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <label className="block text-secondary text-[16px] sm:text-[14px] font-semibold mb-1">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  placeholder="Enter your first name"
+                  disabled={isLoading}
+                  className="text-secondary w-full px-3 py-2 border rounded-[7.2px] placeholder:text-[14px] placeholder:font-medium"
+                  style={{ borderColor: "#e8e8e8" }}
+                />
+              </div>
+              <div>
+                <label className="block text-secondary text-[16px] sm:text-[14px] font-semibold mb-1">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  placeholder="Enter your last name"
+                  disabled={isLoading}
+                  className="text-secondary w-full px-3 py-2 border rounded-[7.2px] placeholder:text-[14px] placeholder:font-medium"
+                  style={{ borderColor: "#e8e8e8" }}
+                />
+              </div>
+              <div>
+                <label className="block text-secondary text-[16px] sm:text-[14px] font-semibold mb-1">
                   Username
                 </label>
                 <input
@@ -194,7 +230,7 @@ const Signup = () => {
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
-                  placeholder="Enter your name"
+                  placeholder="Enter your username"
                   disabled={isLoading}
                   className="text-secondary w-full px-3 py-2 border rounded-[7.2px] placeholder:text-[14px] placeholder:font-medium"
                   style={{ borderColor: "#e8e8e8" }}
