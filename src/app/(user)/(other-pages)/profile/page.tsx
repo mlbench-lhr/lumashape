@@ -5,7 +5,9 @@ import MyLayouts from "./MyLayouts/page";
 import MyToolContours from "./MyToolContours/page";
 
 interface User {
-  name: string;
+  firstName: string;
+  lastName: string;
+  username: string;
   email: string;
   status: string;
   isPublic: boolean;
@@ -61,7 +63,8 @@ const Profile = () => {
     } else {
       return (
         <div className="w-full h-full rounded-full bg-primary flex items-center justify-center text-white text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-semibold">
-          {user?.name?.charAt(0).toUpperCase() || "M"}
+          {user?.firstName?.charAt(0).toUpperCase() || "M"}
+          {user?.lastName?.charAt(0).toUpperCase() || "M"}
         </div>
       );
     }
@@ -136,7 +139,9 @@ const Profile = () => {
           {/* Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold truncate">{user.name}</h2>
+              <h2 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold truncate">
+                {user.firstName} {user.lastName}
+              </h2>
               <span className="bg-blue-100 text-primary text-xs font-medium px-2 py-1 rounded-4xl flex-shrink-0">
                 {user.status}
               </span>
@@ -144,7 +149,7 @@ const Profile = () => {
             <p className="text-gray-600 mt-1 text-xs sm:text-sm line-clamp-2">{user.bio}</p>
 
             {/* Followers */}
-            <div className="flex gap-4 sm:gap-6 md:gap-8 mt-2">
+            {/* <div className="flex gap-4 sm:gap-6 md:gap-8 mt-2">
               <div className="text-center">
                 <p className="text-sm sm:text-base md:text-lg font-bold">{user.followers}</p>
                 <p className="text-gray-600 text-xs">Followers</p>
@@ -153,7 +158,7 @@ const Profile = () => {
                 <p className="text-sm sm:text-base md:text-lg font-bold">{user.following}</p>
                 <p className="text-gray-600 text-xs">Following</p>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Edit Profile Button */}
@@ -163,11 +168,14 @@ const Profile = () => {
               localStorage.setItem(
                 "edit-profile-data",
                 JSON.stringify({
-                  name: user.name,
+                  firstName: user.firstName,
+                  lastName: user.lastName,
+                  username: user.username,
                   email: user.email,
                   avatar: user.avatar || "",
                   profilePic: user.profilePic || "",
                   isPublic: user.isPublic,
+                  bio: user.bio || "",
                 })
               );
 

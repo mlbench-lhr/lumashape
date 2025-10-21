@@ -5,6 +5,8 @@ import { Pencil } from "lucide-react";
 export default function EditProfile() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
+  const [bio, setBio] = useState("");
   const [email, setEmail] = useState("");
   const [profilePic, setProfilePic] = useState<string | null>(null); // saved pic
   const [selectedFile, setSelectedFile] = useState<File | null>(null); // new selection
@@ -13,19 +15,16 @@ export default function EditProfile() {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
-    // Load persisted profile (only saved data)
+   useEffect(() => {
     const storedData = localStorage.getItem("edit-profile-data");
     if (storedData) {
       try {
         const parsed = JSON.parse(storedData);
-        if (parsed.name) {
-          const [first, ...rest] = parsed.name.split(" ");
-          setFirstName(first);
-          setLastName(rest.join(" "));
-        }
+        if (parsed.firstName) setFirstName(parsed.firstName);
+        if (parsed.lastName) setLastName(parsed.lastName);
+        if (parsed.username) setUsername(parsed.username);
         if (parsed.email) setEmail(parsed.email);
-        if (parsed.profilePic) setProfilePic(parsed.profilePic);
+        if (parsed.bio) setBio(parsed.bio);
       } catch (err) {
         console.error("Error parsing stored profile data:", err);
       }
@@ -85,7 +84,6 @@ export default function EditProfile() {
         setSelectedFile(null); // clear after upload
       }
 
-      const username = `${firstName} ${lastName}`.trim();
 
       const response = await fetch("/api/profile/editProfile", {
         method: "POST",
@@ -93,7 +91,7 @@ export default function EditProfile() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("auth-token")}`,
         },
-        body: JSON.stringify({ username, profilePic: newProfilePic }),
+        body: JSON.stringify({ firstName, lastName, username, bio, profilePic: newProfilePic }),
       });
 
       if (!response.ok) throw new Error("Failed to update profile");
@@ -104,7 +102,7 @@ export default function EditProfile() {
       // persist only saved state
       localStorage.setItem(
         "edit-profile-data",
-        JSON.stringify({ name: username, email, profilePic: newProfilePic })
+        JSON.stringify({ firstName, lastName, username, email, profilePic: newProfilePic })
       );
     } catch (err) {
       console.error(err);
@@ -187,7 +185,27 @@ export default function EditProfile() {
             />
           </div>
         </div>
-
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1">
+            Username
+          </label>
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="w-full px-3 py-2 border rounded-md text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1">
+            Bio
+          </label>
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            className="w-full px-3 py-2 border rounded-md text-sm"
+          />
+        </div>
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-1">
             Email Address

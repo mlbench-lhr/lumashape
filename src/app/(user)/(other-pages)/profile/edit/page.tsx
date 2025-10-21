@@ -16,7 +16,9 @@ export default function ProfilePage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [profileData, setProfileData] = useState<{
-    name: string;
+    firstName: string;
+    lastName: string;
+    username: string;
     email: string;
     avatar?: string;
     profilePic?: string;
@@ -110,7 +112,7 @@ export default function ProfilePage() {
       return (
         <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white text-xl font-semibold">
           {profileData?.email?.charAt(0).toUpperCase() ||
-            profileData?.name?.charAt(0).toUpperCase() ||
+            profileData?.firstName?.charAt(0).toUpperCase() ||
             "M"}
         </div>
       );
@@ -151,7 +153,7 @@ export default function ProfilePage() {
                   {renderProfileImage()}
                 </div>
                 <h2 className="text-sm font-medium text-gray-800">
-                  {profileData?.name || "Alex Havaidai"}
+                  {profileData?.firstName || "Alex"} {profileData?.lastName || "Havaidai"}
                 </h2>
                 <p className="text-xs text-gray-500 mb-4">
                   {profileData?.email || "alexhavaidai123@gmail.com"}
@@ -272,7 +274,7 @@ export default function ProfilePage() {
                 {renderProfileImage()}
               </div>
               <h2 className="text-base font-medium text-gray-800">
-                {profileData?.name || "Alex Havaidai"}
+                {profileData?.firstName || "Alex"} {profileData?.lastName || "Havaidai"}
               </h2>
               <p className="text-sm text-gray-500">
                 {profileData?.email || "alexhavaidai123@gmail.com"}

@@ -6,6 +6,7 @@ export interface IUser extends Document {
   firstName: string
   lastName: string
   username: string
+  bio?: string
   email: string
   password: string
   resetPasswordOTP?: string
@@ -55,6 +56,10 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
       trim: true,
       minlength: [3, 'Username must be at least 3 characters'],
       maxlength: [20, 'Username cannot be more than 20 characters'],
+    },
+    bio: {
+      type: String,
+      maxlength: [200, 'Bio cannot be more than 200 characters'],
     },
     email: {
       type: String,

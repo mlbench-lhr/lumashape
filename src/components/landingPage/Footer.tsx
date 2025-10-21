@@ -99,7 +99,7 @@ function Footer() {
               >
                 How It Works
               </button>
-              <button
+              {/* <button
                 onClick={(e) => {
                   e.preventDefault()
                   handleSectionNavigation('pricing')
@@ -107,7 +107,7 @@ function Footer() {
                 className="text-left hover:text-primary cursor-pointer transition-colors"
               >
                 Pricing
-              </button>
+              </button> */}
               <Link
                 href="/faqs"
                 className="hover:text-primary cursor-pointer transition-colors"
