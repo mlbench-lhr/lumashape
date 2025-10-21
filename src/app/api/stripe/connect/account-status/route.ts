@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
       charges_enabled: account.charges_enabled,
       payouts_enabled: account.payouts_enabled,
       details_submitted: account.details_submitted,
+      transfers_active: account.capabilities?.transfers === 'active',
     })
   } catch (err) {
     console.error('Account status error:', err)
