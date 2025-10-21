@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
         email: user.email,
         profilePic: user.profilePic,
         status: user.isPublic ? "Public" : "Anonymous",
-        bio: user.bio || "Workshop enthusiast and tool organization specialist",
+        bio: user.bio,
         avatar: user.avatar,
         followers: 43,
         following: 43,
