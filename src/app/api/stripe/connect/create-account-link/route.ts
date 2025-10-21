@@ -37,16 +37,17 @@ export async function POST(req: NextRequest) {
         accountId = account.id
         user.stripeAccountId = accountId
         await user.save()
-      } catch (e) {
-        const msg = typeof (e as any)?.message === 'string' ? (e as any).message : ''
-        if (msg.includes('signed up for Connect')) {
-          return NextResponse.json(
-            {
-              error:
-                'Stripe Connect is not enabled on your Stripe account. Enable Connect in Dashboard > Settings > Connect (Express) and retry.',
-            },
-            { status: 400 }
-          )
+      } catch (e: unknown) {
+        if (isStripeError(e)) {
+          if (e.message.includes('signed up for Connect')) {
+            return NextResponse.json(
+              {
+                error:
+                  'Stripe Connect is not enabled on your Stripe account. Enable Connect in Dashboard > Settings > Connect (Express) and retry.',
+              },
+              { status: 400 }
+            )
+          }
         }
         throw e
       }
@@ -64,4 +65,15 @@ export async function POST(req: NextRequest) {
     console.error('Create account link error:', err)
     return NextResponse.json({ error: 'Failed to create account link' }, { status: 500 })
   }
+}
+
+// type guard for Stripe errors
+function isStripeError(error: unknown): error is Stripe.errors.StripeError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'type' in error &&
+    'message' in error &&
+    typeof (error as Stripe.errors.StripeError).message === 'string'
+  )
 }
