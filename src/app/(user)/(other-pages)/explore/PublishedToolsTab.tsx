@@ -51,6 +51,27 @@ const PublishedToolsTab = () => {
     const [selectedToolType, setSelectedToolType] = useState("");
     const [selectedBrand, setSelectedBrand] = useState("");
 
+    const startPurchaseFlow = async (itemId: string) => {
+        try {
+            const token = getAuthToken()
+            if (!token) {
+                alert('Please log in to continue.')
+                return
+            }
+            const res = await fetch('/api/purchases/create-checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ itemType: 'tool', itemId })
+            })
+            const data = await res.json()
+            if (!res.ok || !data?.url) throw new Error(data?.error || 'Failed to initiate checkout')
+            window.location.href = data.url
+        } catch (err) {
+            console.error('Start purchase error:', err)
+            alert('Failed to start payment. Please try again.')
+        }
+    }
+
     useEffect(() => {
         fetchPublishedTools();
     }, []);
@@ -180,7 +201,11 @@ const PublishedToolsTab = () => {
     // Handle dropdown menu actions
     const handleMenuClick = (action: string, tool: ToolWithInteraction) => {
         if (action === "Add") {
-            handleAddToInventory(tool);
+            if (tool?.userInteraction?.hasDownloaded) {
+                handleAddToInventory(tool)
+            } else {
+                startPurchaseFlow(tool._id)
+            }
         } else if (action === "Explore") {
             console.log("Explore related layouts for:", tool);
             // TODO: navigate to layouts page

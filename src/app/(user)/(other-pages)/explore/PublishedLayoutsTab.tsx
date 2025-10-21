@@ -72,6 +72,27 @@ const PublishedLayoutsTab = () => {
     const [availableToolTypes, setAvailableToolTypes] = useState<string[]>([]);
     const [availableToolBrands, setAvailableToolBrands] = useState<string[]>([]);
 
+    const startPurchaseFlow = async (itemId: string) => {
+        try {
+            const token = getAuthToken()
+            if (!token) {
+                router.push('/auth/login')
+                return
+            }
+            const res = await fetch('/api/purchases/create-checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ itemType: 'layout', itemId })
+            })
+            const data = await res.json()
+            if (!res.ok || !data?.url) throw new Error(data?.error || 'Failed to initiate checkout')
+            window.location.href = data.url
+        } catch (err) {
+            console.error('Start purchase error:', err)
+            alert('Failed to start payment. Please try again.')
+        }
+    }
+
     useEffect(() => {
         fetchPublishedLayouts();
     }, []);
@@ -353,7 +374,11 @@ const PublishedLayoutsTab = () => {
 
     const handleMenuClick = async (action: string, layout: LayoutWithInteraction) => {
         if (action === "Add") {
-            await addToWorkspace(layout);
+            if (isLayoutDownloaded(layout)) {
+                await addToWorkspace(layout)
+            } else {
+                await startPurchaseFlow(layout._id)
+            }
         } else if (action === "Inspect") {
             router.push(`/inspect-layout/${layout._id}`);
         }

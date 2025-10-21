@@ -79,6 +79,27 @@ const TrendingTab = () => {
     const [addedLayouts, setAddedLayouts] = useState<Set<string>>(new Set());
     const router = useRouter();
 
+    const startPurchaseFlow = async (itemType: 'tool' | 'layout', itemId: string) => {
+        try {
+            const token = getAuthToken()
+            if (!token) {
+                router.push('/auth/login')
+                return
+            }
+            const res = await fetch('/api/purchases/create-checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ itemType, itemId })
+            })
+            const data = await res.json()
+            if (!res.ok || !data?.url) throw new Error(data?.error || 'Failed to initiate checkout')
+            window.location.href = data.url
+        } catch (err) {
+            console.error('Start purchase error:', err)
+            alert('Failed to start payment. Please try again.')
+        }
+    }
+
     useEffect(() => {
         fetchTrendingContent();
     }, []);
@@ -341,7 +362,11 @@ const TrendingTab = () => {
     // Handle dropdown menu actions for tools
     const handleToolMenuClick = (action: string, tool: TrendingTool) => {
         if (action === "Add") {
-            handleAddToInventory(tool);
+            if (tool?.userInteraction?.hasDownloaded) {
+                handleAddToInventory(tool)
+            } else {
+                startPurchaseFlow('tool', tool._id)
+            }
         } else if (action === "Explore") {
             console.log("Explore related layouts for:", tool);
         }
@@ -351,7 +376,11 @@ const TrendingTab = () => {
     // Handle dropdown menu actions for layouts
     const handleLayoutMenuClick = async (action: string, layout: TrendingLayout) => {
         if (action === "Add") {
-            await handleAddLayoutToWorkspace(layout);
+            if (isLayoutDownloaded(layout)) {
+                await handleAddLayoutToWorkspace(layout)
+            } else {
+                await startPurchaseFlow('layout', layout._id)
+            }
         } else if (action === "Explore") {
             console.log("Explore related tools for:", layout);
             setOpenDropdown(null);

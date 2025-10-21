@@ -9,6 +9,7 @@ import LogoutTab from "./Logout/page";
 import { X } from "lucide-react";
 import { ArrowLeft } from "lucide-react";
 import { useUser } from "@/context/UserContext";
+import ProfitSharing from "./ProfitSharing/page"
 
 export default function ProfilePage() {
   const [showSidebar, setShowSidebar] = useState(true);
@@ -49,17 +50,19 @@ export default function ProfilePage() {
   const renderTab = () => {
     switch (activeTab) {
       case "edit":
-        return <EditProfile />;
+        return <EditProfile />
       case "password":
-        return <ChangePassword />;
+        return <ChangePassword />
       case "privacy":
-        return <AccountPrivacy />;
+        return <AccountPrivacy />
+      case "profit":
+        return <ProfitSharing />
       case "logout":
-        return <LogoutTab />;
+        return <LogoutTab />
       default:
-        return <EditProfile />;
+        return <EditProfile />
     }
-  };
+  }
 
   const handleDeleteAccount = async () => {
     try {
@@ -228,6 +231,28 @@ export default function ProfilePage() {
                   </button>
 
                   <button
+                    onClick={() => {
+                      setActiveTab("profit");
+                      setShowSidebar(false);
+                    }}
+                    className="flex items-center font-semibold justify-between w-full p-3 border-b border-gray-100"
+                  >
+                    <span className="flex items-center gap-3">
+                      <img
+                        src="/images/icons/profile/profit.svg"
+                        alt="Profit Sharing"
+                        className="w-5 h-5"
+                      />
+                      Profit Sharing
+                    </span>
+                    <img
+                      src="/images/icons/profile/arrow.svg"
+                      alt="Arrow"
+                      className="w-4 h-4 text-primary"
+                    />
+                  </button>
+
+                  <button
                     onClick={() => setShowDeleteModal(true)}
                     className="flex items-center font-semibold justify-between w-full p-3 border-b border-gray-100 text-red-500"
                   >
@@ -355,6 +380,32 @@ export default function ProfilePage() {
                     className="w-5 h-5"
                   />
                   <span className="truncate">Account Privacy</span>
+                </span>
+                <img
+                  src="/images/icons/profile/arrow.svg"
+                  alt="Arrow"
+                  className="w-4 h-4 text-primary"
+                />
+              </button>
+
+              <button
+                onClick={() => setActiveTab("profit")}
+                className={`flex items-center justify-between font-semibold w-full text-sm sm:text-base md:text-lg ${activeTab === "profit"
+                  ? "text-primary font-medium"
+                  : "text-gray-600 hover:text-primary"
+                  }`}
+              >
+                <span className="flex items-center gap-3">
+                  <img
+                    src={
+                      activeTab === "profit"
+                        ? "/images/icons/profile/active/profit.svg"
+                        : "/images/icons/profile/profit.svg"
+                    }
+                    alt="Profit Sharing"
+                    className="w-5 h-5"
+                  />
+                  Profit Sharing
                 </span>
                 <img
                   src="/images/icons/profile/arrow.svg"
