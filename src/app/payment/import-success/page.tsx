@@ -1,10 +1,25 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import axios from 'axios'
 
 export default function ImportSuccess() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full p-8 bg-white shadow-lg rounded-lg text-center">
+          <p className="text-gray-600">Loading payment details...</p>
+        </div>
+      </div>
+    }>
+      <ImportSuccessContent />
+    </Suspense>
+  )
+}
+
+function ImportSuccessContent() {
   const router = useRouter()
   const search = useSearchParams()
   const [message, setMessage] = useState('Verifying payment and unlocking your item...')
@@ -56,18 +71,14 @@ export default function ImportSuccess() {
         setMessage('An error occurred while unlocking your item.')
       }
     }
+
     run()
   }, [router, search])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full p-8 bg-white shadow-lg rounded-lg text-center">
-        <div className="mb-6">
-          <svg className="mx-auto h-16 w-16 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <h2 className="text-2xl font-bold mb-2">Import Successful</h2>
+        <h2 className="text-xl font-semibold mb-2">Import Purchase</h2>
         <p className="text-gray-600">{message}</p>
       </div>
     </div>
