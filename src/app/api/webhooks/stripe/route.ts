@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import dbConnect from '@/utils/dbConnect'
 import User from '@/lib/models/User'
+import Transaction from '@/lib/models/Transaction'
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY!
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET!
@@ -13,10 +14,10 @@ const stripe = new Stripe(STRIPE_SECRET_KEY, {
 export async function POST(req: NextRequest) {
   try {
     await dbConnect()
-    
+
     const body = await req.text()
     const signature = req.headers.get('stripe-signature')
-    
+
     if (!signature) {
       return NextResponse.json({ error: 'Missing stripe signature' }, { status: 400 })
     }
@@ -34,7 +35,11 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        await handleCheckoutSessionCompleted(session)
+        if (session.mode === 'subscription') {
+          await handleCheckoutSessionCompleted(session)
+        } else if (session.mode === 'payment') {
+          await handleImportPurchase(session)
+        }
         break
       }
       case 'customer.subscription.updated': {
@@ -59,7 +64,7 @@ export async function POST(req: NextRequest) {
 // Helper functions to handle different webhook events
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
   if (!session.customer || !session.subscription) return
-  
+
   const customerId = typeof session.customer === 'string'
     ? session.customer
     : session.customer.id
@@ -73,26 +78,26 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
   const subscription = subscriptionResponse
 
   const planName = session.metadata?.plan || 'Pro'
-  
+
   // Type-safe plan name
-  const typedPlanName: 'Free' | 'Pro' | 'Premium' = 
-    planName === 'Premium' ? 'Premium' : 
-    planName === 'Pro' ? 'Pro' : 'Free'
+  const typedPlanName: 'Free' | 'Pro' | 'Premium' =
+    planName === 'Premium' ? 'Premium' :
+      planName === 'Pro' ? 'Pro' : 'Free'
 
   // Type-safe status
-  const subscriptionStatus = 
-    subscription.status === 'active' || 
-    subscription.status === 'canceled' || 
-    subscription.status === 'past_due' || 
-    subscription.status === 'trialing' || 
-    subscription.status === 'incomplete' 
-      ? subscription.status 
+  const subscriptionStatus =
+    subscription.status === 'active' ||
+      subscription.status === 'canceled' ||
+      subscription.status === 'past_due' ||
+      subscription.status === 'trialing' ||
+      subscription.status === 'incomplete'
+      ? subscription.status
       : null
 
   // Type-safe period end
   const periodEnd = subscription['current_period_end' as keyof typeof subscription]
-  const subscriptionPeriodEnd = periodEnd && typeof periodEnd === 'number' 
-    ? new Date(periodEnd * 1000) 
+  const subscriptionPeriodEnd = periodEnd && typeof periodEnd === 'number'
+    ? new Date(periodEnd * 1000)
     : undefined
 
   await User.findOneAndUpdate(
@@ -109,7 +114,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string
   const priceId = subscription.items.data[0]?.price.id
-  
+
   // Type-safe plan name
   let typedPlanName: 'Free' | 'Pro' | 'Premium' = 'Pro'
   if (priceId === process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID) {
@@ -117,23 +122,23 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   } else if (priceId === process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID) {
     typedPlanName = 'Pro'
   }
-  
+
   // Type-safe status
-  const subscriptionStatus = 
-    subscription.status === 'active' || 
-    subscription.status === 'canceled' || 
-    subscription.status === 'past_due' || 
-    subscription.status === 'trialing' || 
-    subscription.status === 'incomplete' 
-      ? subscription.status 
+  const subscriptionStatus =
+    subscription.status === 'active' ||
+      subscription.status === 'canceled' ||
+      subscription.status === 'past_due' ||
+      subscription.status === 'trialing' ||
+      subscription.status === 'incomplete'
+      ? subscription.status
       : null
 
   // Type-safe period end
   const periodEnd = subscription['current_period_end' as keyof typeof subscription]
-  const subscriptionPeriodEnd = periodEnd && typeof periodEnd === 'number' 
-    ? new Date(periodEnd * 1000) 
+  const subscriptionPeriodEnd = periodEnd && typeof periodEnd === 'number'
+    ? new Date(periodEnd * 1000)
     : undefined
-  
+
   await User.findOneAndUpdate(
     { stripeCustomerId: customerId },
     {
@@ -146,7 +151,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string
-  
+
   // Update user to free plan when subscription is canceled
   await User.findOneAndUpdate(
     { stripeCustomerId: customerId },
@@ -157,4 +162,32 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       subscriptionPeriodEnd: null,
     }
   )
+}
+
+async function handleImportPurchase(session: Stripe.Checkout.Session) {
+  try {
+    const meta = session.metadata || {}
+    const paymentIntent = session.payment_intent as string | Stripe.PaymentIntent | null
+    const paymentIntentId = typeof paymentIntent === 'string' ? paymentIntent : paymentIntent?.id
+
+    // Record transaction (backup; UI verifies and writes too)
+    await Transaction.create({
+      buyerEmail: meta.buyerEmail,
+      sellerEmail: meta.sellerEmail,
+      sellerStripeAccountId: meta.sellerStripeAccountId || null,
+      itemType: meta.itemType,
+      itemId: meta.itemId,
+      itemName: meta.itemName,
+      currency: session.currency || 'usd',
+      amountCents: session.amount_total || 500,
+      platformShareCents: Number(meta.platformShareCents || 250),
+      sellerShareCents: Number(meta.sellerShareCents || 250),
+      stripeSessionId: session.id,
+      stripePaymentIntentId: paymentIntentId || null,
+      status: 'paid',
+      paidToSeller: Boolean(meta.sellerStripeAccountId),
+    })
+  } catch (err) {
+    console.error('Webhook handleImportPurchase error:', err)
+  }
 }

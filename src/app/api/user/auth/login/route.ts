@@ -71,6 +71,8 @@ export async function POST(req: NextRequest) {
     // Create response with user data (excluding password)
     const userResponse = {
       _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
       username: user.username,
       email: user.email,
       profilePic: user.profilePic,

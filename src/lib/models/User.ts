@@ -2,6 +2,7 @@ import mongoose, { Document, Model, Schema } from 'mongoose'
 import bcrypt from 'bcryptjs'
 
 // 1. Define the interface for a User document
+// interface IUser
 export interface IUser extends Document {
   firstName: string
   lastName: string
@@ -28,6 +29,9 @@ export interface IUser extends Document {
   subscriptionPeriodEnd?: Date
   createdAt: Date
   updatedAt: Date
+
+  // Profit sharing / Stripe Connect
+  stripeAccountId?: string
 
   comparePassword(candidatePassword: string): Promise<boolean>
 }
@@ -139,6 +143,12 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
     },
     subscriptionPeriodEnd: {
       type: Date,
+      default: null,
+    },
+
+    // Profit sharing / Stripe Connect
+    stripeAccountId: {
+      type: String,
       default: null,
     },
   },
