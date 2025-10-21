@@ -81,8 +81,8 @@ export async function POST(req: NextRequest) {
         )
 
         results.push({ id: String(tx._id), transferId: transfer.id })
-      } catch (e: any) {
-        results.push({ id: String(tx._id), error: e?.message || 'Transfer failed' })
+      } catch (e: unknown) {
+        results.push({ id: String(tx._id), error: e instanceof Error ? e.message : 'Transfer failed' })
       }
     }
 
