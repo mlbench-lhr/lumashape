@@ -7,10 +7,12 @@ export async function POST(req: NextRequest) {
     await dbConnect();
 
     const {
+      firstName,
+      lastName,
       username,
       email,
       password,
-    }: { username: string; email: string; password: string } = await req.json();
+    }: { firstName: string; lastName: string; username: string; email: string; password: string } = await req.json();
     console.log(
       "Email->",
       email,
@@ -21,7 +23,7 @@ export async function POST(req: NextRequest) {
     );
 
     // Basic validation for the incoming data
-    if (!username || !email || !password) {
+    if (!firstName || !lastName || !username || !email || !password) {
       return NextResponse.json(
         { message: "All fields are required" },
         { status: 400 }
@@ -40,6 +42,8 @@ export async function POST(req: NextRequest) {
 
     // Create new user
     const newUser = new User({
+      firstName,
+      lastName,
       username,
       email,
       password,

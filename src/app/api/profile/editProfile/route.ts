@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
-    const { username, profilePic } = await req.json();
+    const { firstName, lastName, username, bio, profilePic } = await req.json();
     if (!username) {
       return NextResponse.json({ error: "Username is required" }, { status: 400 });
     }
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     // Find and update user
     const updatedUser = await User.findByIdAndUpdate(
       decoded.userId,
-      { username, profilePic },
+      { firstName, lastName, username, bio, profilePic },
       { new: true }
     );
 

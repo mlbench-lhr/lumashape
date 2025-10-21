@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const userEmail = decoded.email;
 
     const user = await User.findOne({ email: userEmail, isDeleted: false })
-      .select("username email isPublic profilePic company avatar")
+      .select("firstName lastName username bio email isPublic profilePic avatar")
       .lean();
 
     if (!user) {
@@ -79,11 +79,13 @@ export async function GET(request: NextRequest) {
 
     const profileData = {
       user: {
-        name: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        username: user.username,
         email: user.email,
         profilePic: user.profilePic,
         status: user.isPublic ? "Public" : "Anonymous",
-        bio: user.company || "Workshop enthusiast and tool organization specialist",
+        bio: user.bio || "Workshop enthusiast and tool organization specialist",
         avatar: user.avatar,
         followers: 43,
         following: 43,

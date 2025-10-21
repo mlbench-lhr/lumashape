@@ -3,7 +3,10 @@ import bcrypt from 'bcryptjs'
 
 // 1. Define the interface for a User document
 export interface IUser extends Document {
+  firstName: string
+  lastName: string
   username: string
+  bio?: string
   email: string
   password: string
   resetPasswordOTP?: string
@@ -32,6 +35,20 @@ export interface IUser extends Document {
 // 2. Define the schema
 const UserSchema: Schema<IUser> = new mongoose.Schema(
   {
+    firstName: {
+      type: String,
+      required: [true, 'Please provide a first name'],
+      trim: true,
+      minlength: [2, 'First name must be at least 2 characters'],
+      maxlength: [50, 'First name cannot be more than 50 characters'],
+    },
+    lastName: {
+      type: String,
+      required: [true, 'Please provide a last name'],
+      trim: true,
+      minlength: [2, 'Last name must be at least 2 characters'],
+      maxlength: [50, 'Last name cannot be more than 50 characters'],
+    },
     username: {
       type: String,
       required: [true, 'Please provide a username'],
@@ -39,6 +56,10 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
       trim: true,
       minlength: [3, 'Username must be at least 3 characters'],
       maxlength: [20, 'Username cannot be more than 20 characters'],
+    },
+    bio: {
+      type: String,
+      maxlength: [200, 'Bio cannot be more than 200 characters'],
     },
     email: {
       type: String,

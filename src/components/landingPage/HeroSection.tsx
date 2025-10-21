@@ -41,7 +41,7 @@ function HeroSection() {
           as="h1"
           className="text-center max-w-[70%] md:text-[50px] mx-auto font-bold  md:leading-none leading-[45px]"
         >
-          Create Custom 5S Foam Shadowboards.
+          Create Custom 5S Foam Shadowboards
         </Text>
         <Text
           as="p1"
