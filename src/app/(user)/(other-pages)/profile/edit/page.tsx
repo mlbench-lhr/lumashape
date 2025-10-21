@@ -141,7 +141,8 @@ export default function ProfilePage() {
             activeTab === "edit" ? "Edit Profile" :
               activeTab === "password" ? "Change Password" :
                 activeTab === "privacy" ? "Account Privacy" :
-                  activeTab === "logout" ? "Logout" : "Edit Profile"}
+                activeTab === "profit" ? "Profit Sharing" :
+                activeTab === "logout" ? "Logout" : "Edit Profile"}
         </h1>
       </div>
 

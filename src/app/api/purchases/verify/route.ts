@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
 
     const pi = session.payment_intent as Stripe.PaymentIntent | null
     const meta = session.metadata || {}
+    const paidToSeller = !(meta.payoutDeferred === 'true') && Boolean(meta.sellerStripeAccountId)
 
     const tx = await Transaction.create({
       buyerEmail: meta.buyerEmail,
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
       stripeSessionId: session.id,
       stripePaymentIntentId: pi?.id || null,
       status: 'paid',
-      paidToSeller: Boolean(meta.sellerStripeAccountId),
+      paidToSeller,
     })
 
     return NextResponse.json({ verified: true, itemType: meta.itemType, itemId: meta.itemId, transactionId: tx._id })

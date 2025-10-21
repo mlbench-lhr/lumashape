@@ -115,12 +115,24 @@ export async function POST(req: NextRequest) {
       await buyer.save()
     }
 
-    // Seller connected account setup
+    // Seller connected account setup (+ capability check)
+    const sellerStripeAccountId = seller?.stripeAccountId
+    let canDestinationCharge = false
+
+    if (sellerStripeAccountId) {
+      try {
+        const account = await stripe.accounts.retrieve(sellerStripeAccountId)
+        canDestinationCharge = account.capabilities?.transfers === 'active'
+      } catch (e) {
+        console.warn('Failed to retrieve seller Stripe account:', e)
+      }
+    }
+
     const paymentIntentData: Stripe.Checkout.SessionCreateParams.PaymentIntentData | undefined =
-      seller?.stripeAccountId
+      sellerStripeAccountId && canDestinationCharge
         ? {
             application_fee_amount: platformShareCents,
-            transfer_data: { destination: seller.stripeAccountId },
+            transfer_data: { destination: sellerStripeAccountId },
           }
         : undefined
 
@@ -150,12 +162,13 @@ export async function POST(req: NextRequest) {
       metadata: {
         buyerEmail: buyer.email,
         sellerEmail,
-        sellerStripeAccountId: seller?.stripeAccountId || '',
+        sellerStripeAccountId: sellerStripeAccountId || '',
         itemType,
         itemId,
         itemName,
         sellerShareCents: String(sellerShareCents),
         platformShareCents: String(platformShareCents),
+        payoutDeferred: String(Boolean(sellerStripeAccountId) && !canDestinationCharge),
       },
     })
 
