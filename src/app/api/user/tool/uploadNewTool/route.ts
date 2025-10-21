@@ -306,7 +306,7 @@ export async function POST(req: Request) {
         };
 
         // Use annotated image URL if available
-        if (cvResponse.data.annotated_image_url) {
+        if (cvResponse.data.original_img) {
           updateData.imageUrl = cvResponse.data.original_img;
         }
 
