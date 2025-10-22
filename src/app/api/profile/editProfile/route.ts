@@ -11,13 +11,23 @@ interface DecodedToken {
   username: string;
 }
 
+interface UpdateFields {
+  firstName?: string;
+  lastName?: string;
+  username?: string;
+  bio?: string;
+  profilePic?: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
 
     // Verify JWT
     const token = req.headers.get("Authorization")?.split(" ")[1];
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!token) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     let decoded: DecodedToken;
     try {
@@ -27,18 +37,28 @@ export async function POST(req: NextRequest) {
     }
 
     const { firstName, lastName, username, bio, profilePic } = await req.json();
-    if (!username) {
-      return NextResponse.json({ error: "Username is required" }, { status: 400 });
+
+    // Build type-safe update object
+    const updateFields: UpdateFields = {};
+
+    if (firstName && firstName.trim() !== "") updateFields.firstName = firstName.trim();
+    if (lastName && lastName.trim() !== "") updateFields.lastName = lastName.trim();
+    if (username && username.trim() !== "") updateFields.username = username.trim();
+    if (profilePic && profilePic.trim() !== "") updateFields.profilePic = profilePic.trim();
+
+    // bio can be empty (can overwrite existing bio)
+    updateFields.bio = bio ?? "";
+
+    // If nothing to update
+    if (Object.keys(updateFields).length === 0) {
+      return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
     }
 
-    // Find and update user
-    const updatedUser = await User.findByIdAndUpdate(
-      decoded.userId,
-      { firstName, lastName, username, bio, profilePic },
-      { new: true }
-    );
+    const updatedUser = await User.findByIdAndUpdate(decoded.userId, updateFields, {
+      new: true,
+    });
 
-    console.log(`ProfilePicture = ${profilePic}`)
+    console.log(`ProfilePicture = ${profilePic}`);
 
     if (!updatedUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
