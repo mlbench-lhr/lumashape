@@ -23,18 +23,22 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Stripe account not connected' }, { status: 400 })
         }
 
-        // Check capabilities (best-effort, no early 400)
+        // Check capabilities and account status
         const platformAccount = await stripe.accounts.retrieve()
         const sellerAccount = await stripe.accounts.retrieve(seller.stripeAccountId)
 
         const transfersActive = sellerAccount.capabilities?.transfers === 'active'
+        const payoutsEnabled = sellerAccount.capabilities?.card_payments === 'active'
+        const detailsSubmitted = sellerAccount.details_submitted
         const countryMatch = platformAccount.country && sellerAccount.country && platformAccount.country === sellerAccount.country
 
-        // Remove early 400; attempt transfers and report per-transaction result
-        if (!transfersActive || !countryMatch) {
+        // Only proceed if the account is fully active for payouts
+        if (!transfersActive || !payoutsEnabled || !detailsSubmitted) {
             return NextResponse.json({
-                error: 'Transfers not eligible. Complete onboarding or ensure same-country accounts.',
+                error: 'Stripe account not ready for transfers. Complete onboarding first.',
                 transfersActive,
+                payoutsEnabled,
+                detailsSubmitted,
                 platformCountry: platformAccount.country,
                 sellerCountry: sellerAccount.country,
             }, { status: 400 })
@@ -88,13 +92,23 @@ export async function POST(req: NextRequest) {
         }
 
         const settledCount = results.filter(r => r.transferId).length
+        const failedCount = results.filter(r => r.error).length
+        
         return NextResponse.json({
             settledCount,
+            failedCount,
             results,
             transfersActive,
+            payoutsEnabled,
+            detailsSubmitted,
             countryMatch,
             platformCountry: platformAccount.country,
             sellerCountry: sellerAccount.country,
+            message: settledCount > 0 
+                ? `Successfully transferred ${settledCount} payment${settledCount > 1 ? 's' : ''} to your account.`
+                : failedCount > 0 
+                    ? 'Some transfers failed. Please check your account status.'
+                    : 'No transfers were processed.'
         })
     } catch (err) {
         console.error('Settle owed error:', err)

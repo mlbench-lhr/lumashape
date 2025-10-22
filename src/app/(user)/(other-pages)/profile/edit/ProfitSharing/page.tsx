@@ -68,6 +68,14 @@ export default function ProfitSharing() {
         connected &&
         (!status?.payouts_enabled || !status?.details_submitted || !status?.transfers_active)
     )
+    
+    // Check if account is fully ready for automatic transfers
+    const accountReady = Boolean(
+        connected && 
+        status?.payouts_enabled && 
+        status?.details_submitted && 
+        status?.transfers_active
+    )
     const filteredEarnings = earnings.filter(e => filter === 'all' ? true : e.itemType === filter)
     const filteredPayments = payments.filter(p => filter === 'all' ? true : p.itemType === filter)
 
@@ -88,7 +96,11 @@ export default function ProfitSharing() {
                 setEarnings(txRes.data.earnings || [])
                 setTotals(txRes.data.totals || { spentCents: 0, earnedCents: 0 })
             } catch (err) {
-                // ... existing code ...
+                if (axios.isAxiosError(err)) {
+                    console.error('Profit sharing load error:', err.response?.data || err.message)
+                } else {
+                    console.error('Unknown profit sharing error:', err)
+                }
             } finally {
                 setLoading(false)
             }
@@ -99,17 +111,31 @@ export default function ProfitSharing() {
 
     useEffect(() => {
         const hasOwed = earnings.some(e => !e.paidToSeller)
-        const eligible = status?.connected && status?.details_submitted && status?.transfers_active
+        const eligible = status?.connected && status?.details_submitted && status?.transfers_active && status?.payouts_enabled
 
         if (!autoSettleRef.current && hasOwed && eligible) {
             autoSettleRef.current = true
-            settleOwed().finally(() => { autoSettleRef.current = false })
+            settleOwed().finally(() => { 
+                // Set a timeout before allowing another auto-settle attempt
+                setTimeout(() => {
+                    autoSettleRef.current = false
+                }, 30000) // 30 second cooldown
+            })
         }
-    }, [status?.connected, status?.details_submitted, status?.transfers_active, earnings])
+    }, [status?.connected, status?.details_submitted, status?.transfers_active, status?.payouts_enabled])
 
     const settleOwed = async () => {
         try {
             const res = await axios.post('/api/purchases/settle-owed', {}, { headers: authHeaders() })
+            
+            // Show success message if transfers were made
+            if (res.data?.settledCount > 0) {
+                alert(res.data.message || `Successfully transferred ${res.data.settledCount} payment(s) to your account.`)
+            } else if (res.data?.settledCount === 0) {
+                console.log('No transfers needed - all balances already settled')
+            }
+            
+            // Refresh transaction data
             const txRes = await axios.get<TransactionsResponse>('/api/purchases/transactions', { headers: authHeaders() })
             setPayments(txRes.data.payments || [])
             setEarnings(txRes.data.earnings || [])
@@ -119,10 +145,12 @@ export default function ProfitSharing() {
                 const data = err.response?.data
                 const details = [
                     data?.error,
-                    data?.transfersActive === false ? 'Transfers capability inactive.' : undefined,
+                    !data?.transfersActive ? 'Transfers capability inactive.' : undefined,
+                    !data?.payoutsEnabled ? 'Payouts not enabled.' : undefined,
+                    !data?.detailsSubmitted ? 'Account details incomplete.' : undefined,
                     data?.platformCountry && data?.sellerCountry ? `Platform: ${data.platformCountry}, Seller: ${data.sellerCountry}` : undefined,
                 ].filter(Boolean).join(' ')
-                alert(details || 'Unable to settle owed. Please complete Stripe details.')
+                console.error('Settle owed error:', details || 'Unable to settle owed. Please complete Stripe account setup.')
             } else {
                 console.error('Settle owed error:', err)
             }
@@ -223,7 +251,14 @@ export default function ProfitSharing() {
                 <div className="border rounded-lg p-4">
                     <div className="text-sm text-gray-600">Total Owed</div>
                     <div className="text-xl font-semibold">${(owedCents / 100).toFixed(2)}</div>
-                    <div className="text-xs text-gray-500">Unpaid earnings</div>
+                    <div className="text-xs text-gray-500">
+                        {accountReady && owedCents > 0 
+                            ? "Will transfer automatically" 
+                            : owedCents > 0 
+                                ? "Pending account setup" 
+                                : "Unpaid earnings"
+                        }
+                    </div>
                 </div>
                 <div className="border rounded-lg p-4">
                     <div className="text-sm text-gray-600">Platform Share</div>
