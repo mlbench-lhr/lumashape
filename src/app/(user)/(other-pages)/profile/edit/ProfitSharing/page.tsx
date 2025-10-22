@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import axios, { AxiosError } from 'axios'
 
 type Tx = {
@@ -44,6 +44,8 @@ export default function ProfitSharing() {
     const [earnings, setEarnings] = useState<Tx[]>([])
     const [totals, setTotals] = useState<Totals>({ spentCents: 0, earnedCents: 0 })
     const [filter, setFilter] = useState<'all' | 'tool' | 'layout'>('all')
+    const loadOnceRef = useRef(false)
+    const autoSettleRef = useRef(false)
 
     // --- Auth Header Builder ---
     const authHeaders = () => {
@@ -61,8 +63,49 @@ export default function ProfitSharing() {
     const platformShareCents = earnings.reduce((s, t) => s + t.platformShareCents, 0)
     const avgPerSale = earnings.length ? (totals.earnedCents / earnings.length / 100).toFixed(2) : "0.00"
 
+    // Add a clear flag for missing details or pending payouts/capabilities
+    const needsAction = Boolean(
+        connected &&
+        (!status?.payouts_enabled || !status?.details_submitted || !status?.transfers_active)
+    )
     const filteredEarnings = earnings.filter(e => filter === 'all' ? true : e.itemType === filter)
     const filteredPayments = payments.filter(p => filter === 'all' ? true : p.itemType === filter)
+
+
+    useEffect(() => {
+        if (loadOnceRef.current) return
+        loadOnceRef.current = true
+
+        const load = async () => {
+            try {
+                const [statusRes, txRes] = await Promise.all([
+                    axios.get<StripeStatus>('/api/stripe/connect/account-status', { headers: authHeaders() }),
+                    axios.get<TransactionsResponse>('/api/purchases/transactions', { headers: authHeaders() }),
+                ])
+
+                setStatus(statusRes.data)
+                setPayments(txRes.data.payments || [])
+                setEarnings(txRes.data.earnings || [])
+                setTotals(txRes.data.totals || { spentCents: 0, earnedCents: 0 })
+            } catch (err) {
+                // ... existing code ...
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        load()
+    }, [])
+
+    useEffect(() => {
+        const hasOwed = earnings.some(e => !e.paidToSeller)
+        const eligible = status?.connected && status?.details_submitted && status?.transfers_active
+
+        if (!autoSettleRef.current && hasOwed && eligible) {
+            autoSettleRef.current = true
+            settleOwed().finally(() => { autoSettleRef.current = false })
+        }
+    }, [status?.connected, status?.details_submitted, status?.transfers_active, earnings])
 
     const settleOwed = async () => {
         try {
@@ -72,17 +115,19 @@ export default function ProfitSharing() {
             setEarnings(txRes.data.earnings || [])
             setTotals(txRes.data.totals || { spentCents: 0, earnedCents: 0 })
         } catch (err) {
-            console.error('Settle owed error:', err)
+            if (axios.isAxiosError(err)) {
+                const data = err.response?.data as any
+                const details = [
+                    data?.error,
+                    data?.transfersActive === false ? 'Transfers capability inactive.' : undefined,
+                    data?.platformCountry && data?.sellerCountry ? `Platform: ${data.platformCountry}, Seller: ${data.sellerCountry}` : undefined,
+                ].filter(Boolean).join(' ')
+                alert(details || 'Unable to settle owed. Please complete Stripe details.')
+            } else {
+                console.error('Settle owed error:', err)
+            }
         }
     }
-
-    useEffect(() => {
-        const hasOwed = earnings.some(e => !e.paidToSeller)
-        if (hasOwed && status?.connected && status?.details_submitted && status?.transfers_active) {
-            settleOwed()
-        }
-    }, [status, earnings])
-
     // --- Connect Stripe Bank Account ---
     const connectBank = async () => {
         try {
@@ -155,6 +200,14 @@ export default function ProfitSharing() {
                             <span className={`px-3 py-1 rounded-md text-sm ${status?.details_submitted ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}>
                                 Details {status?.details_submitted ? "Submitted" : "Missing"}
                             </span>
+                            {needsAction && (
+                                <button
+                                    onClick={connectBank}
+                                    className="px-4 py-2 bg-primary text-white rounded-md"
+                                >
+                                    Add Missing Details
+                                </button>
+                            )}
                         </>
                     )}
                 </div>

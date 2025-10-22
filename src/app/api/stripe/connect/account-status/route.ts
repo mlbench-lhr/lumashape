@@ -25,12 +25,16 @@ export async function GET(req: NextRequest) {
     }
 
     const account = await stripe.accounts.retrieve(user.stripeAccountId)
+    const platformAccount = await stripe.accounts.retrieve()
+
     return NextResponse.json({
       connected: true,
       charges_enabled: account.charges_enabled,
       payouts_enabled: account.payouts_enabled,
       details_submitted: account.details_submitted,
       transfers_active: account.capabilities?.transfers === 'active',
+      sellerCountry: account.country,
+      platformCountry: platformAccount.country,
     })
   } catch (err) {
     console.error('Account status error:', err)

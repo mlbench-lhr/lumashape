@@ -23,13 +23,14 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Stripe account not connected' }, { status: 400 })
         }
 
-        // Check capabilities and country match
+        // Check capabilities (best-effort, no early 400)
         const platformAccount = await stripe.accounts.retrieve()
         const sellerAccount = await stripe.accounts.retrieve(seller.stripeAccountId)
 
         const transfersActive = sellerAccount.capabilities?.transfers === 'active'
         const countryMatch = platformAccount.country && sellerAccount.country && platformAccount.country === sellerAccount.country
 
+        // Remove early 400; attempt transfers and report per-transaction result
         if (!transfersActive || !countryMatch) {
             return NextResponse.json({
                 error: 'Transfers not eligible. Complete onboarding or ensure same-country accounts.',
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
             sellerEmail: seller.email,
             status: 'paid',
             paidToSeller: false,
-            sellerStripeAccountId: seller.stripeAccountId,
+            // removed sellerStripeAccountId filter to allow settlement after account switch
         }).lean()
 
         if (!owedTxs.length) {
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
 
                 const transferParams: Stripe.TransferCreateParams = {
                     amount: tx.sellerShareCents,
-                    currency: tx.currency || 'usd',
+                    currency: pi.currency || 'usd',
                     destination: seller.stripeAccountId,
                     ...(chargeId ? { source_transaction: chargeId } : {}),
                 }
@@ -87,7 +88,14 @@ export async function POST(req: NextRequest) {
         }
 
         const settledCount = results.filter(r => r.transferId).length
-        return NextResponse.json({ settledCount, results })
+        return NextResponse.json({
+            settledCount,
+            results,
+            transfersActive,
+            countryMatch,
+            platformCountry: platformAccount.country,
+            sellerCountry: sellerAccount.country,
+        })
     } catch (err) {
         console.error('Settle owed error:', err)
         return NextResponse.json({ error: 'Failed to settle owed transactions' }, { status: 500 })

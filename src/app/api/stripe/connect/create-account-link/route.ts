@@ -21,13 +21,23 @@ export async function POST(req: NextRequest) {
     const user = await User.findOne({ email: decoded.email })
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
+    // Determine platform country to avoid mismatches (e.g., NL vs US)
+    let platformCountry = 'US'
+    try {
+      const platformAccount = await stripe.accounts.retrieve()
+      if (platformAccount.country) platformCountry = platformAccount.country
+    } catch (e) {
+      console.warn('Failed to retrieve platform Stripe account:', e)
+    }
+
     let accountId = user.stripeAccountId
 
     if (!accountId) {
+      // Create seller account in the same country as the platform
       try {
         const account = await stripe.accounts.create({
           type: 'express',
-          country: 'US',
+          country: platformCountry,
           capabilities: {
             card_payments: { requested: true },
             transfers: { requested: true },
@@ -38,19 +48,48 @@ export async function POST(req: NextRequest) {
         user.stripeAccountId = accountId
         await user.save()
       } catch (e: unknown) {
-        if (isStripeError(e)) {
-          if (e.message.includes('signed up for Connect')) {
-            return NextResponse.json(
-              {
-                error:
-                  'Stripe Connect is not enabled on your Stripe account. Enable Connect in Dashboard > Settings > Connect (Express) and retry.',
-              },
-              { status: 400 }
-            )
-          }
+        if (isStripeError(e) && e.message.includes('signed up for Connect')) {
+          return NextResponse.json(
+            { error: 'Stripe Connect not enabled. Enable Connect (Express) in Dashboard settings and retry.' },
+            { status: 400 }
+          )
         }
         throw e
       }
+    } else {
+      // If existing account country mismatches, replace with a new account
+      try {
+        const sellerAccount = await stripe.accounts.retrieve(accountId)
+        if (sellerAccount.country && sellerAccount.country !== platformCountry) {
+          const newAccount = await stripe.accounts.create({
+            type: 'express',
+            country: platformCountry,
+            capabilities: {
+              card_payments: { requested: true },
+              transfers: { requested: true },
+            },
+            metadata: { userId: String(user._id) },
+          })
+          accountId = newAccount.id
+          user.stripeAccountId = accountId
+          await user.save()
+        }
+      } catch (e: unknown) {
+        if (isStripeError(e) && e.message.includes('signed up for Connect')) {
+          return NextResponse.json(
+            { error: 'Stripe Connect not enabled. Enable Connect (Express) in Dashboard settings and retry.' },
+            { status: 400 }
+          )
+        }
+        throw e
+      }
+    }
+
+    // If onboarding is complete, open Express Dashboard; else resume onboarding
+    const account = await stripe.accounts.retrieve(accountId)
+    if (account.details_submitted) {
+      const login = await stripe.accounts.createLoginLink(accountId)
+      return NextResponse.json({ url: login.url })
     }
 
     const link = await stripe.accountLinks.create({
