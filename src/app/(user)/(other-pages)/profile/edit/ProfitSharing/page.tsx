@@ -116,7 +116,7 @@ export default function ProfitSharing() {
             setTotals(txRes.data.totals || { spentCents: 0, earnedCents: 0 })
         } catch (err) {
             if (axios.isAxiosError(err)) {
-                const data = err.response?.data as any
+                const data = err.response?.data
                 const details = [
                     data?.error,
                     data?.transfersActive === false ? 'Transfers capability inactive.' : undefined,
