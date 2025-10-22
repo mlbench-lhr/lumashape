@@ -364,7 +364,7 @@ export async function POST(req: Request) {
     // 8. Respond immediately to client (before CV processing completes)
     return NextResponse.json({
       success: true,
-      message: "Tool created successfully. Processing in background.",
+      message: "Tool succesfully uploaded to Tool Inventory",
       toolId: tool._id,
       tool: {
         id: tool._id,
