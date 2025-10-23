@@ -68,12 +68,12 @@ export default function ProfitSharing() {
         connected &&
         (!status?.payouts_enabled || !status?.details_submitted || !status?.transfers_active)
     )
-    
+
     // Check if account is fully ready for automatic transfers
     const accountReady = Boolean(
-        connected && 
-        status?.payouts_enabled && 
-        status?.details_submitted && 
+        connected &&
+        status?.payouts_enabled &&
+        status?.details_submitted &&
         status?.transfers_active
     )
     const filteredEarnings = earnings.filter(e => filter === 'all' ? true : e.itemType === filter)
@@ -115,7 +115,7 @@ export default function ProfitSharing() {
 
         if (!autoSettleRef.current && hasOwed && eligible) {
             autoSettleRef.current = true
-            settleOwed().finally(() => { 
+            settleOwed().finally(() => {
                 // Set a timeout before allowing another auto-settle attempt
                 setTimeout(() => {
                     autoSettleRef.current = false
@@ -127,14 +127,14 @@ export default function ProfitSharing() {
     const settleOwed = async () => {
         try {
             const res = await axios.post('/api/purchases/settle-owed', {}, { headers: authHeaders() })
-            
+
             // Show success message if transfers were made
             if (res.data?.settledCount > 0) {
                 alert(res.data.message || `Successfully transferred ${res.data.settledCount} payment(s) to your account.`)
             } else if (res.data?.settledCount === 0) {
                 console.log('No transfers needed - all balances already settled')
             }
-            
+
             // Refresh transaction data
             const txRes = await axios.get<TransactionsResponse>('/api/purchases/transactions', { headers: authHeaders() })
             setPayments(txRes.data.payments || [])
@@ -209,7 +209,7 @@ export default function ProfitSharing() {
                     <h2 className="text-xl font-semibold">Profit Sharing</h2>
                     <p className="text-sm text-gray-600">Connect Stripe to receive payouts for your sales.</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                     {!connected ? (
                         <button
                             onClick={connectBank}
@@ -252,10 +252,10 @@ export default function ProfitSharing() {
                     <div className="text-sm text-gray-600">Total Owed</div>
                     <div className="text-xl font-semibold">${(owedCents / 100).toFixed(2)}</div>
                     <div className="text-xs text-gray-500">
-                        {accountReady && owedCents > 0 
-                            ? "Will transfer automatically" 
-                            : owedCents > 0 
-                                ? "Pending account setup" 
+                        {accountReady && owedCents > 0
+                            ? "Will transfer automatically"
+                            : owedCents > 0
+                                ? "Pending account setup"
                                 : "Unpaid earnings"
                         }
                     </div>
