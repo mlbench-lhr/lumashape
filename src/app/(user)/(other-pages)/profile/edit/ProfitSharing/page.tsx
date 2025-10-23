@@ -225,15 +225,15 @@ export default function ProfitSharing() {
                             <span className={`px-3 py-1 rounded-md text-sm ${status?.payouts_enabled ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-800"}`}>
                                 {status?.payouts_enabled ? "Payouts Enabled" : "Payouts Pending"}
                             </span>
-                            <span className={`px-3 py-1 rounded-md text-sm ${status?.details_submitted ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}>
+                            <span className={`px-3 py-1 rounded-md text-sm ${status?.details_submitted ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
                                 Details {status?.details_submitted ? "Submitted" : "Missing"}
                             </span>
                             {needsAction && (
                                 <button
                                     onClick={connectBank}
-                                    className="px-4 py-2 bg-primary text-white rounded-md"
+                                    className="px-4 py-2 bg-primary text-white rounded-md cursor-pointer"
                                 >
-                                    Add Missing Details
+                                    Details Missing
                                 </button>
                             )}
                         </>
