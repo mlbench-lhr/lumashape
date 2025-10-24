@@ -18,7 +18,7 @@ interface ToolData {
   rotation: number;
   flipHorizontal: boolean;
   flipVertical: boolean;
-  thickness: number;
+  depth?: number;
   unit: 'mm' | 'inches';
   opacity?: number;
   smooth?: number;
@@ -125,7 +125,7 @@ const validateTools = (tools: unknown): ToolData[] => {
     }
 
     const toolObj = tool as Record<string, unknown>;
-    const { id, name, x, y, rotation, flipHorizontal, flipVertical, thickness, unit, opacity, smooth, image, groupId, metadata, realWidth, realHeight, originalId } = toolObj;
+    const { id, name, x, y, rotation, flipHorizontal, flipVertical, depth, unit, opacity, smooth, image, groupId, metadata, realWidth, realHeight, originalId } = toolObj;
 
     if (typeof id !== 'string' || typeof name !== 'string' || !id || !name) {
       throw new Error(`Tool at index ${index} must have valid id and name`);
@@ -147,8 +147,8 @@ const validateTools = (tools: unknown): ToolData[] => {
       throw new Error(`Tool "${name}" must have valid unit`);
     }
 
-    if (typeof thickness !== 'number' || thickness <= 0) {
-      throw new Error(`Tool "${name}" must have positive thickness`);
+    if (typeof depth !== 'number' || depth <= 0) {
+      throw new Error(`Tool "${name}" must have positive depth`);
     }
 
     const validatedTool: ToolData = {
@@ -159,7 +159,7 @@ const validateTools = (tools: unknown): ToolData[] => {
       rotation,
       flipHorizontal,
       flipVertical,
-      thickness,
+      depth: depth as number | undefined,
       unit: unit as 'mm' | 'inches'
     };
 
@@ -258,38 +258,69 @@ export async function GET(req: NextRequest) {
   try {
     await dbConnect();
 
-    const token = req.headers.get("Authorization")?.split(" ")[1];
-    console.log("Authorization: ", token);
-
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    if (!isValidJWTPayload(decoded)) {
-      return NextResponse.json({ error: "Invalid token payload" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
+    // If requesting a specific layout by id, allow published/public access and owner/purchaser access
     if (id) {
-      if (!mongoose.Types.ObjectId.isValid(id)) {
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return NextResponse.json(
+                { success: false, error: 'Invalid layout id format' },
+                { status: 400 }
+            );
+        }
+    
+        // Optional auth: if present, use to determine ownership/purchase
+        const token = req.headers.get("Authorization")?.split(" ")[1];
+        let requesterEmail: string | null = null;
+    
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                if (isValidJWTPayload(decoded)) {
+                    requesterEmail = decoded.email.toLowerCase().trim();
+                }
+            } catch {
+                // Ignore token errors for public published access
+            }
+        }
+    
+        const layout = await Layout.findById(id).lean();
+        if (!layout) {
+            return NextResponse.json(
+                { success: false, error: 'Layout not found' },
+                { status: 404 }
+            );
+        }
+    
+        const isOwner =
+            requesterEmail &&
+            layout.userEmail?.toLowerCase().trim() === requesterEmail;
+        const isBuyer =
+            requesterEmail &&
+            Array.isArray(layout.downloadedByUsers) &&
+            layout.downloadedByUsers.includes(requesterEmail);
+        const isPublished = Boolean(layout.published);
+    
+        if (isOwner || isPublished || isBuyer) {
+            return NextResponse.json({ success: true, data: layout });
+        }
+    
         return NextResponse.json(
-          { success: false, error: 'Invalid layout id format' },
-          { status: 400 }
+            { success: false, error: 'Layout not found or access denied' },
+            { status: 404 }
         );
-      }
+    }
 
-      const layout = await Layout.findOne({ _id: id, userEmail: decoded.email }).lean();
-      if (!layout) {
-        return NextResponse.json(
-          { success: false, error: 'Layout not found or access denied' },
-          { status: 404 }
-        );
-      }
-      return NextResponse.json({ success: true, data: layout });
+    // Listing user-owned layouts still requires auth
+    const token = req.headers.get("Authorization")?.split(" ")[1];
+    if (!token) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (!isValidJWTPayload(decoded)) {
+        return NextResponse.json({ error: "Invalid token payload" }, { status: 401 });
     }
 
     const page = parseInt(searchParams.get('page') || '1');
@@ -298,34 +329,33 @@ export async function GET(req: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    // Build search query - filter by user email
     const searchQuery: SearchQuery = { userEmail: decoded.email };
 
     if (search) {
-      searchQuery.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { brand: { $regex: search, $options: 'i' } }
-      ];
+        searchQuery.$or = [
+            { name: { $regex: search, $options: 'i' } },
+            { brand: { $regex: search, $options: 'i' } }
+        ];
     }
 
     const [layouts, total] = await Promise.all([
-      Layout.find(searchQuery)
-        .sort({ 'stats.updatedAt': -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Layout.countDocuments(searchQuery)
+        Layout.find(searchQuery)
+            .sort({ 'stats.updatedAt': -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+        Layout.countDocuments(searchQuery)
     ]);
 
     return NextResponse.json({
-      success: true,
-      data: layouts,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
+        success: true,
+        data: layouts,
+        pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit)
+        }
     });
 
   } catch (error) {

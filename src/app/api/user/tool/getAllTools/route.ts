@@ -53,6 +53,7 @@ export async function GET(req: Request) {
       userEmail: tool.userEmail,
       toolBrand: tool.toolBrand,
       toolType: tool.toolType,
+      SKUorPartNumber: tool.SKUorPartNumber,
       length: tool.length,
       depth: tool.depth,
       unit: tool.unit,

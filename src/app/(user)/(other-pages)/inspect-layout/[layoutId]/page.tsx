@@ -28,6 +28,7 @@ interface ShapeData {
 interface ToolMetadata {
   toolBrand?: string;
   length?: number;
+  depth?: number;
   naturalWidth?: number;
   naturalHeight?: number;
 }
@@ -53,7 +54,7 @@ interface LayoutTool {
   realHeight?: number;
   width?: number;
   length?: number;
-  thickness?: number;
+  depth?: number;
 }
 
 interface LayoutData {
@@ -196,7 +197,7 @@ export default function InspectLayoutPage({
           flipVertical: !!t.flipVertical,
           width: widthCanvasUnits || widthPxFallback || 50,
           length: lengthCanvasUnits || heightPxFallback || 50,
-          thickness: convertUnits(t.thickness ?? 1, toolUnit, canvasUnit),
+          depth: t.metadata?.depth ?? 0.2,
           unit: canvasUnit,
           opacity: t.opacity ?? 100,
           smooth: t.smooth ?? 0,

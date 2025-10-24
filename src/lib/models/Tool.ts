@@ -18,6 +18,7 @@ export interface ITool extends Document {
   userEmail: string;
   toolBrand: string;
   toolType: string;
+  SKUorPartNumber: string;
   length: number;
   depth: number;
   unit: string; // Added unit field
@@ -52,6 +53,11 @@ const ToolSchema: Schema<ITool> = new mongoose.Schema(
       trim: true 
     },
     toolType: { 
+      type: String, 
+      required: true, 
+      trim: true 
+    },
+    SKUorPartNumber: { 
       type: String, 
       required: true, 
       trim: true 

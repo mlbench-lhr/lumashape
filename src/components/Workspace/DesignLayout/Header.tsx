@@ -38,7 +38,7 @@ interface ToolPayload {
     position_inches: { x: number; y: number };
     rotation_degrees: number;
     height_diagonal_inches?: number;
-    thickness_inches?: number;
+    depth_inches?: number;
     flip_horizontal?: boolean;
     flip_vertical?: boolean;
     opacity?: number;
@@ -133,7 +133,7 @@ const Header: React.FC<HeaderProps> = ({
                     rotation: tool.rotation,
                     flipHorizontal: tool.flipHorizontal,
                     flipVertical: tool.flipVertical,
-                    thickness: tool.thickness,
+                    depth: tool.depth,
                     unit: tool.unit,
                     opacity: tool.opacity ?? 100,
                     smooth: tool.smooth ?? 0,
@@ -283,7 +283,7 @@ const Header: React.FC<HeaderProps> = ({
     // Inside Header.tsx
     const generateDxfFile = async () => {
         if (droppedTools.length === 0) {
-            setSaveError("Cannot generate DXF with no tools. Please add at least one tool.");
+            setSaveError("Cannot download DXF with no tools. Please add at least one tool.");
             return;
         }
 
@@ -411,7 +411,7 @@ const Header: React.FC<HeaderProps> = ({
                     position_inches: { x: xInches, y: yInches },
                     rotation_degrees: droppedTool.rotation || 0,
                     height_diagonal_inches: tool.length || 5.0,
-                    thickness_inches: droppedTool.thickness || 0.5,
+                    depth_inches: droppedTool.depth || 0.5,
                     flip_horizontal: droppedTool.flipHorizontal || false,
                     flip_vertical: droppedTool.flipVertical || false,
                     opacity: droppedTool.opacity || 100,
@@ -458,7 +458,7 @@ const Header: React.FC<HeaderProps> = ({
             const data = await response.json();
 
             if (!data.success) {
-                throw new Error(data.error || "Failed to generate DXF file");
+                throw new Error(data.error || "Failed to download DXF file");
             }
 
             // Download the file
@@ -476,8 +476,8 @@ const Header: React.FC<HeaderProps> = ({
                 throw new Error("No download URL provided in the response");
             }
         } catch (err) {
-            console.error("Error generating DXF:", err);
-            setSaveError(err instanceof Error ? err.message : "Failed to generate DXF file");
+            console.error("Error downloading DXF:", err);
+            setSaveError(err instanceof Error ? err.message : "Failed to download DXF file");
         } finally {
             setIsDxfGenerating(false);
         }
@@ -543,7 +543,7 @@ const Header: React.FC<HeaderProps> = ({
                 content += `  Height (Diagonal): N/A\n`;
             }
 
-            content += `  Thickness: ${tool.unit === 'mm' ? mmToInches(tool.thickness).toFixed(2) : tool.thickness} inches\n`;
+            content += `  Depth: ${tool.unit === 'mm' ? mmToInches(tool.depth).toFixed(2) : tool.depth} inches\n`;
             content += `  Flip Horizontal: ${tool.flipHorizontal}\n`;
             content += `  Flip Vertical: ${tool.flipVertical}\n`;
             content += `  Opacity: ${tool.opacity}%\n`;
@@ -782,7 +782,7 @@ const Header: React.FC<HeaderProps> = ({
                         rotation: tool.rotation,
                         flipHorizontal: tool.flipHorizontal,
                         flipVertical: tool.flipVertical,
-                        thickness: tool.thickness,
+                        depth: tool.depth,
                         unit: tool.unit,
                         opacity: tool.opacity || 100,
                         smooth: tool.smooth || 0,
@@ -901,7 +901,7 @@ const Header: React.FC<HeaderProps> = ({
     const exportOptions = [
         {
             icon: File,
-            label: 'Generate DXF File',
+            label: 'Download DXF File',
             action: generateDxfFile,
             disabled: droppedTools.length === 0,
             loading: isDxfGenerating
@@ -992,7 +992,7 @@ const Header: React.FC<HeaderProps> = ({
                                                     <option.icon className="w-4 h-4" />
                                                 )}
                                                 <span>
-                                                    {option.loading ? 'Generating DXF...' : option.label}
+                                                    {option.loading ? 'Downloading DXF...' : option.label}
                                                 </span>
                                                 {option.disabled && !option.loading && droppedTools.length === 0 && (
                                                     <span className="ml-auto text-xs text-gray-400">(Add tools first)</span>
@@ -1039,8 +1039,7 @@ const Header: React.FC<HeaderProps> = ({
                     <div className="flex items-start space-x-2">
                         <RefreshCw className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5 animate-spin" />
                         <div>
-                            <p className="text-sm font-medium text-blue-800">Generating DXF File...</p>
-                            <p className="text-sm text-blue-700 mt-1">Please wait while we create your industrial layout file via Gradio.</p>
+                            <p className="text-sm font-medium text-blue-800">Downloading DXF File...</p>
                         </div>
                     </div>
                 </div>

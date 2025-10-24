@@ -3,12 +3,14 @@ export interface Tool {
   name: string;
   icon: string;
   toolBrand: string;
+  toolType: string;
   image?: string;
   // Store all extracted data for potential future use
   metadata?: {
     userEmail?: string;
     toolBrand?: string;
     toolType?: string;
+    depth?: number;
     imageUrl?: string;
     outlinesImg?: string;
     contour_image_url?: string;
@@ -36,7 +38,7 @@ export interface DroppedTool extends Tool {
   // Legacy dimensions (kept for compatibility)
   width: number;
   length: number;
-  thickness: number;
+  depth: number;
   unit: 'mm' | 'inches';
   // Add opacity and smooth properties
   opacity: number; // 0-100

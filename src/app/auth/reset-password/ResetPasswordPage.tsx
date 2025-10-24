@@ -120,8 +120,7 @@ const ResetPasswordPage = () => {
                 Reset Password
               </h1>
               <span className="text-[14px] text-gray-600">
-                Enter your new password & confirm password to reset your
-                password.
+                Set a new password to sign in
               </span>
 
               <form onSubmit={handleSubmit} className="space-y-3">

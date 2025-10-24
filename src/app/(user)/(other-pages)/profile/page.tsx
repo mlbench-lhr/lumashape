@@ -3,6 +3,7 @@ import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import MyLayouts from "./MyLayouts/page";
 import MyToolContours from "./MyToolContours/page";
+import { useUser } from "@/context/UserContext";
 
 interface User {
   firstName: string;
@@ -41,6 +42,15 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const { logout } = useUser();
+
+  useEffect(() => {
+    if (!localStorage.getItem("auth-token")) {
+      router.push("/auth/login");
+    }
+  }, []);
 
   // Profile circle rendering
   const renderProfileImage = () => {
@@ -186,9 +196,21 @@ const Profile = () => {
           >
             Edit Profile
           </button>
+          {/* Profit Sharing Button */}
+          <button
+            onClick={() => router.push("/profile/edit/ProfitSharing")}
+            className="bg-white text-primary px-3 py-2 text-xs sm:px-5 sm:py-3 sm:text-sm md:px-8 md:py-4 md:text-base rounded-lg font-semibold border border-primary cursor-pointer"
+          >
+            Profit Sharing
+          </button>
+          <button
+            onClick={() => setShowLogoutModal(true)}
+            className="bg-primary text-white px-3 py-2 text-xs sm:px-5 sm:py-3 sm:text-sm md:px-8 md:py-4 md:text-base rounded-lg font-semibold cursor-pointer"
+          >
+            Logout
+          </button>
         </div>
 
-        {/* Stats Section */}
         {/* Stats Section */}
         <div className="grid grid-cols-3 gap-2 sm:gap-4 md:gap-6 lg:gap-8 mt-6 sm:mt-8 md:mt-10">
           <div className="bg-blue-50 rounded-2xl sm:rounded-3xl md:rounded-4xl shadow p-3 sm:p-4 md:p-6 text-center">
@@ -247,7 +269,43 @@ const Profile = () => {
         {/* Tab Content */}
         {activeTab === "layouts" ? <MyLayouts /> : <MyToolContours />}
       </div>
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full">
+            <div className="flex flex-col items-center p-6 pb-4">
+              <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center mb-6">
+                <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center border-2 border-white">
+                  <span className="text-white text-2xl font-bold">!</span>
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold mb-4">Logout?</h2>
+              <p className="text-gray-600 text-center mb-6">
+                Are you sure you want to logout? You’ll need to log in again to access your account.
+              </p>
+              <div className="flex w-full gap-4">
+                <button
+                  onClick={() => setShowLogoutModal(false)}
+                  className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLogoutModal(false);
+                    logout(); // 👈 Call actual logout
+                  }}
+                  className="flex-1 py-3 bg-primary text-white rounded-md"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 };
 

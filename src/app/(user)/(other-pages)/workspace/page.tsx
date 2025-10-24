@@ -14,7 +14,7 @@ interface ToolData {
   rotation: number;
   flipHorizontal: boolean;
   flipVertical: boolean;
-  thickness: number;
+  depth?: number;
   unit: 'mm' | 'inches';
   opacity?: number;
   smooth?: number;
@@ -260,7 +260,7 @@ const MyLayouts = () => {
                 <Image src="/images/icons/bell.svg" fill alt="notifications" />
               </div>
             </div>
-            <p>{`View, download, or duplicate all DXF layouts you’ve previously created.`}</p>
+            {/* <p>{`View, download, or duplicate all DXF layouts you’ve previously created.`}</p> */}
           </div>
 
 

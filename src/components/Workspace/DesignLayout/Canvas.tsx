@@ -192,13 +192,13 @@ const Canvas: React.FC<CanvasProps> = (props) => {
         >
           <Maximize className="w-4 h-4" />
         </button>
-        <button
+        {/* <button
           onClick={centerCanvas}
           className="p-2 rounded hover:bg-gray-100 transition-colors"
           title="Center canvas"
         >
           <Move className="w-4 h-4" />
-        </button>
+        </button> */}
         <div className="text-xs text-center text-gray-500 px-2">
           {Math.round(viewport.zoom * 100)}%
         </div>
@@ -441,18 +441,20 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 {/* ENHANCED: Tool info tooltip */}
                 <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-95 text-white text-xs px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 backdrop-blur-sm shadow-lg">
                   <div className="text-center space-y-1">
-                    <div className="font-medium text-blue-200">{tool.name}</div>
                     <div className="text-gray-400">
-                      {`Display: ${Math.round(toolWidth)} × ${Math.round(toolHeight)}px`}
+                      {`Depth: ${tool.unit === 'mm' ? mmToInches(tool.depth).toFixed(2) : tool.depth} inches`}
+                    </div>
+                    <div className="text-gray-400">
+                      {`Tool Brand: ${tool.toolBrand}`}
+                    </div>
+                    <div className="text-gray-400">
+                      {`Tool Type: ${tool.metadata?.toolType}`}
                     </div>
                     {isShape && (
                       <div className="text-yellow-300">
                         {`Size: ${tool.width?.toFixed(1)} × ${tool.length?.toFixed(1)} ${tool.unit}`}
                       </div>
                     )}
-                    <div className="text-green-300">
-                      {`Position: (${positionXInches}", ${positionYInches}")`}
-                    </div>
                     {isOverlapping && (
                       <div className="text-red-300 font-medium">
                         {`⚠ Overlapping`}

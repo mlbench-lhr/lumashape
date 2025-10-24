@@ -27,7 +27,7 @@ export interface CartItem {
       rotation: number;
       flipHorizontal: boolean;
       flipVertical: boolean;
-      thickness: number;
+      depth: number;
       unit: 'mm' | 'inches';
       opacity: number;
       smooth: number;
