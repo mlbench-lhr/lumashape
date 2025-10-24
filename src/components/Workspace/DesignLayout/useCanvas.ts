@@ -59,6 +59,9 @@ export const useCanvas = ({
   const [hasOverlaps, setHasOverlaps] = useState(false);
   const [overlappingTools, setOverlappingTools] = useState<string[]>([]);
 
+  // Add a version guard to prevent stale async results from overriding current state
+  const detectionVersionRef = useRef(0);
+
   // Viewport state (Figma-style navigation)
   const [viewport, setViewport] = useState({
     x: 0,
@@ -217,6 +220,28 @@ export const useCanvas = ({
     };
   }, [mmToPx, inchesToPx]);
 
+  // NEW: Rotated axis-aligned bounding box for accurate overlap regions
+  const getTransformedAABB = useCallback((tool: DroppedTool) => {
+    const { toolWidth: w, toolHeight: h } = getToolDimensions(tool);
+    const cx = tool.x + w / 2;
+    const cy = tool.y + h / 2;
+    const angle = ((tool.rotation || 0) * Math.PI) / 180;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const rotW = Math.abs(w * cos) + Math.abs(h * sin);
+    const rotH = Math.abs(w * sin) + Math.abs(h * cos);
+    return {
+      left: cx - rotW / 2,
+      top: cy - rotH / 2,
+      right: cx + rotW / 2,
+      bottom: cy + rotH / 2,
+      width: rotW,
+      height: rotH,
+      cx,
+      cy,
+    };
+  }, [getToolDimensions]);
+
   // Constrain tool position to canvas boundaries
   const constrainToCanvas = useCallback((tool: DroppedTool, x: number, y: number) => {
     const { toolWidth, toolHeight } = getToolDimensions(tool);
@@ -233,22 +258,24 @@ export const useCanvas = ({
     // Bypass overlap check if either tool is a cylinder
     const isTool1Cylinder = tool1.id.startsWith('cylinder_') || tool1.name === 'Finger Cut';
     const isTool2Cylinder = tool2.id.startsWith('cylinder_') || tool2.name === 'Finger Cut';
-    
+
     if (isTool1Cylinder || isTool2Cylinder) {
       return false; // No overlap for cylinders
     }
 
-    const { toolWidth: w1, toolHeight: h1 } = getToolDimensions(tool1);
-    const { toolWidth: w2, toolHeight: h2 } = getToolDimensions(tool2);
+    const a1 = getTransformedAABB(tool1);
+    const a2 = getTransformedAABB(tool2);
 
     // Add small buffer to prevent touching tools from being considered overlapping
     const buffer = 2;
 
-    return !(tool1.x + w1 <= tool2.x + buffer ||
-      tool2.x + w2 <= tool1.x + buffer ||
-      tool1.y + h1 <= tool2.y + buffer ||
-      tool2.y + h2 <= tool1.y + buffer);
-  }, [getToolDimensions]);
+    return !(
+      a1.right <= a2.left + buffer ||
+      a2.right <= a1.left + buffer ||
+      a1.bottom <= a2.top + buffer ||
+      a2.bottom <= a1.top + buffer
+    );
+  }, [getTransformedAABB]);
 
   // Fast AABB pre-check (used for quick rejection and fallback)
   const doToolsAABBOverlap = useCallback((tool1: DroppedTool, tool2: DroppedTool) => {
@@ -256,17 +283,17 @@ export const useCanvas = ({
     const isTool2Cylinder = tool2.id.startsWith('cylinder_') || tool2.name === 'Finger Cut';
     if (isTool1Cylinder || isTool2Cylinder) return false;
 
-    const { toolWidth: w1, toolHeight: h1 } = getToolDimensions(tool1);
-    const { toolWidth: w2, toolHeight: h2 } = getToolDimensions(tool2);
+    const a1 = getTransformedAABB(tool1);
+    const a2 = getTransformedAABB(tool2);
 
     const buffer = 2;
     return !(
-      tool1.x + w1 <= tool2.x + buffer ||
-      tool2.x + w2 <= tool1.x + buffer ||
-      tool1.y + h1 <= tool2.y + buffer ||
-      tool2.y + h2 <= tool1.y + buffer
+      a1.right <= a2.left + buffer ||
+      a2.right <= a1.left + buffer ||
+      a1.bottom <= a2.top + buffer ||
+      a2.bottom <= a1.top + buffer
     );
-  }, [getToolDimensions]);
+  }, [getTransformedAABB]);
 
   // Pixel-perfect overlap using alpha masks and transforms
   const doToolsOverlapPixel = useCallback(async (tool1: DroppedTool, tool2: DroppedTool) => {
@@ -275,7 +302,7 @@ export const useCanvas = ({
     const isTool2Cylinder = tool2.id.startsWith('cylinder_') || tool2.name === 'Finger Cut';
     if (isTool1Cylinder || isTool2Cylinder) return false;
 
-    // Quick reject
+    // Quick reject using rotated AABBs
     if (!doToolsAABBOverlap(tool1, tool2)) return false;
 
     // Client-only guard
@@ -296,11 +323,13 @@ export const useCanvas = ({
     const { toolWidth: w1, toolHeight: h1 } = getToolDimensions(tool1);
     const { toolWidth: w2, toolHeight: h2 } = getToolDimensions(tool2);
 
-    // Compute bounding overlap region
-    const left = Math.max(tool1.x, tool2.x);
-    const top = Math.max(tool1.y, tool2.y);
-    const right = Math.min(tool1.x + w1, tool2.x + w2);
-    const bottom = Math.min(tool1.y + h1, tool2.y + h2);
+    // Compute bounding overlap region using rotated AABBs
+    const a1 = getTransformedAABB(tool1);
+    const a2 = getTransformedAABB(tool2);
+    const left = Math.max(a1.left, a2.left);
+    const top = Math.max(a1.top, a2.top);
+    const right = Math.min(a1.right, a2.right);
+    const bottom = Math.min(a1.bottom, a2.bottom);
     const ow = Math.floor(right - left);
     const oh = Math.floor(bottom - top);
 
@@ -316,11 +345,10 @@ export const useCanvas = ({
 
     const drawTool = (tool: DroppedTool, img: HTMLImageElement, tw: number, th: number) => {
       ctx.save();
-      // Translate so the overlap region's top-left is (0,0)
-      // Then move to the tool center for rotation
-      const cx = tool.x - left + tw / 2;
-      const cy = tool.y - top + th / 2;
-      ctx.translate(cx, cy);
+      // Translate to the tool center relative to overlap region
+      const cxTool = tool.x + tw / 2;
+      const cyTool = tool.y + th / 2;
+      ctx.translate(cxTool - left, cyTool - top);
       const angle = (tool.rotation || 0) * Math.PI / 180;
       ctx.rotate(angle);
       ctx.scale(tool.flipHorizontal ? -1 : 1, tool.flipVertical ? -1 : 1);
@@ -349,10 +377,10 @@ export const useCanvas = ({
       // CORS-tainted canvas or other errors: fallback
       return doToolsAABBOverlap(tool1, tool2);
     }
-  }, [getToolDimensions, doToolsAABBOverlap, getImageUrl, loadImage]);
+  }, [getTransformedAABB, getToolDimensions, doToolsAABBOverlap, getImageUrl, loadImage]);
 
   // Detect overlaps (async, pixel-perfect)
-  const detectOverlaps = useCallback(async () => {
+  const detectOverlaps = useCallback(async (): Promise<string[]> => {
     const overlaps = new Set<string>();
 
     for (let i = 0; i < droppedTools.length; i++) {
@@ -366,19 +394,20 @@ export const useCanvas = ({
       }
     }
 
-    setOverlappingTools(Array.from(overlaps));
-    setHasOverlaps(overlaps.size > 0);
+    return Array.from(overlaps);
   }, [droppedTools, doToolsOverlapPixel]);
 
-  // Run overlap detection when tools change
+  // Run overlap detection when tools change (guard against stale results)
   useEffect(() => {
-    let cancelled = false;
+    const version = ++detectionVersionRef.current;
     (async () => {
-      await detectOverlaps();
+      const overlaps = await detectOverlaps();
+      // Only apply if this is the latest run
+      if (version === detectionVersionRef.current) {
+        setOverlappingTools(overlaps);
+        setHasOverlaps(overlaps.length > 0);
+      }
     })();
-    return () => {
-      cancelled = true;
-    };
   }, [detectOverlaps]);
 
   // Find non-overlapping position for a tool
@@ -440,15 +469,15 @@ export const useCanvas = ({
 
   // Enhanced thickness calculation for 3D effect
   const getShadowOffset = useCallback((tool: DroppedTool) => {
-    const { thickness, unit: toolUnit } = tool;
+    const { depth, unit: toolUnit } = tool;
 
     if (toolUnit === 'mm') {
-      if (thickness <= 12.7) return 8;
-      if (thickness <= 25.4) return 16;
+      if (depth <= 12.7) return 8;
+      if (depth <= 25.4) return 16;
       return 24;
     } else {
-      if (thickness <= 0.5) return 8;
-      if (thickness <= 1.0) return 16;
+      if (depth <= 0.5) return 8;
+      if (depth <= 1.0) return 16;
       return 24;
     }
   }, []);
@@ -585,7 +614,7 @@ export const useCanvas = ({
         flipVertical: false,
         width: 50, // Legacy fallback
         length: 50, // Legacy fallback
-        thickness: unit === 'mm' ? 12.7 : 0.5,
+        depth: tool.metadata?.depth || 0.2,
         unit,
         opacity: 100,
         smooth: 0,
@@ -987,6 +1016,7 @@ export const useCanvas = ({
       name: 'Finger Cut',
       icon: '⭕',
       toolBrand: 'FINGERCUT',
+      toolType: 'fingerCut',
       x: canvasPos.x - 25, // Center the finger cut
       y: canvasPos.y - 15,
       rotation: 0,
@@ -994,7 +1024,7 @@ export const useCanvas = ({
       flipVertical: false,
       width: 50, // Default finger cut width
       length: 30, // Default finger cut length
-      thickness: unit === 'mm' ? 12.7 : 0.5,
+      depth: 0.2,
       unit,
       opacity: 100,
       smooth: 0,

@@ -54,6 +54,7 @@ interface DatabaseTool {
     imageUrl: string;
     outlinesImg: string;
     length: number;
+    depth: number;
     dxfLink: string;
     scaleFactor: number;
     createdAt: string;
@@ -105,6 +106,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             imageUrl,
             outlinesImg,
             length,
+            depth,
             dxfLink,
             scaleFactor,
             createdAt,
@@ -122,6 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             outlinesImg,
             contour_image_url: cvResponse?.contour_image_url,
             length,
+            depth,
             dxfLink,
             scaleFactor,
             createdAt,
@@ -247,6 +250,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 name: extractedData.toolType || 'Unknown Tool',
                 icon: getToolIcon(extractedData.toolType),
                 toolBrand: extractedData.toolBrand,
+                toolType: extractedData.toolType,
                 image: extractedData.contour_image_url || extractedData.imageUrl,
                 metadata: {
                     userEmail: extractedData.userEmail,
@@ -256,6 +260,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     outlinesImg: extractedData.outlinesImg,
                     contour_image_url: extractedData.contour_image_url,
                     length: extractedData.length,
+                    depth: extractedData.depth,
                     dxfLink: extractedData.dxfLink,
                     scaleFactor: extractedData.scaleFactor,
                     createdAt: extractedData.createdAt,
@@ -572,20 +577,20 @@ const Sidebar: React.FC<SidebarProps> = ({
             action: () => handleFlip('vertical'),
             disabled: !selectedTool
         },
-        {
-            icon: "/images/workspace/group.svg",
-            label: 'group',
-            action: handleGroup,
-            disabled: effectiveSelectedTools.length < 2
-        },
-        {
-            icon: "/images/workspace/ungroup.svg",
-            label: 'ungroup',
-            action: handleUngroup,
-            disabled: effectiveSelectedTools.length === 0 || !effectiveSelectedTools.some(id =>
-                droppedTools.find(tool => tool.id === id)?.groupId
-            )
-        },
+        // {
+        //     icon: "/images/workspace/group.svg",
+        //     label: 'group',
+        //     action: handleGroup,
+        //     disabled: effectiveSelectedTools.length < 2
+        // },
+        // {
+        //     icon: "/images/workspace/ungroup.svg",
+        //     label: 'ungroup',
+        //     action: handleUngroup,
+        //     disabled: effectiveSelectedTools.length === 0 || !effectiveSelectedTools.some(id =>
+        //         droppedTools.find(tool => tool.id === id)?.groupId
+        //     )
+        // },
         {
             icon: "/images/workspace/copy.svg",
             label: 'copy',
@@ -604,12 +609,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             action: handleDelete,
             disabled: effectiveSelectedTools.length === 0
         },
-        {
-            icon: "/images/workspace/layout.svg",
-            label: 'Auto Layout',
-            action: handleAutoLayout,
-            disabled: effectiveSelectedTools.length < 2
-        },
+        // {
+        //     icon: "/images/workspace/layout.svg",
+        //     label: 'Auto Layout',
+        //     action: handleAutoLayout,
+        //     disabled: effectiveSelectedTools.length < 2
+        // },
     ];
 
     const EditLayoutView = () => (
@@ -703,7 +708,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             )}
 
             {/* Alignment Section */}
-            <div>
+            {/* <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Alignment</h3>
                 <div className="flex space-x-4">
                     <div className="flex flex-col items-center">
@@ -749,7 +754,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <span className="text-xs text-gray-500 text-center leading-tight">align bottom</span>
                     </div>
                 </div>
-            </div>
+            </div> */}
 
             {/* Add Shapes Section */}
             <div>
@@ -810,7 +815,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             {/* Tool Properties Section (if tool is selected) */}
-            {selectedToolObject && (
+            {/* {selectedToolObject && (
                 <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Tool Properties</h3>
                     <div className="space-y-3 text-sm">
@@ -858,10 +863,10 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                     </div>
                 </div>
-            )}
+            )} */}
 
             {/* Scale Info Section */}
-            <div>
+            {/* <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Scale Information</h3>
                 <div className="bg-blue-50 p-3 rounded-md">
                     <p className="text-sm text-blue-800">
@@ -871,7 +876,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         {"Each tool's dimensions are calculated from the scale information in the database."}
                     </p>
                 </div>
-            </div>
+            </div> */}
         </div>
     );
 

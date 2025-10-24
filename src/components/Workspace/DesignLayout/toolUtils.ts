@@ -479,6 +479,7 @@ export const createShape = (
     name: name,
     icon: icon,
     toolBrand: 'SHAPE',
+    toolType: shapeType,
     image: `/images/workspace/${shapeType}.svg`,
     x: position.x,
     y: position.y,
@@ -487,7 +488,7 @@ export const createShape = (
     flipVertical: false,
     width: width,
     length: length,
-    thickness: targetUnit === 'inches' ? 0.5 : 12.7,
+    depth: 0.2,
     unit: targetUnit,
     opacity: 100,
     smooth: 0,
@@ -515,6 +516,7 @@ export const createFingerCut = (
     name: 'Finger Cut',
     icon: '⭕', // Changed from 'hand' to cylinder icon
     toolBrand: 'FINGERCUT',
+    toolType: 'fingerCut',
     x: position.x - 25,
     y: position.y - 15,
     rotation: 0,
@@ -522,7 +524,7 @@ export const createFingerCut = (
     flipVertical: false,
     width: 50,
     length: 30,
-    thickness: unit === 'mm' ? 12.7 : 0.5,
+    depth: 0.2,
     unit: unit || 'mm',
     opacity: 100,
     smooth: 0,
@@ -543,7 +545,7 @@ export const updateFingerCutDimensions = (
   droppedTools: DroppedTool[],
   updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
   width: number,
-  length: number
+  length: number,
 ): void => {
   updateDroppedTools(prev =>
     prev.map(tool => {

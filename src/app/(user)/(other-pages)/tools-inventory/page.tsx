@@ -20,6 +20,7 @@ type Tool = {
   paperType: string;
   toolBrand: string;
   toolType: string;
+  SKUorPartNumber: string;
   imageUrl?: string;
   processingData?: string;
   published?: boolean; // Add published field
@@ -203,7 +204,7 @@ const MobileToolsInventory = () => {
     const matchesSearch =
       tool.toolType.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tool.toolBrand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tool.paperType.toLowerCase().includes(searchQuery.toLowerCase());
+      tool.SKUorPartNumber.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesBrand =
       !selectedBrand ||
@@ -435,7 +436,7 @@ const MobileToolsInventory = () => {
                   {filteredTools.map((tool) => (
                     <div
                       key={tool._id}
-                      className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[248px] sm:w-[266px] sm:h-[220px] relative"
+                      className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[248px] sm:w-[266px] sm:h-[270px] relative"
                     >
                       {/* Published Badge */}
                       {tool.published && (
@@ -446,7 +447,7 @@ const MobileToolsInventory = () => {
 
                       <div className="relative inline-block" data-dropdown>
                         <div className="w-[258px] sm:w-[242px]">
-                          <div className="relative w-full h-[150px]">
+                          <div className="relative w-full h-[160px]">
                             {tool.imageUrl ? (
                               <Image
                                 src={tool.imageUrl}
@@ -522,10 +523,15 @@ const MobileToolsInventory = () => {
                         </div>
 
                         {/* Tool details */}
-                        <div className="w-full h-[40px] flex flex-col justify-center">
+                        <div className="w-full h-[40px] flex flex-col justify-center mt-[25px] mb-[15px]">
                           <div className="flex items-baseline gap-[3px]">
-                            <h3 className="font-bold text-[16px]">{tool.toolType}</h3>
-                            <span className="text-[14px] font-medium">({tool.toolBrand})</span>
+                            <h3 className="text-[16px]">Tool Brand: {tool.toolBrand}</h3>
+                          </div>
+                          <div className="flex items-baseline gap-[3px]">
+                            <h3 className="text-[16px]">Tool Type: {tool.toolType}</h3>
+                          </div>
+                          <div className="flex items-baseline gap-[3px]">
+                            <h3 className="text-[16px]">SKU or Part Number: {tool.SKUorPartNumber}</h3>
                           </div>
                         </div>
                       </div>

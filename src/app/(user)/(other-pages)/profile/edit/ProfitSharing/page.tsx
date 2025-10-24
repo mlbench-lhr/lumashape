@@ -204,7 +204,7 @@ export default function ProfitSharing() {
     return (
         <div className="space-y-6">
             {/* Header & Status */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between py-4">
                 <div>
                     <h2 className="text-xl font-semibold">Profit Sharing</h2>
                     <p className="text-sm text-gray-600">Connect Stripe to receive payouts for your sales.</p>

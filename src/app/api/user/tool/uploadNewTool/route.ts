@@ -30,6 +30,7 @@ interface AddToolDTO {
   depth: number;
   toolType: string;
   toolBrand: string;
+  SKUorPartNumber: string;
   unit: string;
 }
 
@@ -171,6 +172,7 @@ export async function POST(req: Request) {
     const depth = Array.isArray(fields.depth) ? fields.depth[0] : fields.depth;
     const toolType = Array.isArray(fields.toolType) ? fields.toolType[0] : fields.toolType;
     const toolBrand = Array.isArray(fields.toolBrand) ? fields.toolBrand[0] : fields.toolBrand;
+    const SKUorPartNumber = Array.isArray(fields.SKUorPartNumber) ? fields.SKUorPartNumber[0] : fields.SKUorPartNumber;
     const unit = Array.isArray(fields.unit) ? fields.unit[0] : fields.unit;
 
     // 4. Extract and validate image file
@@ -181,15 +183,17 @@ export async function POST(req: Request) {
     }
 
     // 5. Validate required fields
-    if (!length || !depth || !toolBrand || !toolType) {
+    if (!length || !depth || !toolBrand || !toolType || !SKUorPartNumber || !unit) {
       return NextResponse.json(
         {
-          error: "Missing required fields: length, depth, toolBrand, and toolType are required",
+          error: "Missing required fields: length, depth, toolBrand, toolType, SKUorPartNumber, and unit are required",
           received: {
             hasLength: !!length,
             hasDepth: !!depth,
             hasToolBrand: !!toolBrand,
             hasToolType: !!toolType,
+            hasSKUorPartNumber: !!SKUorPartNumber,
+            hasUnit: !!unit,
           },
           allFields: Object.keys(fields),
         },
@@ -225,6 +229,7 @@ export async function POST(req: Request) {
       depthInches,
       toolBrand: String(toolBrand),
       toolType: String(toolType),
+      SKUorPartNumber: String(SKUorPartNumber),
       unit: unitValue,
       imageSize: imageFile.size,
     });
@@ -237,6 +242,7 @@ export async function POST(req: Request) {
       unit: unitValue.toLowerCase().trim(),
       toolBrand: String(toolBrand),
       toolType: String(toolType),
+      SKUorPartNumber: String(SKUorPartNumber),
       imageUrl: "", // Will be updated after CV processing
       processingStatus: "pending",
       likes: 0,
@@ -374,6 +380,7 @@ export async function POST(req: Request) {
         unit: tool.unit,
         toolBrand: tool.toolBrand,
         toolType: tool.toolType,
+        SKUorPartNumber: tool.SKUorPartNumber,
         processingStatus: tool.processingStatus,
         likes: tool.likes,
         dislikes: tool.dislikes,

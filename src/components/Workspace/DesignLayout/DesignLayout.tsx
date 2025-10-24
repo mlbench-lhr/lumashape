@@ -95,8 +95,8 @@ function DesignLayout({
           ? parseFloat(convertValue(tool.realHeight, tool.unit, newUnit).toFixed(3))
           : tool.realHeight;
 
-      const convertedToolThickness = parseFloat(
-        convertValue(tool.thickness, tool.unit, newUnit).toFixed(3)
+      const convertedToolDepth = parseFloat(
+        convertValue(tool.depth, tool.unit, newUnit).toFixed(3)
       );
 
       // Leave metadata.length as inches; it's used as inches in rendering logic
@@ -106,7 +106,7 @@ function DesignLayout({
         length: convertedLength,
         realWidth: convertedRealWidth,
         realHeight: convertedRealHeight,
-        thickness: convertedToolThickness,
+        depth: convertedToolDepth,
         unit: newUnit,
       };
     });

@@ -16,6 +16,7 @@ interface TrendingTool {
     userEmail: string;
     toolBrand: string;
     toolType: string;
+    SKUorPartNumber: string;
     length: number;
     depth: number;
     unit: string;
@@ -362,11 +363,7 @@ const TrendingTab = () => {
     // Handle dropdown menu actions for tools
     const handleToolMenuClick = (action: string, tool: TrendingTool) => {
         if (action === "Add") {
-            if (tool?.userInteraction?.hasDownloaded) {
-                handleAddToInventory(tool)
-            } else {
-                startPurchaseFlow('tool', tool._id)
-            }
+            handleAddToInventory(tool)
         } else if (action === "Explore") {
             console.log("Explore related layouts for:", tool);
         }
@@ -464,11 +461,11 @@ const TrendingTab = () => {
                             {filteredTools.map((tool) => (
                                 <div
                                     key={tool._id}
-                                    className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[240px] sm:w-[266px] sm:h-[280px] relative"
+                                    className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[240px] sm:w-[266px] sm:h-[320px] relative"
                                 >
                                     {/* Tool Image */}
                                     <div className="w-[258px] sm:w-[242px]">
-                                        <div className="relative w-full h-[150px]">
+                                        <div className="relative w-full h-[160px]">
                                             {tool.imageUrl ? (
                                                 <Image
                                                     src={tool.imageUrl}
@@ -480,7 +477,7 @@ const TrendingTab = () => {
                                                     }}
                                                 />
                                             ) : (
-                                                <div className="relative w-[80px] h-[80px] mx-auto mt-8">
+                                                <div className="relative w-[80px] h-[80px] mx-auto mt-4">
                                                     <Image
                                                         src="/images/icons/wrench.svg"
                                                         fill
@@ -541,14 +538,17 @@ const TrendingTab = () => {
                                         </div>
 
                                         {/* Tool details */}
-                                        <div className="w-full h-[102px] flex flex-col justify-center">
-                                            <div className="flex items-baseline gap-[3px]">
-                                                <h3 className="font-bold text-[16px]">
-                                                    {tool.toolType}
-                                                </h3>
-                                                <span className="text-[14px] font-medium">
-                                                    ({tool.toolBrand})
-                                                </span>
+                                        <div className="w-full h-[130px] flex flex-col justify-center">
+                                            <div className="w-full h-[40px] flex flex-col justify-center mt-[40px] mb-[15px]">
+                                                <div className="flex items-baseline gap-[3px]">
+                                                    <h3 className="text-[16px]">Tool Brand: {tool.toolBrand}</h3>
+                                                </div>
+                                                <div className="flex items-baseline gap-[3px]">
+                                                    <h3 className="text-[16px]">Tool Type: {tool.toolType}</h3>
+                                                </div>
+                                                <div className="flex items-baseline gap-[3px]">
+                                                    <h3 className="text-[16px]">SKU or Part Number: {tool.SKUorPartNumber}</h3>
+                                                </div>
                                             </div>
                                             {tool.createdBy && (
                                                 <p className="text-[12px] text-[#b3b3b3] font-medium mt-1 flex items-center gap-2">
