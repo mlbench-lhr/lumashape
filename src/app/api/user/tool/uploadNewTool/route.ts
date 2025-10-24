@@ -183,16 +183,15 @@ export async function POST(req: Request) {
     }
 
     // 5. Validate required fields
-    if (!length || !depth || !toolBrand || !toolType || !SKUorPartNumber || !unit) {
+    if (!length || !depth || !toolBrand || !toolType || !unit) {
       return NextResponse.json(
         {
-          error: "Missing required fields: length, depth, toolBrand, toolType, SKUorPartNumber, and unit are required",
+          error: "Missing required fields: length, depth, toolBrand, toolType, and unit are required",
           received: {
             hasLength: !!length,
             hasDepth: !!depth,
             hasToolBrand: !!toolBrand,
             hasToolType: !!toolType,
-            hasSKUorPartNumber: !!SKUorPartNumber,
             hasUnit: !!unit,
           },
           allFields: Object.keys(fields),

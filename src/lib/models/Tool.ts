@@ -58,8 +58,7 @@ const ToolSchema: Schema<ITool> = new mongoose.Schema(
       trim: true 
     },
     SKUorPartNumber: { 
-      type: String, 
-      required: true, 
+      type: String,
       trim: true 
     },
     length: { 

@@ -879,12 +879,12 @@ const Header: React.FC<HeaderProps> = ({
                 try { sessionStorage.removeItem("layoutForm"); } catch { }
             }
 
-            if (!options?.skipRedirect) {
-                setTimeout(() => {
-                    onSaveLayout?.();
-                    window.location.href = "/workspace";
-                }, 1500);
-            }
+            // if (!options?.skipRedirect) {
+            //     setTimeout(() => {
+            //         onSaveLayout?.();
+            //         window.location.href = "/workspace";
+            //     }, 1500);
+            // }
 
             // Return for callers like Add to Cart
             return { id: savedLayoutId, snapshotUrl: savedSnapshotUrl };
@@ -895,6 +895,12 @@ const Header: React.FC<HeaderProps> = ({
         } finally {
             setIsSaving(false);
         }
+    };
+
+
+    const handleExit = () => {
+        try { sessionStorage.removeItem("layoutForm"); } catch { }
+        window.location.href = "/workspace";
     };
 
 
@@ -931,12 +937,14 @@ const Header: React.FC<HeaderProps> = ({
 
                 <div className="flex items-center space-x-3">
                     {!readOnly && (
+                        <div className="flex items-center space-x-2">
+                            <>
                         <button
                             className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors ${isSaving || hasOverlaps || droppedTools.length === 0
                                 ? 'bg-gray-400 cursor-not-allowed'
                                 : saveSuccess
                                     ? 'bg-green-500 hover:bg-green-600'
-                                    : 'bg-primary hover:bg-primary/90'
+                                    : 'bg-primary'
                                 } text-white`}
                             onClick={() => handleSaveAndExit()}
                             disabled={isSaving || hasOverlaps || droppedTools.length === 0}
@@ -954,10 +962,19 @@ const Header: React.FC<HeaderProps> = ({
                             ) : (
                                 <>
                                     <Save className="w-4 h-4" />
-                                    <span>Save & Exit</span>
+                                    <span>Save</span>
                                 </>
                             )}
                         </button>
+                        </>
+
+                        <button
+                            className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors bg-primary text-white`}
+                            onClick={() => handleExit()}
+                        >
+                            <span>Exit</span>
+                        </button>
+                        </div>
                     )}
 
                     {/* Export Options Dropdown */}
@@ -1014,7 +1031,6 @@ const Header: React.FC<HeaderProps> = ({
                         <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
                         <div>
                             <p className="text-sm font-medium text-green-800">Layout Saved Successfully!</p>
-                            <p className="text-sm text-green-700 mt-1">Your design has been saved and you&apos;ll be redirected shortly.</p>
                         </div>
                     </div>
                 </div>
@@ -1027,7 +1043,6 @@ const Header: React.FC<HeaderProps> = ({
                         <RefreshCw className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5 animate-spin" />
                         <div>
                             <p className="text-sm font-medium text-blue-800">Saving Layout...</p>
-                            <p className="text-sm text-blue-700 mt-1">Please wait while we save your design.</p>
                         </div>
                     </div>
                 </div>
