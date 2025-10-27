@@ -447,21 +447,8 @@ const PublishedLayoutsTab = () => {
 
                     {/* First Row of Filters */}
                     <div className="flex flex-wrap items-center gap-3">
-                        {/* Unit - Place first so it affects other filters */}
-                        <div className="relative">
-                            <select
-                                className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[100px]"
-                                value={selectedUnit}
-                                onChange={handleUnitChange}
-                            >
-                                <option value="">Unit</option>
-                                <option value="mm">mm</option>
-                                <option value="inches">inches</option>
-                            </select>
-                            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
-                        </div>
 
-                        {/* Thickness - always inches; independent of unit */}
+                        {/* Thickness - independent of unit */}
                         <div className="relative">
                             <select
                                 className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[120px]"
@@ -482,42 +469,65 @@ const PublishedLayoutsTab = () => {
                             />
                         </div>
 
-                        {/* Length */}
-                        <div className="relative">
-                            <input
-                                type="number"
-                                placeholder={selectedUnit === "mm" ? "L mm" : selectedUnit === "inches" ? "L inches" : "L"}
-                                value={selectedLength}
-                                onChange={handleLengthChange}
-                                min="0"
-                                step={selectedUnit === "mm" ? "1" : "0.1"}
-                                disabled={!selectedUnit}
-                                className="appearance-none py-2 pl-3 pr-10 border rounded-md text-gray-700 focus:outline-none w-[120px] disabled:bg-gray-100"
-                            />
-                            <img
-                                src="/images/icons/explore/published_layouts/length.svg"
-                                alt="length"
-                                className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6"
-                            />
-                        </div>
+                        {/* Combined Unit + Length + Width (compact pill) */}
+                        <div className="appearance-none relative flex items-center gap-1 py-1 pl-3 pr-3 border rounded-md text-gray-700 focus:outline-none min-w-[300px]">
+                            {/* Unit selector */}
+                            <div className="relative">
+                                <select
+                                    className="appearance-none bg-transparent text-gray-700 font-medium pr-6 pl-1 py-1 outline-none"
+                                    value={selectedUnit}
+                                    onChange={handleUnitChange}
+                                >
+                                    <option value="">Unit</option>
+                                    <option value="mm">mm</option>
+                                    <option value="inches">inches</option>
+                                </select>
+                                <ChevronDown className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
+                            </div>
 
-                        {/* Width */}
-                        <div className="relative">
-                            <input
-                                type="number"
-                                placeholder={selectedUnit === "mm" ? "W mm" : selectedUnit === "inches" ? "W inches" : "W"}
-                                value={selectedWidth}
-                                onChange={handleWidthChange}
-                                min="0"
-                                step={selectedUnit === "mm" ? "1" : "0.1"}
-                                disabled={!selectedUnit}
-                                className="appearance-none py-2 pl-3 pr-10 border rounded-md text-gray-700 focus:outline-none w-[120px] disabled:bg-gray-100"
-                            />
-                            <img
-                                src="/images/icons/explore/published_layouts/width.svg"
-                                alt="width"
-                                className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6"
-                            />
+                            <span className="h-5 w-px bg-gray-200" />
+
+                            {/* Length inline */}
+                            <div className="relative flex items-center gap-2">
+                                <span className="text-gray-500 text-sm">L</span>
+                                <input
+                                    type="number"
+                                    placeholder="0"
+                                    value={selectedLength}
+                                    onChange={handleLengthChange}
+                                    min="0"
+                                    step={selectedUnit === "mm" ? "1" : "0.1"}
+                                    disabled={!selectedUnit}
+                                    className="bg-transparent border-none outline-none w-[40px] text-gray-800 disabled:text-gray-400"
+                                />
+                                <img
+                                    src="/images/icons/explore/published_layouts/length.svg"
+                                    alt="length"
+                                    className="w-5 h-5"
+                                />
+                            </div>
+
+                            <span className="h-5 w-px bg-gray-200" />
+
+                            {/* Width inline */}
+                            <div className="relative flex items-center gap-2">
+                                <span className="text-gray-500 text-sm">W</span>
+                                <input
+                                    type="number"
+                                    placeholder="0"
+                                    value={selectedWidth}
+                                    onChange={handleWidthChange}
+                                    min="0"
+                                    step={selectedUnit === "mm" ? "1" : "0.1"}
+                                    disabled={!selectedUnit}
+                                    className="bg-transparent border-none outline-none w-[40px] text-gray-800 disabled:text-gray-400"
+                                />
+                                <img
+                                    src="/images/icons/explore/published_layouts/width.svg"
+                                    alt="width"
+                                    className="w-5 h-5"
+                                />
+                            </div>
                         </div>
 
                         {/* Contains Tool Type */}
@@ -682,10 +692,33 @@ const PublishedLayoutsTab = () => {
                                             </h3>
 
                                             {/* Dimensions */}
-                                            <p className="text-[12px] text-[#b3b3b3] font-medium">
-                                                {`Custom (${layout.metadata?.width || layout.canvas?.width}" × ${layout.metadata?.length || layout.canvas?.height}" × ${layout.metadata?.thickness || layout.canvas?.thickness}" ) ${layout.metadata?.units || layout.canvas?.unit}`}
-                                            </p>
+                                            <div className="text-[12px] text-[#b3b3b3] font-medium leading-tight space-y-[2px]">
+                                                <div className="flex justify-between">
+                                                    <span>Length:</span>
+                                                    <span className="font-semibold text-gray-800">
+                                                        {(layout.metadata?.length ?? layout.canvas?.height) ?? "-"}{" "}
+                                                        {(layout.canvas?.unit ?? layout.metadata?.units) ?? ""}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between">
+                                                    <span>Width:</span>
+                                                    <span className="font-semibold text-gray-800">
+                                                        {(layout.metadata?.width ?? layout.canvas?.width) ?? "-"}{" "}
+                                                        {(layout.canvas?.unit ?? layout.metadata?.units) ?? ""}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between">
+                                                    <span>Thickness:</span>
+                                                    <span className="font-semibold text-gray-800">
+                                                        {(layout.canvas?.thickness ?? layout.metadata?.thickness) ?? "-"}{" "}
+                                                        {(layout.canvas?.unit ?? layout.metadata?.units) ?? ""}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
+
 
                                         {/* Created By */}
                                         {layout.createdBy && (
@@ -702,7 +735,7 @@ const PublishedLayoutsTab = () => {
                                         )}
 
                                         {/* Stats Row */}
-                                        <div className="flex items-center justify-between mt-2">
+                                        <div className="flex items-center justify-between">
                                             {/* Left Stats - Like/Dislike/Download */}
                                             <div className="flex items-center gap-4">
                                                 <button

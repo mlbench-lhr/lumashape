@@ -68,6 +68,13 @@ interface TrendingLayout {
         units: string;
         thickness: number;
     };
+    // Fallback source for dimensions (present in many of your layouts)
+    canvas?: {
+        width: number;
+        height: number;
+        unit: "mm" | "inches";
+        thickness: number;
+    };
 }
 
 const TrendingTab = () => {
@@ -539,17 +546,21 @@ const TrendingTab = () => {
 
                                         {/* Tool details */}
                                         <div className="w-full h-[130px] flex flex-col justify-center">
-                                            <div className="w-full h-[40px] flex flex-col justify-center mt-[40px] mb-[15px]">
-                                                <div className="flex items-baseline gap-[3px]">
-                                                    <h3 className="text-[16px]">Tool Brand: {tool.toolBrand}</h3>
+                                            <div className="space-y-1 mt-[20px] mb-[5px] text-[12px] text-[#666666] font-medium leading-tight">
+                                                <div className="flex justify-between">
+                                                    <span>Tool Brand:</span>
+                                                    <span className="font-semibold text-gray-800">{tool.toolBrand || "-"}</span>
                                                 </div>
-                                                <div className="flex items-baseline gap-[3px]">
-                                                    <h3 className="text-[16px]">Tool Type: {tool.toolType}</h3>
+                                                <div className="flex justify-between">
+                                                    <span>Tool Type:</span>
+                                                    <span className="font-semibold text-gray-800">{tool.toolType || "-"}</span>
                                                 </div>
-                                                <div className="flex items-baseline gap-[3px]">
-                                                    <h3 className="text-[16px]">SKU or Part Number: {tool.SKUorPartNumber}</h3>
+                                                <div className="flex justify-between">
+                                                    <span>SKU or Part Number:</span>
+                                                    <span className="font-semibold text-gray-800">{tool.SKUorPartNumber || "-"}</span>
                                                 </div>
                                             </div>
+
                                             {tool.createdBy && (
                                                 <p className="text-[12px] text-[#b3b3b3] font-medium mt-1 flex items-center gap-2">
                                                     <span className="w-5 h-5 flex items-center justify-center bg-primary rounded-full text-[10px] text-white">
@@ -637,7 +648,7 @@ const TrendingTab = () => {
                             {filteredLayouts.map((layout) => (
                                 <div
                                     key={layout._id}
-                                    className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[300px] sm:w-[266px] sm:h-[300px] relative"
+                                    className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[300px] sm:w-[266px] sm:h-[310px] relative"
                                 >
                                     {/* Layout Image */}
                                     <div className="w-[258px] sm:w-[242px]">
@@ -729,15 +740,38 @@ const TrendingTab = () => {
                                                 </h3>
 
                                                 {/* Dimensions */}
-                                                <p className="text-[12px] text-[#b3b3b3] font-medium">
-                                                    {`Custom (${layout.metadata?.width}" × ${layout.metadata?.length}" × ${layout.metadata?.thickness}" ) ${layout.metadata?.units}`}
-                                                </p>
+                                                <div className="text-[12px] text-[#b3b3b3] font-medium leading-tight space-y-[2px]">
+                                                    <div className="flex justify-between">
+                                                        <span>Length:</span>
+                                                        <span className="font-semibold text-gray-800">
+                                                            {(layout.metadata?.length ?? layout.canvas?.height) ?? "-"}{" "}
+                                                            {(layout.canvas?.unit ?? layout.metadata?.units) ?? ""}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="flex justify-between">
+                                                        <span>Width:</span>
+                                                        <span className="font-semibold text-gray-800">
+                                                            {(layout.metadata?.width ?? layout.canvas?.width) ?? "-"}{" "}
+                                                            {(layout.canvas?.unit ?? layout.metadata?.units) ?? ""}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="flex justify-between">
+                                                        <span>Thickness:</span>
+                                                        <span className="font-semibold text-gray-800">
+                                                            {(layout.canvas?.thickness ?? layout.metadata?.thickness) ?? "-"}{" "}
+                                                            {(layout.canvas?.unit ?? layout.metadata?.units) ?? ""}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </div>
+
 
                                             {/* Created By */}
                                             {layout.createdBy && (
                                                 <div className="text-[12px] font-medium mt-2 flex items-center gap-2">
-                                                    <span className="w-4 h-4 flex items-center justify-center bg-primary rounded-full text-[8px] text-white">
+                                                    <span className="w-4 h-5 flex items-center justify-center bg-primary rounded-full text-[8px] text-white">
                                                         {layout.createdBy?.username?.charAt(0).toUpperCase() || "U"}
                                                     </span>
                                                     <span>
@@ -749,7 +783,7 @@ const TrendingTab = () => {
                                             )}
 
                                             {/* Stats Row - Like/Dislike/Download */}
-                                            <div className="flex items-center justify-between mt-2">
+                                            <div className="flex items-center justify-between mt-1">
                                                 {/* Left Stats - Like/Dislike/Download */}
                                                 <div className="flex items-center gap-4">
                                                     <button

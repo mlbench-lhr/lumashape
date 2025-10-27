@@ -6,6 +6,7 @@ interface RotationWheelProps {
   onRotationChange: (toolId: string, rotation: number) => void;
   toolWidth: number;
   toolHeight: number;
+  viewportZoom: number;
 }
 
 // RotationWheel component
@@ -15,12 +16,14 @@ const RotationWheel: React.FC<RotationWheelProps> = ({
   onRotationChange,
   toolWidth,
   toolHeight,
+  viewportZoom,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const wheelRef = useRef<HTMLDivElement>(null);
   // Smaller wheel: scale to tool size with safe min/max
   const wheelRadius = Math.max(40, Math.min(56, Math.max(toolWidth, toolHeight) * 0.2));
   const wheelSize = wheelRadius * 2;
+  const inverseScale = 1 / Math.max(viewportZoom, 0.1);
 
   const calculateAngle = useCallback((clientX: number, clientY: number) => {
     if (!wheelRef.current) return 0;
@@ -87,6 +90,8 @@ const RotationWheel: React.FC<RotationWheelProps> = ({
         left: `${-wheelRadius + toolWidth / 2}px`,
         top: `${-wheelRadius + toolHeight / 2}px`,
         zIndex: 30,
+        transform: `scale(${inverseScale})`,
+        transformOrigin: 'center',
       }}
     >
       {/* Transparent, subtle ring */}

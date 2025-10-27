@@ -25,7 +25,7 @@ export interface ICartItem {
       rotation: number
       flipHorizontal: boolean
       flipVertical: boolean
-      thickness: number
+      depth: number
       unit: 'mm' | 'inches'
       opacity: number
       smooth: number
@@ -99,7 +99,7 @@ const CartItemSchema: Schema<ICartItem> = new mongoose.Schema(
         rotation: { type: Number, required: true, default: 0 },
         flipHorizontal: { type: Boolean, required: true, default: false },
         flipVertical: { type: Boolean, required: true, default: false },
-        thickness: { type: Number, required: true },
+        depth: { type: Number, required: true },
         unit: { type: String, required: true, enum: ['mm', 'inches'] },
         opacity: { type: Number, required: true, default: 100 },
         smooth: { type: Number, required: true, default: 0 },

@@ -55,6 +55,7 @@ interface DatabaseTool {
     outlinesImg: string;
     length: number;
     depth: number;
+    SKUorPartNumber: string;
     dxfLink: string;
     scaleFactor: number;
     createdAt: string;
@@ -107,6 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             outlinesImg,
             length,
             depth,
+            SKUorPartNumber,
             dxfLink,
             scaleFactor,
             createdAt,
@@ -125,6 +127,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             contour_image_url: cvResponse?.contour_image_url,
             length,
             depth,
+            SKUorPartNumber,
             dxfLink,
             scaleFactor,
             createdAt,
@@ -261,6 +264,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     contour_image_url: extractedData.contour_image_url,
                     length: extractedData.length,
                     depth: extractedData.depth,
+                    SKUorPartNumber: extractedData.SKUorPartNumber,
                     dxfLink: extractedData.dxfLink,
                     scaleFactor: extractedData.scaleFactor,
                     createdAt: extractedData.createdAt,

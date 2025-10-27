@@ -30,6 +30,8 @@ interface LayoutFormData {
     thickness?: number;
 }
 
+
+
 interface ToolPayload {
     tool_id: string;
     name: string;
@@ -59,9 +61,24 @@ interface ShapePayload {
     rotation_degrees: number;
 }
 
+type CVResponse = {
+    dimensions?: {
+        length_inches?: number;
+        depth_inches?: number;
+    };
+};
+
+type FetchedTool = {
+    cvResponse?: CVResponse;
+    length?: number;
+    depth?: number;
+    unit?: string;
+};
+
 
 // conversion helper
 const mmToInches = (mm: number) => mm / 25.4;
+const inchesToMm = (inches: number) => inches * 25.4;
 
 const Header: React.FC<HeaderProps> = ({
     droppedTools,
@@ -118,6 +135,29 @@ const Header: React.FC<HeaderProps> = ({
             const snapshotUrl = saveResult.snapshotUrl || undefined;
 
             // Prepare minimal cart layout data (cart schema)
+            const cartTools = await Promise.all(
+                droppedTools.map(async (tool) => {
+                    const depthInches = await computeDepthInches(tool);
+                    const depthForCart = tool.unit === 'mm' ? inchesToMm(depthInches) : depthInches;
+
+                    return {
+                        id: tool.id,
+                        name: tool.name,
+                        x: convertPositionToInches(tool.x, canvasWidth, true),
+                        y: convertPositionToInches(tool.y, canvasHeight, false),
+                        rotation: tool.rotation,
+                        flipHorizontal: tool.flipHorizontal,
+                        flipVertical: tool.flipVertical,
+                        depth: parseFloat(depthForCart.toFixed(3)),
+                        unit: tool.unit,
+                        opacity: tool.opacity ?? 100,
+                        smooth: tool.smooth ?? 0,
+                        image: tool.image ?? '',
+                        groupId: tool.groupId ?? null,
+                    };
+                })
+            );
+
             const cartLayoutData = {
                 canvas: {
                     width: additionalData.canvasWidth ?? canvasWidth,
@@ -125,31 +165,17 @@ const Header: React.FC<HeaderProps> = ({
                     unit,
                     thickness,
                 },
-                tools: droppedTools.map(tool => ({
-                    id: tool.id,
-                    name: tool.name,
-                    x: convertPositionToInches(tool.x, canvasWidth, true),
-                    y: convertPositionToInches(tool.y, canvasHeight, false),
-                    rotation: tool.rotation,
-                    flipHorizontal: tool.flipHorizontal,
-                    flipVertical: tool.flipVertical,
-                    depth: tool.depth,
-                    unit: tool.unit,
-                    opacity: tool.opacity ?? 100,
-                    smooth: tool.smooth ?? 0,
-                    image: tool.image ?? '',
-                    groupId: tool.groupId ?? null,
-                })),
+                tools: cartTools,
             };
 
             const calculatedPrice = calculatePriceFromLayoutData(cartLayoutData);
 
             await addToCart({
-                id: savedLayoutId,            // use actual Mongo _id
+                id: savedLayoutId,
                 name: layoutName,
                 containerSize,
                 price: calculatedPrice,
-                snapshotUrl,                  // use saved snapshot url
+                snapshotUrl,
                 layoutData: cartLayoutData,
             });
 
@@ -185,6 +211,67 @@ const Header: React.FC<HeaderProps> = ({
             return null;
         }
     };
+
+
+    // Helpers to compute inches for length/depth using fetched tool or dropped tool
+    const toInches = (value: number | undefined, sourceUnit?: string) => {
+        if (typeof value !== 'number') return undefined;
+        return sourceUnit === 'mm' ? mmToInches(value) : value;
+    };
+
+
+
+    const computeLengthInches = (droppedTool: DroppedTool, fetchedTool: FetchedTool) => {
+        const cvLen = fetchedTool?.cvResponse?.dimensions?.length_inches;
+        if (typeof cvLen === 'number' && cvLen > 0) return parseFloat(cvLen.toFixed(3));
+
+        const dbLen = toInches(fetchedTool?.length, fetchedTool?.unit);
+        if (typeof dbLen === 'number' && dbLen > 0) return parseFloat(dbLen.toFixed(3));
+
+        const dtLen = toInches(droppedTool.length, droppedTool.unit);
+        if (typeof dtLen === 'number' && dtLen > 0) return parseFloat(dtLen.toFixed(3));
+
+        return 5.0; // final fallback
+    };
+
+    const computeDepthInches = async (droppedTool: DroppedTool, fetchedTool?: FetchedTool): Promise<number> => {
+        let toolData = fetchedTool;
+
+        // Fetch tool from DB if not provided and not a shape/finger cut
+        const isShape = droppedTool.toolBrand === 'SHAPE';
+        const isFingerCut = droppedTool.toolBrand === 'FINGERCUT' || droppedTool.metadata?.isFingerCut;
+        if (!toolData && !isShape && !isFingerCut) {
+            const authToken = getAuthToken();
+            if (authToken) {
+                const toolId = droppedTool.metadata?.originalId || droppedTool.id.split('-').slice(0, -1).join('-');
+                try {
+                    const res = await fetch(`/api/user/tool/getTool?toolId=${toolId}`, {
+                        headers: { Authorization: `Bearer ${authToken}` },
+                    });
+                    if (res.ok) {
+                        const json = await res.json();
+                        toolData = json.tool;
+                    }
+                } catch { }
+            }
+        }
+
+        const cvDepth = toolData?.cvResponse?.dimensions?.depth_inches;
+        if (typeof cvDepth === 'number' && cvDepth > 0) return parseFloat(cvDepth.toFixed(3));
+
+        const dbDepthRaw = toolData?.depth;
+        const dbDepthUnit = toolData?.unit;
+        if (typeof dbDepthRaw === 'number' && dbDepthRaw > 0) {
+            const dbDepthInches = dbDepthUnit === 'mm' ? mmToInches(dbDepthRaw) : dbDepthRaw;
+            return parseFloat(dbDepthInches.toFixed(3));
+        }
+
+        const dtDepthInches = droppedTool.unit === 'mm' ? mmToInches(droppedTool.depth) : droppedTool.depth;
+        if (typeof dtDepthInches === 'number' && dtDepthInches > 0) return parseFloat(dtDepthInches.toFixed(3));
+
+        return 0.2; // final fallback
+    };
+
 
     // Helper function to convert pixel position to inches with bottom-left origin
     const convertPositionToInches = (
@@ -410,8 +497,8 @@ const Header: React.FC<HeaderProps> = ({
                     dxf_link: (tool.cvResponse.dxf_url || '').trim(),
                     position_inches: { x: xInches, y: yInches },
                     rotation_degrees: droppedTool.rotation || 0,
-                    height_diagonal_inches: tool.length || 5.0,
-                    depth_inches: droppedTool.depth || 0.5,
+                    height_diagonal_inches: computeLengthInches(droppedTool, tool),
+                    depth_inches: await computeDepthInches(droppedTool, tool),
                     flip_horizontal: droppedTool.flipHorizontal || false,
                     flip_vertical: droppedTool.flipVertical || false,
                     opacity: droppedTool.opacity || 100,
@@ -939,41 +1026,41 @@ const Header: React.FC<HeaderProps> = ({
                     {!readOnly && (
                         <div className="flex items-center space-x-2">
                             <>
-                        <button
-                            className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors ${isSaving || hasOverlaps || droppedTools.length === 0
-                                ? 'bg-gray-400 cursor-not-allowed'
-                                : saveSuccess
-                                    ? 'bg-green-500 hover:bg-green-600'
-                                    : 'bg-primary'
-                                } text-white`}
-                            onClick={() => handleSaveAndExit()}
-                            disabled={isSaving || hasOverlaps || droppedTools.length === 0}
-                        >
-                            {isSaving ? (
-                                <>
-                                    <RefreshCw className="w-4 h-4 animate-spin" />
-                                    <span>Saving...</span>
-                                </>
-                            ) : saveSuccess ? (
-                                <>
-                                    <CheckCircle className="w-4 h-4" />
-                                    <span>Saved!</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Save className="w-4 h-4" />
-                                    <span>Save</span>
-                                </>
-                            )}
-                        </button>
-                        </>
+                                <button
+                                    className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors ${isSaving || hasOverlaps || droppedTools.length === 0
+                                        ? 'bg-gray-400 cursor-not-allowed'
+                                        : saveSuccess
+                                            ? 'bg-green-500 hover:bg-green-600'
+                                            : 'bg-primary'
+                                        } text-white`}
+                                    onClick={() => handleSaveAndExit()}
+                                    disabled={isSaving || hasOverlaps || droppedTools.length === 0}
+                                >
+                                    {isSaving ? (
+                                        <>
+                                            <RefreshCw className="w-4 h-4 animate-spin" />
+                                            <span>Saving...</span>
+                                        </>
+                                    ) : saveSuccess ? (
+                                        <>
+                                            <CheckCircle className="w-4 h-4" />
+                                            <span>Saved!</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Save className="w-4 h-4" />
+                                            <span>Save</span>
+                                        </>
+                                    )}
+                                </button>
+                            </>
 
-                        <button
-                            className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors bg-primary text-white`}
-                            onClick={() => handleExit()}
-                        >
-                            <span>Exit</span>
-                        </button>
+                            <button
+                                className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors bg-primary text-white`}
+                                onClick={() => handleExit()}
+                            >
+                                <span>Exit</span>
+                            </button>
                         </div>
                     )}
 

@@ -14,6 +14,7 @@ interface ToolWithInteraction {
     userEmail: string;
     toolBrand: string;
     toolType: string;
+    SKUorPartNumber: string;
     length: number;
     depth: number;
     unit: string;
@@ -300,11 +301,11 @@ const PublishedToolsTab = () => {
                         {filteredTools.map((tool) => (
                             <div
                                 key={tool._id}
-                                className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[280px] sm:w-[266px] sm:h-[280px] relative"
+                                className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[240px] sm:w-[266px] sm:h-[320px] relative"
                             >
                                 {/* Tool Image */}
                                 <div className="w-[258px] sm:w-[242px]">
-                                    <div className="relative w-full h-[150px]">
+                                    <div className="relative w-full h-[160px]">
                                         {tool.imageUrl ? (
                                             <Image
                                                 src={tool.imageUrl}
@@ -316,7 +317,7 @@ const PublishedToolsTab = () => {
                                                 }}
                                             />
                                         ) : (
-                                            <div className="relative w-[80px] h-[80px]">
+                                            <div className="relative w-[80px] h-[80px] mx-auto mt-4">
                                                 <Image
                                                     src="/images/icons/wrench.svg"
                                                     fill
@@ -377,15 +378,21 @@ const PublishedToolsTab = () => {
                                     </div>
 
                                     {/* Tool details */}
-                                    <div className="w-full h-[102px] flex flex-col justify-center">
-                                        <div className="flex items-baseline gap-[3px]">
-                                            <h3 className="font-bold text-[16px]">
-                                                {tool.toolType}
-                                            </h3>
-                                            <span className="text-[14px] font-medium">
-                                                ({tool.toolBrand})
-                                            </span>
-                                        </div>
+                                    <div className="w-full h-[130px] flex flex-col justify-center">
+                                        <div className="space-y-1 mt-[20px] mb-[5px] text-[12px] text-[#666666] font-medium leading-tight">
+                                                <div className="flex justify-between">
+                                                    <span>Tool Brand:</span>
+                                                    <span className="font-semibold text-gray-800">{tool.toolBrand || "-"}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span>Tool Type:</span>
+                                                    <span className="font-semibold text-gray-800">{tool.toolType || "-"}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span>SKU or Part Number:</span>
+                                                    <span className="font-semibold text-gray-800">{tool.SKUorPartNumber || "-"}</span>
+                                                </div>
+                                            </div>
                                         {tool.createdBy && (
                                             <p className="text-[12px] text-[#b3b3b3] font-medium mt-1 flex items-center gap-2">
                                                 <span className="w-5 h-5 flex items-center justify-center bg-primary rounded-full text-[10px] text-white">
@@ -448,7 +455,6 @@ const PublishedToolsTab = () => {
                                                     : ""}
                                             </span>
                                         </div>
-
                                     </div>
                                 </div>
                             </div>

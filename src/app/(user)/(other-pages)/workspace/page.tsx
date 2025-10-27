@@ -158,16 +158,16 @@ const MyLayouts = () => {
 
       const res = await fetch(`/api/layouts?id=${id}`, {
         method: "DELETE",
-        headers: { 
-          Authorization: `Bearer ${token}` 
+        headers: {
+          Authorization: `Bearer ${token}`
         },
       });
 
       if (!res.ok) throw new Error("Failed to delete layout");
-      
+
       // Remove the deleted layout from the state
       setLayouts(prev => prev.filter(layout => layout._id !== id));
-      
+
     } catch (error) {
       console.error("Error deleting layout:", error);
     }
@@ -383,11 +383,33 @@ const MyLayouts = () => {
                         {/* Layout details */}
                         <div className="w-full h-[70px] flex flex-col justify-center px-2">
                           <div className="flex items-baseline gap-[3px]">
-                            <h3 className="font-bold text-[16px] truncate">{`${layout.name}`}</h3>
+                            <h3 className="font-bold text-[16px] truncate mt-2">{`${layout.name}`}</h3>
                           </div>
-                          <p className="text-[12px] text-[#666666] font-medium truncate">
-                            {`Custom ${formatDimensions(layout.canvas)}`}
-                          </p>
+                          <div className="text-[12px] text-[#b3b3b3] font-medium leading-tight space-y-[2px]">
+                            <div className="flex justify-between">
+                              <span>Length:</span>
+                              <span className="font-semibold text-gray-800">
+                                {(layout.canvas?.height) ?? "-"}{" "}
+                                {(layout.canvas?.unit) ?? ""}
+                              </span>
+                            </div>
+
+                            <div className="flex justify-between">
+                              <span>Width:</span>
+                              <span className="font-semibold text-gray-800">
+                                {(layout.canvas?.width) ?? "-"}{" "}
+                                {(layout.canvas?.unit) ?? ""}
+                              </span>
+                            </div>
+
+                            <div className="flex justify-between">
+                              <span>Thickness:</span>
+                              <span className="font-semibold text-gray-800">
+                                {(layout.canvas?.thickness) ?? "-"}{" "}
+                                {(layout.canvas?.unit) ?? ""}
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>

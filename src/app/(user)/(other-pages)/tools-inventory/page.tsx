@@ -523,17 +523,21 @@ const MobileToolsInventory = () => {
                         </div>
 
                         {/* Tool details */}
-                        <div className="w-full h-[40px] flex flex-col justify-center mt-[25px] mb-[15px]">
-                          <div className="flex items-baseline gap-[3px]">
-                            <h3 className="text-[16px]">Tool Brand: {tool.toolBrand}</h3>
+                        <div className="space-y-1 mt-[20px] mb-[5px] text-[12px] text-[#666666] font-medium leading-tight">
+                          <div className="flex justify-between">
+                            <span>Tool Brand:</span>
+                            <span className="font-semibold text-gray-800">{tool.toolBrand || "-"}</span>
                           </div>
-                          <div className="flex items-baseline gap-[3px]">
-                            <h3 className="text-[16px]">Tool Type: {tool.toolType}</h3>
+                          <div className="flex justify-between">
+                            <span>Tool Type:</span>
+                            <span className="font-semibold text-gray-800">{tool.toolType || "-"}</span>
                           </div>
-                          <div className="flex items-baseline gap-[3px]">
-                            <h3 className="text-[16px]">SKU or Part Number: {tool.SKUorPartNumber}</h3>
+                          <div className="flex justify-between">
+                            <span>SKU or Part Number:</span>
+                            <span className="font-semibold text-gray-800">{tool.SKUorPartNumber || "-"}</span>
                           </div>
                         </div>
+
                       </div>
                     </div>
                   ))}
