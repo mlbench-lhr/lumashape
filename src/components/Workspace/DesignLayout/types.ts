@@ -11,6 +11,7 @@ export interface Tool {
     toolBrand?: string;
     toolType?: string;
     depth?: number;
+    SKUorPartNumber?: string;
     imageUrl?: string;
     outlinesImg?: string;
     contour_image_url?: string;
@@ -39,6 +40,7 @@ export interface DroppedTool extends Tool {
   width: number;
   length: number;
   depth: number;
+  SKUorPartNumber: string;
   unit: 'mm' | 'inches';
   // Add opacity and smooth properties
   opacity: number; // 0-100

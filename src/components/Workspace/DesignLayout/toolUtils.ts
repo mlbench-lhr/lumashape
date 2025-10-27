@@ -480,6 +480,7 @@ export const createShape = (
     icon: icon,
     toolBrand: 'SHAPE',
     toolType: shapeType,
+    SKUorPartNumber: '',
     image: `/images/workspace/${shapeType}.svg`,
     x: position.x,
     y: position.y,
@@ -517,6 +518,7 @@ export const createFingerCut = (
     icon: '⭕', // Changed from 'hand' to cylinder icon
     toolBrand: 'FINGERCUT',
     toolType: 'fingerCut',
+    SKUorPartNumber: '',
     x: position.x - 25,
     y: position.y - 15,
     rotation: 0,

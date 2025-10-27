@@ -14,7 +14,7 @@ interface Tool {
     position_inches: PositionInches;
     rotation_degrees: number;
     height_diagonal_inches: number;
-    thickness_inches: number;
+    depth_inches?: number;
     flip_horizontal: boolean;
     flip_vertical: boolean;
     opacity: number;

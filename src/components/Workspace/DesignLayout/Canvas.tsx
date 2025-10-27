@@ -403,6 +403,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     }}
                     toolWidth={toolWidth}
                     toolHeight={toolHeight}
+                    viewportZoom={viewport.zoom}
                   />
                 )}
 
@@ -449,6 +450,9 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     </div>
                     <div className="text-gray-400">
                       {`Tool Type: ${tool.metadata?.toolType}`}
+                    </div>
+                    <div className="text-gray-400">
+                      {`SKU or Part Number: ${tool.metadata?.SKUorPartNumber}`}
                     </div>
                     {isShape && (
                       <div className="text-yellow-300">

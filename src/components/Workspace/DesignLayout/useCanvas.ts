@@ -615,6 +615,7 @@ export const useCanvas = ({
         width: 50, // Legacy fallback
         length: 50, // Legacy fallback
         depth: tool.metadata?.depth || 0.2,
+        SKUorPartNumber: tool.metadata?.SKUorPartNumber || '',
         unit,
         opacity: 100,
         smooth: 0,
@@ -1017,6 +1018,7 @@ export const useCanvas = ({
       icon: '⭕',
       toolBrand: 'FINGERCUT',
       toolType: 'fingerCut',
+      SKUorPartNumber: '',
       x: canvasPos.x - 25, // Center the finger cut
       y: canvasPos.y - 15,
       rotation: 0,

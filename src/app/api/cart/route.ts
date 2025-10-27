@@ -3,8 +3,95 @@ import jwt from 'jsonwebtoken'
 import dbConnect from '@/utils/dbConnect'
 import Cart, { ICartItem } from '@/lib/models/Cart'
 import User from '@/lib/models/User'
+import Tool from '@/lib/models/Tool'
+
+interface CvDimensions {
+  depth_inches?: number
+}
+
+interface CvResponse {
+  dimensions?: CvDimensions
+}
+
+interface ToolDocument {
+  _id: string
+  depth?: number
+  unit?: 'mm' | 'inches'
+  cvResponse?: CvResponse
+}
+
+interface ToolShape {
+  id?: string
+  originalId?: string
+  unit?: 'mm' | 'inches'
+  depth?: number
+  rotation?: number
+  flipHorizontal?: boolean
+  flipVertical?: boolean
+  opacity?: number
+  smooth?: number
+  image?: string
+  groupId?: string | null
+}
+
 
 const JWT_SECRET = process.env.JWT_SECRET!
+
+// Unit helpers
+const mmToInches = (mm: number) => mm / 25.4
+const inchesToMm = (inches: number) => inches * 25.4
+
+// Ensure each tool has a valid depth; hydrate from Tool DB when missing
+async function ensureToolDepths(tools: ToolShape[]): Promise<ToolShape[]> {
+  return Promise.all(
+    (tools || []).map(async (t) => {
+      let depth = t?.depth
+
+      if (typeof depth !== 'number' || depth <= 0 || Number.isNaN(depth)) {
+        let depthInches: number | null = null
+
+        try {
+          const rawId = String(t?.originalId || t?.id || '')
+          const toolId = rawId.split('-').slice(0, -1).join('-') || rawId
+
+          if (toolId) {
+            const dbTool = (await Tool.findById(toolId).lean()) as ToolDocument | null
+            const cvDepth = dbTool?.cvResponse?.dimensions?.depth_inches
+
+            if (typeof cvDepth === 'number' && cvDepth > 0) {
+              depthInches = Number(cvDepth.toFixed(3))
+            } else if (typeof dbTool?.depth === 'number' && dbTool.depth > 0) {
+              const unit = dbTool?.unit
+              const inches = unit === 'mm' ? mmToInches(dbTool.depth) : dbTool.depth
+              depthInches = Number(inches.toFixed(3))
+            }
+          }
+        } catch {
+          // ignore cast/fetch errors, fall back
+        }
+
+        if (!depthInches || !(depthInches > 0)) {
+          depthInches = 0.2 // conservative fallback
+        }
+
+        depth = t?.unit === 'mm' ? Number(inchesToMm(depthInches).toFixed(3)) : Number(depthInches.toFixed(3))
+      }
+
+      // Fill other required defaults defensively for older items
+      return {
+        ...t,
+        depth,
+        rotation: typeof t.rotation === 'number' ? t.rotation : 0,
+        flipHorizontal: typeof t.flipHorizontal === 'boolean' ? t.flipHorizontal : false,
+        flipVertical: typeof t.flipVertical === 'boolean' ? t.flipVertical : false,
+        opacity: typeof t.opacity === 'number' ? t.opacity : 100,
+        smooth: typeof t.smooth === 'number' ? t.smooth : 0,
+        image: typeof t.image === 'string' ? t.image : '',
+        groupId: typeof t.groupId === 'string' ? t.groupId : (t.groupId ?? null),
+      }
+    })
+  )
+}
 
 // GET - Fetch user's cart
 export async function GET(req: NextRequest) {
@@ -67,20 +154,34 @@ export async function POST(req: NextRequest) {
     const itemData = await req.json()
 
     let cart = await Cart.findOne({ userEmail })
-    
     if (!cart) {
       cart = new Cart({ userEmail, items: [] })
     }
 
+    // Repair pre-existing items missing depths to avoid validation failures
+    if (Array.isArray(cart.items) && cart.items.length) {
+      for (const existing of cart.items) {
+        if (existing?.layoutData?.tools && Array.isArray(existing.layoutData.tools)) {
+          const missing = existing.layoutData.tools.some((t: ToolShape) => typeof t?.depth !== 'number' || Number.isNaN(t.depth))
+          if (missing) {
+            itemData.layoutData.tools = await ensureToolDepths(itemData.layoutData.tools as ToolShape[])
+          }
+        }
+      }
+    }
+
+    // Ensure incoming item tools have depth populated
+    if (itemData?.layoutData?.tools && Array.isArray(itemData.layoutData.tools)) {
+      itemData.layoutData.tools = await ensureToolDepths(itemData.layoutData.tools)
+    }
+
     // Check if item already exists
     const existingItemIndex = cart.items.findIndex(item => item.id === itemData.id)
-    
+
     if (existingItemIndex !== -1) {
-      // Update quantity if item exists
       cart.items[existingItemIndex].quantity += 1
       cart.items[existingItemIndex].updatedAt = new Date()
     } else {
-      // Add new item
       const newItem: ICartItem = {
         ...itemData,
         quantity: 1,
@@ -93,9 +194,9 @@ export async function POST(req: NextRequest) {
 
     await cart.save()
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Item added to cart successfully' 
+    return NextResponse.json({
+      success: true,
+      message: 'Item added to cart successfully'
     })
   } catch (error) {
     console.error('Error adding to cart:', error)
