@@ -196,13 +196,6 @@ const Profile = () => {
           >
             Edit Profile
           </button>
-          {/* Profit Sharing Button */}
-          <button
-            onClick={() => router.push("/profile/edit/ProfitSharing")}
-            className="bg-white text-primary px-3 py-2 text-xs sm:px-5 sm:py-3 sm:text-sm md:px-8 md:py-4 md:text-base rounded-lg font-semibold border border-primary cursor-pointer"
-          >
-            Profit Sharing
-          </button>
           <button
             onClick={() => setShowLogoutModal(true)}
             className="bg-primary text-white px-3 py-2 text-xs sm:px-5 sm:py-3 sm:text-sm md:px-8 md:py-4 md:text-base rounded-lg font-semibold cursor-pointer"
@@ -245,29 +238,45 @@ const Profile = () => {
 
 
         {/* Tabs */}
-        <div className="flex gap-4 sm:gap-6 md:gap-8 mt-6 sm:mt-8 md:mt-10 border-b border-gray-200 overflow-x-auto">
+        <div className="flex items-center justify-between mt-6 sm:mt-8 md:mt-10 border-b border-gray-200">
+          {/* Left Tabs */}
+          <div className="flex gap-4 sm:gap-6 md:gap-8 overflow-x-auto">
+            <button
+              onClick={() => setActiveTab("layouts")}
+              className={`pb-2 font-medium flex items-center gap-2 text-sm sm:text-base whitespace-nowrap ${activeTab === "layouts"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-gray-600 hover:text-gray-800"
+                }`}
+            >
+              My Published Layouts
+            </button>
+            <button
+              onClick={() => setActiveTab("contours")}
+              className={`pb-2 font-medium flex items-center gap-2 text-sm sm:text-base whitespace-nowrap ${activeTab === "contours"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-gray-600 hover:text-gray-800"
+                }`}
+            >
+              My Published Tool Contours
+            </button>
+          </div>
+
+          {/* Right-aligned Profit Sharing Button */}
           <button
-            onClick={() => setActiveTab("layouts")}
-            className={`pb-2 font-medium flex items-center gap-2 text-sm sm:text-base whitespace-nowrap ${activeTab === "layouts"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-600 hover:text-gray-800"
-              }`}
+            onClick={() => router.push("/profile/edit/ProfitSharing")}
+            className="bg-primary text-white px-3 py-2 text-xs sm:px-5 sm:py-3 sm:text-sm md:px-8 md:py-4 md:text-base rounded-lg font-semibold cursor-pointer whitespace-nowrap"
           >
-            My Published Layouts
-          </button>
-          <button
-            onClick={() => setActiveTab("contours")}
-            className={`pb-2 font-medium flex items-center gap-2 text-sm sm:text-base whitespace-nowrap ${activeTab === "contours"
-              ? "text-blue-600 border-b-2 border-blue-600"
-              : "text-gray-600 hover:text-gray-800"
-              }`}
-          >
-            My Published Tool Contours
+            Profit Sharing
           </button>
         </div>
 
+
+
+
         {/* Tab Content */}
         {activeTab === "layouts" ? <MyLayouts /> : <MyToolContours />}
+
+
       </div>
       {/* Logout Confirmation Modal */}
       {showLogoutModal && (

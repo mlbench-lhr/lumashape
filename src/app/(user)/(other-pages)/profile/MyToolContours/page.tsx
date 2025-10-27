@@ -14,7 +14,7 @@ interface ToolWithInteraction {
     _id: string;
     toolType: string;
     toolBrand: string;
-    paperType: string;
+    SKUorPartNumber: string;
     imageUrl?: string;
     createdBy?: { username?: string; email?: string };
     likes: number;
@@ -133,7 +133,7 @@ const MyToolContours = () => {
                         {myTools.map((tool) => (
                             <div
                                 key={tool._id}
-                                className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[280px] sm:w-[266px] sm:h-[260px] relative"
+                                className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[280px] sm:w-[266px] sm:h-[270px] relative"
                             >
                                 {/* Tool Image */}
                                 <div className="w-[258px] sm:w-[242px]" data-dropdown>
@@ -210,13 +210,19 @@ const MyToolContours = () => {
 
                                     {/* Tool details */}
                                     <div className="w-full h-[102px] flex flex-col justify-center">
-                                        <div className="flex items-baseline gap-[2px]">
-                                            <h3 className="font-bold text-[16px]">
-                                                {tool.toolType}
-                                            </h3>
-                                            <span className="text-[14px] font-medium">
-                                                ({tool.toolBrand})
-                                            </span>
+                                        <div className="space-y-1 mt-[20px] mb-[5px] text-[12px] text-[#666666] font-medium leading-tight">
+                                            <div className="flex justify-between">
+                                                <span>Tool Brand:</span>
+                                                <span className="font-semibold text-gray-800">{tool.toolBrand || "-"}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Tool Type:</span>
+                                                <span className="font-semibold text-gray-800">{tool.toolType || "-"}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>SKU or Part Number:</span>
+                                                <span className="font-semibold text-gray-800">{tool.SKUorPartNumber || "-"}</span>
+                                            </div>
                                         </div>
 
                                         {/* Stats Row (Read-only) */}
