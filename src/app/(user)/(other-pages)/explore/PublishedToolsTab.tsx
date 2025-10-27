@@ -380,19 +380,19 @@ const PublishedToolsTab = () => {
                                     {/* Tool details */}
                                     <div className="w-full h-[130px] flex flex-col justify-center">
                                         <div className="space-y-1 mt-[20px] mb-[5px] text-[12px] text-[#666666] font-medium leading-tight">
-                                                <div className="flex justify-between">
-                                                    <span>Tool Brand:</span>
-                                                    <span className="font-semibold text-gray-800">{tool.toolBrand || "-"}</span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span>Tool Type:</span>
-                                                    <span className="font-semibold text-gray-800">{tool.toolType || "-"}</span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span>SKU or Part Number:</span>
-                                                    <span className="font-semibold text-gray-800">{tool.SKUorPartNumber || "-"}</span>
-                                                </div>
+                                            <div className="flex justify-between">
+                                                <span>Tool Brand:</span>
+                                                <span className="font-semibold text-gray-800">{tool.toolBrand || "-"}</span>
                                             </div>
+                                            <div className="flex justify-between">
+                                                <span>Tool Type:</span>
+                                                <span className="font-semibold text-gray-800">{tool.toolType || "-"}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>SKU or Part Number:</span>
+                                                <span className="font-semibold text-gray-800">{tool.SKUorPartNumber || "-"}</span>
+                                            </div>
+                                        </div>
                                         {tool.createdBy && (
                                             <p className="text-[12px] text-[#b3b3b3] font-medium mt-1 flex items-center gap-2">
                                                 <span className="w-5 h-5 flex items-center justify-center bg-primary rounded-full text-[10px] text-white">

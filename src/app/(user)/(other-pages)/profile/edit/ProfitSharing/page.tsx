@@ -43,7 +43,6 @@ export default function ProfitSharing() {
     const [payments, setPayments] = useState<Tx[]>([])
     const [earnings, setEarnings] = useState<Tx[]>([])
     const [totals, setTotals] = useState<Totals>({ spentCents: 0, earnedCents: 0 })
-    const [filter, setFilter] = useState<'all' | 'tool' | 'layout'>('all')
     const loadOnceRef = useRef(false)
     const autoSettleRef = useRef(false)
 
@@ -76,9 +75,8 @@ export default function ProfitSharing() {
         status?.details_submitted &&
         status?.transfers_active
     )
-    const filteredEarnings = earnings.filter(e => filter === 'all' ? true : e.itemType === filter)
-    const filteredPayments = payments.filter(p => filter === 'all' ? true : p.itemType === filter)
-
+    const filteredEarnings = earnings.filter(e => e.itemType === 'layout')
+    const filteredPayments = payments.filter(p => p.itemType === 'layout')
 
     useEffect(() => {
         if (loadOnceRef.current) return
@@ -270,29 +268,6 @@ export default function ProfitSharing() {
                     <div className="text-xl font-semibold">${spentDollar}</div>
                     <div className="text-xs text-gray-500">Purchases</div>
                 </div>
-            </div>
-
-            {/* Filters */}
-            <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Filter:</span>
-                <button
-                    className={`text-sm px-3 py-1 rounded ${filter === 'all' ? 'bg-gray-200' : 'bg-gray-100'}`}
-                    onClick={() => setFilter('all')}
-                >
-                    All
-                </button>
-                <button
-                    className={`text-sm px-3 py-1 rounded ${filter === 'tool' ? 'bg-gray-200' : 'bg-gray-100'}`}
-                    onClick={() => setFilter('tool')}
-                >
-                    Tools
-                </button>
-                <button
-                    className={`text-sm px-3 py-1 rounded ${filter === 'layout' ? 'bg-gray-200' : 'bg-gray-100'}`}
-                    onClick={() => setFilter('layout')}
-                >
-                    Layouts
-                </button>
             </div>
 
             {/* Earnings Table */}

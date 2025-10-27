@@ -182,7 +182,7 @@ const MyLayouts = () => {
                     {layouts.map((layout) => (
                         <div
                             key={layout._id}
-                            className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[260px] sm:w-[266px] sm:h-[270px] relative"
+                            className="flex flex-col justify-center items-center bg-white border border-[#E6E6E6] overflow-hidden w-[300px] h-[260px] sm:w-[266px] sm:h-[300px] relative"
                         >
                             <div className="w-[258px] sm:w-[242px]">
                                 <div className="relative w-full h-[150px]">
@@ -262,12 +262,35 @@ const MyLayouts = () => {
                                     <h3 className="font-bold text-[16px] truncate">{`${layout.name}`}</h3>
                                 </div>
 
-                                <p className="text-[12px] text-[#666666] font-medium truncate">
-                                    {`Custom ${formatDimensions(layout.canvas)}`}
-                                </p>
+                                {/* Dimensions */}
+                                            <div className="text-[12px] text-[#b3b3b3] font-medium leading-tight space-y-[2px]">
+                                                <div className="flex justify-between">
+                                                    <span>Length:</span>
+                                                    <span className="font-semibold text-gray-800">
+                                                        {(layout.canvas?.height) ?? "-"}{" "}
+                                                        {(layout.canvas?.unit) ?? ""}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between">
+                                                    <span>Width:</span>
+                                                    <span className="font-semibold text-gray-800">
+                                                        {(layout.canvas?.width) ?? "-"}{" "}
+                                                        {(layout.canvas?.unit) ?? ""}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex justify-between">
+                                                    <span>Thickness:</span>
+                                                    <span className="font-semibold text-gray-800">
+                                                        {(layout.canvas?.thickness) ?? "-"}{" "}
+                                                        {(layout.canvas?.unit) ?? ""}
+                                                    </span>
+                                                </div>
+                                            </div>
 
                                 {/* Downloads and Published Date */}
-                                <div className="flex justify-between items-center">
+                                <div className="flex justify-between items-center mt-2">
                                     <div className="flex items-center gap-1">
                                         <div
                                                     className={`flex items-center gap-1 px-1 py-1 rounded ${layout.userInteraction?.hasLiked ? 'text-blue-600' : 'text-gray-400'
