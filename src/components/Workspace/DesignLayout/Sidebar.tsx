@@ -68,6 +68,7 @@ interface DatabaseTool {
 
 
 // Sidebar (within component)
+// Sidebar component (add brand filter state and dropdown UI, and apply filtering)
 const Sidebar: React.FC<SidebarProps> = ({
     droppedTools = [],
     selectedTool = null,
@@ -369,11 +370,17 @@ const Sidebar: React.FC<SidebarProps> = ({
         fetchTools();
     }, []);
 
-    const filteredTools = tools.filter(tool =>
-        tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tool.metadata?.toolBrand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tool.metadata?.toolType?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // NEW: brand filter state and dropdown control
+    const [brandFilter, setBrandFilter] = useState<'all' | 'Milwaukee' | 'Husky' | 'DEWALT'>('all');
+    const [isBrandMenuOpen, setIsBrandMenuOpen] = useState(false);
+    const brandOptions = ['Milwaukee', 'Husky', 'DEWALT'];
+    const filteredTools = tools
+        .filter(tool => brandFilter === 'all' || (tool.toolBrand || '').toLowerCase() === brandFilter.toLowerCase())
+        .filter(tool =>
+            tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (tool.metadata?.toolBrand || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (tool.metadata?.toolType || '').toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
     // Determine effective selected tools - use selectedTool if selectedTools is empty
     const effectiveSelectedTools = selectedTools.length > 0 ? selectedTools : (selectedTool ? [selectedTool] : []);
@@ -444,14 +451,39 @@ const Sidebar: React.FC<SidebarProps> = ({
                 />
             </div>
 
-            <div className="flex items-center justify-between mb-4">
+            {/* Sort by brand */}
+            <div className="relative flex items-center justify-between mb-4">
                 <span className="text-sm text-gray-600">Sort by:</span>
-                <div className="flex items-center space-x-1 text-sm text-blue-600 cursor-pointer">
-                    <span>All toolBrands</span>
+                <div
+                    className="flex items-center space-x-1 text-sm text-primary cursor-pointer select-none"
+                    onClick={() => setIsBrandMenuOpen(!isBrandMenuOpen)}
+                >
+                    <span>{brandFilter === 'all' ? 'All Tool Brands' : brandFilter}</span>
                     <ChevronDown className="w-4 h-4" />
                 </div>
+
+                {isBrandMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-gray-200 rounded-md shadow-md z-10">
+                        <button
+                            className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${brandFilter === 'all' ? 'text-primary' : 'text-gray-700'}`}
+                            onClick={() => { setBrandFilter('all'); setIsBrandMenuOpen(false); }}
+                        >
+                            All Tool Brands
+                        </button>
+                        {brandOptions.map((brand) => (
+                            <button
+                                key={brand}
+                                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${brandFilter === brand ? 'text-primary' : 'text-gray-700'}`}
+                                onClick={() => { setBrandFilter(brand as 'Milwaukee' | 'Husky' | 'DEWALT'); setIsBrandMenuOpen(false); }}
+                            >
+                                {brand}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
 
+            {/* Existing inventory rendering */}
             {loading && (
                 <div className="text-center text-gray-500 py-8">
                     <p>Loading tools...</p>
@@ -463,7 +495,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <p>Error: {error}</p>
                     <button
                         onClick={fetchTools}
-                        className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md text-sm hover:bg-blue-600"
+                        className="mt-2 px-4 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary/90"
                     >
                         Retry
                     </button>
@@ -498,6 +530,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     const LayoutToolsView = () => {
         const filteredLayoutTools = droppedTools
             .filter(t => !t.metadata?.isFingerCut && t.toolBrand !== 'SHAPE')
+            .filter(t => brandFilter === 'all' || (t.toolBrand || '').toLowerCase() === brandFilter.toLowerCase())
             .filter(t =>
                 t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (t.toolBrand || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -535,7 +568,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                         onClick={() => handleAddToInventoryFromLayout(tool)}
                                         disabled={!canAdd}
                                         className={`px-2 py-1 text-xs rounded border ${canAdd
-                                                ? 'text-blue-600 border-blue-200 hover:bg-blue-50'
+                                                ? 'text-primary border-primary hover:bg-primary/10'
                                                 : 'text-gray-400 border-gray-200 cursor-not-allowed'
                                             }`}
                                         title={
