@@ -198,10 +198,16 @@ const Profile = () => {
           </button>
           <button
             onClick={() => setShowLogoutModal(true)}
-            className="bg-primary text-white px-3 py-2 text-xs sm:px-5 sm:py-3 sm:text-sm md:px-8 md:py-4 md:text-base rounded-lg font-semibold cursor-pointer"
+            className="flex items-center gap-2 bg-primary text-white px-3 py-2 text-xs sm:px-5 sm:py-3 sm:text-sm md:px-8 md:py-4 md:text-base rounded-lg font-semibold cursor-pointer hover:bg-primary/90 transition"
           >
+            <img
+              src="/images/icons/profile/logout.svg" // 🟢 Replace this with your actual icon path
+              alt="Logout icon"
+              className="w-4 h-4 sm:w-5 sm:h-5"
+            />
             Logout
           </button>
+
         </div>
 
         {/* Stats Section */}
@@ -244,8 +250,8 @@ const Profile = () => {
             <button
               onClick={() => setActiveTab("layouts")}
               className={`pb-2 font-medium flex items-center gap-2 text-sm sm:text-base whitespace-nowrap ${activeTab === "layouts"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-800"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-gray-600 hover:text-gray-800"
                 }`}
             >
               My Published Layouts
@@ -253,8 +259,8 @@ const Profile = () => {
             <button
               onClick={() => setActiveTab("contours")}
               className={`pb-2 font-medium flex items-center gap-2 text-sm sm:text-base whitespace-nowrap ${activeTab === "contours"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-600 hover:text-gray-800"
+                ? "text-blue-600 border-b-2 border-blue-600"
+                : "text-gray-600 hover:text-gray-800"
                 }`}
             >
               My Published Tool Contours
@@ -264,9 +270,14 @@ const Profile = () => {
           {/* Right-aligned Profit Sharing Button */}
           <button
             onClick={() => router.push("/profile/edit/ProfitSharing")}
-            className="bg-primary text-white px-3 py-2 text-xs sm:px-5 sm:py-3 sm:text-sm md:px-8 md:py-4 md:text-base rounded-lg font-semibold cursor-pointer whitespace-nowrap"
+            className="flex items-center mb-3 mr-3 gap-2 bg-primary text-white px-3 py-2 text-xs sm:px-5 sm:py-3 sm:text-sm md:px-8 md:py-4 md:text-base rounded-lg font-semibold cursor-pointer hover:bg-primary/90 transition"
           >
             Profit Sharing
+            <img
+              src="/images/icons/profile/profit.svg"
+              alt="Logout"
+              className="w-5 h-5"
+            />
           </button>
         </div>
 

@@ -117,8 +117,9 @@ export default function InspectLayoutPage({
       const mapped: DroppedTool[] = (layout.tools ?? []).map((t) => {
         const toolUnit: Unit = t.unit || canvasUnit;
 
-        const xPx = toolUnit === 'inches' ? inchesToPx(t.x ?? 0) : mmToPx(t.x ?? 0);
-        const yPxRaw = toolUnit === 'inches' ? inchesToPx(t.y ?? 0) : mmToPx(t.y ?? 0);
+        // Always interpret DB positions in inches (bottom-left origin → top-left pixels)
+        const xPx = inchesToPx(t.x ?? 0);
+        const yPxRaw = inchesToPx(t.y ?? 0);
         const yPx = canvasHeightPx - yPxRaw;
 
         let widthCanvasUnits = 0;
@@ -164,6 +165,7 @@ export default function InspectLayoutPage({
           }
         } else {
           if (t.metadata?.length) {
+            // Images: rendering uses metadata.length (inches) and aspect ratio
             const heightPx = inchesToPx(t.metadata.length);
             const aspect =
               t.metadata.naturalWidth && t.metadata.naturalHeight
@@ -172,15 +174,11 @@ export default function InspectLayoutPage({
             heightPxFallback = heightPx;
             widthPxFallback = heightPx * aspect;
           } else {
+            // Convert stored real dimensions to the canvas unit (not pixels)
             const rw = t.realWidth ?? t.width ?? 0;
             const rh = t.realHeight ?? t.length ?? 0;
-            if (toolUnit === 'mm') {
-              widthPxFallback = mmToPx(rw);
-              heightPxFallback = mmToPx(rh);
-            } else {
-              widthPxFallback = inchesToPx(rw);
-              heightPxFallback = inchesToPx(rh);
-            }
+            widthCanvasUnits = convertUnits(rw, toolUnit, canvasUnit);
+            lengthCanvasUnits = convertUnits(rh, toolUnit, canvasUnit);
           }
         }
 

@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState, useRef } from 'react'
 import axios, { AxiosError } from 'axios'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft } from "lucide-react";
 
 type Tx = {
     _id: string
@@ -45,6 +47,9 @@ export default function ProfitSharing() {
     const [totals, setTotals] = useState<Totals>({ spentCents: 0, earnedCents: 0 })
     const loadOnceRef = useRef(false)
     const autoSettleRef = useRef(false)
+    const router = useRouter()
+
+
 
     // --- Auth Header Builder ---
     const authHeaders = () => {
@@ -200,14 +205,25 @@ export default function ProfitSharing() {
     if (loading) return <div className="p-4">Loading...</div>
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 mt-4">
             {/* Header & Status */}
-            <div className="flex items-center justify-between py-4">
-                <div>
-                    <h2 className="text-xl font-semibold">Profit Sharing</h2>
-                    <p className="text-sm text-gray-600">Connect Stripe to receive payouts for your sales.</p>
+            <div className="flex items-center justify-between flex-wrap gap-4 py-4">
+                {/* Left section */}
+                <div className="flex items-start gap-2">
+                    <ArrowLeft
+                        className="w-7 h-7 text-blue-600 cursor-pointer mt-[2px]"
+                        onClick={() => router.push("/profile")}
+                    />
+                    <div>
+                        <h2 className="text-2xl font-semibold text-gray-900">Profit Sharing</h2>
+                        <p className="text-gray-600 text-sm mt-1">
+                            Connect Stripe to receive payouts for your sales
+                        </p>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
+
+                {/* Right section */}
+                <div className="flex items-center gap-3">
                     {!connected ? (
                         <button
                             onClick={connectBank}
@@ -220,12 +236,23 @@ export default function ProfitSharing() {
                             <span className="px-3 py-1 bg-green-100 text-green-700 rounded-md text-sm">
                                 Connected
                             </span>
-                            <span className={`px-3 py-1 rounded-md text-sm ${status?.payouts_enabled ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-800"}`}>
+                            <span
+                                className={`px-3 py-1 rounded-md text-sm ${status?.payouts_enabled
+                                        ? "bg-green-100 text-green-700"
+                                        : "bg-yellow-100 text-yellow-800"
+                                    }`}
+                            >
                                 {status?.payouts_enabled ? "Payouts Enabled" : "Payouts Pending"}
                             </span>
-                            <span className={`px-3 py-1 rounded-md text-sm ${status?.details_submitted ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
+                            <span
+                                className={`px-3 py-1 rounded-md text-sm ${status?.details_submitted
+                                        ? "bg-green-100 text-green-700"
+                                        : "bg-gray-100 text-gray-700"
+                                    }`}
+                            >
                                 Details {status?.details_submitted ? "Submitted" : "Missing"}
                             </span>
+
                             {needsAction && (
                                 <button
                                     onClick={connectBank}
@@ -238,6 +265,7 @@ export default function ProfitSharing() {
                     )}
                 </div>
             </div>
+
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
