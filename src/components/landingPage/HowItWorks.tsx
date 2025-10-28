@@ -26,6 +26,7 @@ type DataItem = {
   image?: string
   hasBackground?: boolean
   showButtons?: boolean
+  lastImage?: boolean
 }
 
 
@@ -71,7 +72,8 @@ const data: { left: DataItem[]; right: DataItem[] } = {
     },
     {
       id: 8,
-      image: '/images/icons/LandingPage/howItWorks/Profit.jpg',
+      image: '/images/icons/LandingPage/howItWorks/Profit.svg',
+      lastImage: true
     }
   ],
 }
@@ -209,7 +211,7 @@ function HowItWorks() {
             >
               {data.right[index]?.image ? (
                 <Image
-                  className="w-full"
+                  className={`w-full ${data.right[index]?.lastImage ? 'lg:mt-[-130px] md:mt-[-60px]' : ''}`}
                   src={data.right[index].image}
                   alt={`right-${index}`}
                   width={300}
@@ -226,6 +228,7 @@ function HowItWorks() {
                 </div>
               )}
             </motion.div>
+
           </React.Fragment>
         ))}
       </div>
