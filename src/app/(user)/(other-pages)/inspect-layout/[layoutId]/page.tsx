@@ -130,7 +130,7 @@ export default function InspectLayoutPage({
 
         let toolBrand: string = t.metadata?.toolBrand || '';
         // NEW: capture shape toolType from DB shapeType
-        let shapeToolType: 'circle' | 'square' | 'polygon' | '' = '';
+        const shapeToolType: 'circle' | 'square' | 'polygon' | '' = '';
 
         if (t.isCustomShape && t.shapeType && t.shapeData) {
           toolBrand = 'SHAPE';
