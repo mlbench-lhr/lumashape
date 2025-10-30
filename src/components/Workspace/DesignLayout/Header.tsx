@@ -1,1201 +1,1365 @@
-'use client';
-import React, { useState, useRef, useEffect } from 'react';
-import { MoreHorizontal, RefreshCw, Save, AlertTriangle, CheckCircle, Download, FileText, Image as ImageIcon, File, ShoppingCart } from 'lucide-react';
-import Image from 'next/image';
-import { DroppedTool } from './types';
+"use client";
+import React, { useState, useRef, useEffect } from "react";
+import {
+  MoreHorizontal,
+  RefreshCw,
+  Save,
+  AlertTriangle,
+  CheckCircle,
+  Download,
+  FileText,
+  Image as ImageIcon,
+  File,
+  ShoppingCart,
+} from "lucide-react";
+import Image from "next/image";
+import { DroppedTool } from "./types";
 import * as htmlToImage from "html-to-image";
 import { useCart } from "@/context/CartContext";
 import { toast } from "react-toastify";
-import { calculatePriceFromLayoutData } from '@/utils/pricing';
-import router from 'next/router';
+import { calculatePriceFromLayoutData } from "@/utils/pricing";
+import router from "next/router";
 
 interface HeaderProps {
-    droppedTools: DroppedTool[];
-    canvasWidth: number;
-    canvasHeight: number;
-    thickness: number;
-    unit: 'mm' | 'inches';
-    hasOverlaps: boolean;
-    onSaveLayout?: () => void;
-    readOnly?: boolean;
+  droppedTools: DroppedTool[];
+  canvasWidth: number;
+  canvasHeight: number;
+  thickness: number;
+  unit: "mm" | "inches";
+  hasOverlaps: boolean;
+  onSaveLayout?: () => void;
+  readOnly?: boolean;
 }
 
 interface LayoutFormData {
-    layoutName?: string;
-    width?: number;
-    length?: number;
-    units?: 'mm' | 'inches';
-    canvasWidth?: number;
-    canvasHeight?: number;
-    thickness?: number;
+  layoutName?: string;
+  width?: number;
+  length?: number;
+  units?: "mm" | "inches";
+  canvasWidth?: number;
+  canvasHeight?: number;
+  thickness?: number;
 }
 
-
-
 interface ToolPayload {
-    tool_id: string;
-    name: string;
-    brand: string;
-    dxf_link?: string;
-    position_inches: { x: number; y: number };
-    rotation_degrees: number;
-    height_diagonal_inches?: number;
-    depth_inches?: number;
-    flip_horizontal?: boolean;
-    flip_vertical?: boolean;
-    opacity?: number;
-    smooth?: number;
+  tool_id: string;
+  name: string;
+  brand: string;
+  dxf_link?: string;
+  position_inches: { x: number; y: number; z: number };
+  rotation_degrees: number;
+  height_diagonal_inches?: number;
+  depth_inches?: number;
+  cut_depth_inches: number;
+  flip_horizontal?: boolean;
+  flip_vertical?: boolean;
+  opacity?: number;
+  smooth?: number;
 }
 
 interface ShapePayload {
-    tool_id: string;
-    name: string;
-    brand: string;
-    is_custom_shape: true;
-    shape_type: 'rectangle' | 'circle' | 'polygon';
-    shape_data:
+  tool_id: string;
+  name: string;
+  brand: string;
+  is_custom_shape: true;
+  shape_type: "rectangle" | "circle" | "polygon";
+  shape_data:
     | { width_inches: number; height_inches: number }
     | { radius_inches: number }
     | { points: { x: number; y: number }[] };
-    position_inches: { x: number; y: number };
-    rotation_degrees: number;
+  position_inches: { x: number; y: number; z: number };
+  rotation_degrees: number;
+  cut_depth_inches: number;
 }
 
 type CVResponse = {
-    dimensions?: {
-        length_inches?: number;
-        depth_inches?: number;
-    };
+  dimensions?: {
+    length_inches?: number;
+    depth_inches?: number;
+  };
 };
 
 type FetchedTool = {
-    cvResponse?: CVResponse;
-    length?: number;
-    depth?: number;
-    unit?: string;
+  cvResponse?: CVResponse;
+  length?: number;
+  depth?: number;
+  unit?: string;
 };
-
 
 // conversion helper
 const mmToInches = (mm: number) => mm / 25.4;
 const inchesToMm = (inches: number) => inches * 25.4;
 
 const Header: React.FC<HeaderProps> = ({
-    droppedTools,
-    canvasWidth,
-    canvasHeight,
-    thickness,
-    unit,
-    hasOverlaps,
-    onSaveLayout,
-    readOnly
+  droppedTools,
+  canvasWidth,
+  canvasHeight,
+  thickness,
+  unit,
+  hasOverlaps,
+  onSaveLayout,
+  readOnly,
 }) => {
-    const [isSaving, setIsSaving] = useState(false);
-    const [saveError, setSaveError] = useState<string | null>(null);
-    const [saveSuccess, setSaveSuccess] = useState(false);
-    const [showDropdown, setShowDropdown] = useState(false);
-    const [isDxfGenerating, setIsDxfGenerating] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-    const { addToCart } = useCart();
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isDxfGenerating, setIsDxfGenerating] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const { addToCart } = useCart();
 
-    const handleAddToCart = async () => {
-        if (hasOverlaps) {
-            setSaveError("Cannot add layout with overlapping tools to cart. Please fix overlaps first.");
-            return;
-        }
-        if (droppedTools.length === 0) {
-            setSaveError("Cannot add empty layout to cart. Please add at least one tool.");
-            return;
-        }
+  const handleAddToCart = async () => {
+    if (hasOverlaps) {
+      setSaveError(
+        "Cannot add layout with overlapping tools to cart. Please fix overlaps first."
+      );
+      return;
+    }
+    if (droppedTools.length === 0) {
+      setSaveError(
+        "Cannot add empty layout to cart. Please add at least one tool."
+      );
+      return;
+    }
 
-        setIsSaving(true);
-        setSaveError(null);
+    setIsSaving(true);
+    setSaveError(null);
 
+    try {
+      // Read session for canvas dimensions and name (for containerSize)
+      let additionalData: LayoutFormData = {};
+      const sessionData = sessionStorage.getItem("layoutForm");
+      if (sessionData) {
         try {
-            // Read session for canvas dimensions and name (for containerSize)
-            let additionalData: LayoutFormData = {};
-            const sessionData = sessionStorage.getItem("layoutForm");
-            if (sessionData) {
-                try {
-                    additionalData = JSON.parse(sessionData) as LayoutFormData;
-                } catch (error) {
-                    console.error("Error parsing session data:", error);
-                }
-            }
-
-            const layoutName = additionalData.layoutName || `Layout ${new Date().toLocaleDateString()}`;
-            const containerSize = `${additionalData.canvasWidth ?? canvasWidth}" × ${additionalData.canvasHeight ?? canvasHeight}"`;
-
-            // Save layout via Save & Exit handler (single source of truth)
-            const saveResult = await handleSaveAndExit({ skipRedirect: true });
-            if (!saveResult || !saveResult.id) {
-                throw new Error("Failed to save layout");
-            }
-            const savedLayoutId = saveResult.id;
-            const snapshotUrl = saveResult.snapshotUrl || undefined;
-
-            // Prepare minimal cart layout data (cart schema)
-            const cartTools = await Promise.all(
-                droppedTools.map(async (tool) => {
-                    const depthInches = await computeDepthInches(tool);
-                    const depthForCart = tool.unit === 'mm' ? inchesToMm(depthInches) : depthInches;
-
-                    return {
-                        id: tool.id,
-                        name: tool.name,
-                        x: convertPositionToInches(tool.x, canvasWidth, true),
-                        y: convertPositionToInches(tool.y, canvasHeight, false),
-                        rotation: tool.rotation,
-                        flipHorizontal: tool.flipHorizontal,
-                        flipVertical: tool.flipVertical,
-                        depth: parseFloat(depthForCart.toFixed(3)),
-                        unit: tool.unit,
-                        opacity: tool.opacity ?? 100,
-                        smooth: tool.smooth ?? 0,
-                        image: tool.image ?? '',
-                        groupId: tool.groupId ?? null,
-                    };
-                })
-            );
-
-            const cartLayoutData = {
-                canvas: {
-                    width: additionalData.canvasWidth ?? canvasWidth,
-                    height: additionalData.canvasHeight ?? canvasHeight,
-                    unit,
-                    thickness,
-                },
-                tools: cartTools,
-            };
-
-            const calculatedPrice = calculatePriceFromLayoutData(cartLayoutData);
-
-            await addToCart({
-                id: savedLayoutId,
-                name: layoutName,
-                containerSize,
-                price: calculatedPrice,
-                snapshotUrl,
-                layoutData: cartLayoutData,
-            });
-
-            toast.success("Layout saved and added to cart successfully!");
+          additionalData = JSON.parse(sessionData) as LayoutFormData;
         } catch (error) {
-            console.error("Error adding to cart:", error);
-            setSaveError(error instanceof Error ? error.message : "Failed to add layout to cart");
-        } finally {
-            setIsSaving(false);
+          console.error("Error parsing session data:", error);
         }
+      }
+
+      const layoutName =
+        additionalData.layoutName ||
+        `Layout ${new Date().toLocaleDateString()}`;
+      const containerSize = `${additionalData.canvasWidth ?? canvasWidth}" × ${
+        additionalData.canvasHeight ?? canvasHeight
+      }"`;
+
+      // Save layout via Save & Exit handler (single source of truth)
+      const saveResult = await handleSaveAndExit({ skipRedirect: true });
+      if (!saveResult || !saveResult.id) {
+        throw new Error("Failed to save layout");
+      }
+      const savedLayoutId = saveResult.id;
+      const snapshotUrl = saveResult.snapshotUrl || undefined;
+
+      // Prepare minimal cart layout data (cart schema)
+      const cartTools = await Promise.all(
+        droppedTools.map(async (tool) => {
+          const depthInches = await computeDepthInches(tool);
+          const depthForCart =
+            tool.unit === "mm" ? inchesToMm(depthInches) : depthInches;
+
+          return {
+            id: tool.id,
+            name: tool.name,
+            x: convertPositionToInches(tool.x, canvasWidth, true),
+            y: convertPositionToInches(tool.y, canvasHeight, false),
+            rotation: tool.rotation,
+            flipHorizontal: tool.flipHorizontal,
+            flipVertical: tool.flipVertical,
+            depth: parseFloat(depthForCart.toFixed(3)),
+            unit: tool.unit,
+            opacity: tool.opacity ?? 100,
+            smooth: tool.smooth ?? 0,
+            image: tool.image ?? "",
+            groupId: tool.groupId ?? null,
+          };
+        })
+      );
+
+      const cartLayoutData = {
+        canvas: {
+          width: additionalData.canvasWidth ?? canvasWidth,
+          height: additionalData.canvasHeight ?? canvasHeight,
+          unit,
+          thickness,
+        },
+        tools: cartTools,
+      };
+
+      const calculatedPrice = calculatePriceFromLayoutData(cartLayoutData);
+
+      await addToCart({
+        id: savedLayoutId,
+        name: layoutName,
+        containerSize,
+        price: calculatedPrice,
+        snapshotUrl,
+        layoutData: cartLayoutData,
+      });
+
+      toast.success("Layout saved and added to cart successfully!");
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      setSaveError(
+        error instanceof Error ? error.message : "Failed to add layout to cart"
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
     };
 
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setShowDropdown(false);
-            }
-        };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
+  // Helper function to get auth token from localStorage
+  const getAuthToken = (): string | null => {
+    try {
+      return localStorage.getItem("auth-token");
+    } catch (error) {
+      console.error("Error accessing localStorage:", error);
+      return null;
+    }
+  };
 
-    // Helper function to get auth token from localStorage
-    const getAuthToken = (): string | null => {
+  // Helpers to compute inches for length/depth using fetched tool or dropped tool
+  const toInches = (value: number | undefined, sourceUnit?: string) => {
+    if (typeof value !== "number") return undefined;
+    return sourceUnit === "mm" ? mmToInches(value) : value;
+  };
+
+  const computeLengthInches = (
+    droppedTool: DroppedTool,
+    fetchedTool: FetchedTool
+  ) => {
+    const cvLen = fetchedTool?.cvResponse?.dimensions?.length_inches;
+    if (typeof cvLen === "number" && cvLen > 0)
+      return parseFloat(cvLen.toFixed(3));
+
+    const dbLen = toInches(fetchedTool?.length, fetchedTool?.unit);
+    if (typeof dbLen === "number" && dbLen > 0)
+      return parseFloat(dbLen.toFixed(3));
+
+    const dtLen = toInches(droppedTool.length, droppedTool.unit);
+    if (typeof dtLen === "number" && dtLen > 0)
+      return parseFloat(dtLen.toFixed(3));
+
+    return 5.0; // final fallback
+  };
+
+  const computeDepthInches = async (
+    droppedTool: DroppedTool,
+    fetchedTool?: FetchedTool
+  ): Promise<number> => {
+    let toolData = fetchedTool;
+
+    const isShape = droppedTool.toolBrand === "SHAPE";
+    const isFingerCut =
+      droppedTool.toolBrand === "FINGERCUT" ||
+      droppedTool.metadata?.isFingerCut;
+    if (!toolData && !isShape && !isFingerCut) {
+      const authToken = getAuthToken();
+      if (authToken) {
+        const toolId =
+          droppedTool.metadata?.originalId ||
+          droppedTool.id.split("-").slice(0, -1).join("-");
         try {
-            return localStorage.getItem('auth-token');
-        } catch (error) {
-            console.error('Error accessing localStorage:', error);
-            return null;
-        }
+          const res = await fetch(`/api/user/tool/getTool?toolId=${toolId}`, {
+            headers: { Authorization: `Bearer ${authToken}` },
+          });
+          if (res.ok) {
+            const json = await res.json();
+            toolData = json.tool;
+          }
+        } catch {}
+      }
+    }
+
+    const dbDepthRaw = toolData?.depth;
+    const dbDepthUnit = toolData?.unit;
+    if (typeof dbDepthRaw === "number" && dbDepthRaw > 0) {
+      const dbDepthInches =
+        dbDepthUnit === "mm" ? mmToInches(dbDepthRaw) : dbDepthRaw;
+      return parseFloat(dbDepthInches.toFixed(3));
+    }
+
+    const cvDepth = toolData?.cvResponse?.dimensions?.depth_inches;
+    if (typeof cvDepth === "number" && cvDepth > 0)
+      return parseFloat(cvDepth.toFixed(3));
+
+    const dtDepthInches =
+      droppedTool.unit === "mm"
+        ? mmToInches(droppedTool.depth)
+        : droppedTool.depth;
+    if (typeof dtDepthInches === "number" && dtDepthInches > 0)
+      return parseFloat(dtDepthInches.toFixed(3));
+
+    return 0.2; // final fallback
+  };
+
+  // Helper function to convert pixel position to inches with bottom-left origin
+  const convertPositionToInches = (
+    pixelPosition: number,
+    canvasDimension: number,
+    isX: boolean = true
+  ): number => {
+    // Choose logical canvas size in inches for axis
+    const canvasInchesX = unit === "mm" ? mmToInches(canvasWidth) : canvasWidth;
+    const canvasInchesY =
+      unit === "mm" ? mmToInches(canvasHeight) : canvasHeight;
+
+    // Read actual rendered canvas size and remove zoom to get base CSS pixels
+    const canvasElement = document.querySelector(
+      '[data-canvas="true"]'
+    ) as HTMLDivElement;
+    const DPI = 96;
+
+    let baseWidthPx = canvasInchesX * DPI;
+    let baseHeightPx = canvasInchesY * DPI;
+
+    if (canvasElement) {
+      const rect = canvasElement.getBoundingClientRect();
+      // Get viewport zoom from the canvas transform
+      const transform = canvasElement.style.transform;
+      const scaleMatch = transform.match(/scale\(([^)]+)\)/);
+      const zoom = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+
+      baseWidthPx = rect.width / zoom;
+      baseHeightPx = rect.height / zoom;
+    }
+
+    // Pixels per inch for each axis
+    const ppiX = baseWidthPx / canvasInchesX;
+    const ppiY = baseHeightPx / canvasInchesY;
+
+    // Convert position
+    let inches = isX ? pixelPosition / ppiX : pixelPosition / ppiY;
+
+    // Bottom-left origin for Y
+    if (!isX) inches = canvasInchesY - inches;
+
+    return Number(inches.toFixed(2));
+  };
+
+  // Helper function to get tool dimensions (aligned with Canvas.tsx)
+  const getToolDimensions = (tool: DroppedTool) => {
+    const DPI = 96;
+    const mmToPx = (mm: number) => (mm / 25.4) * DPI;
+    const inchesToPx = (inches: number) => inches * DPI;
+
+    // Shapes and finger cuts: convert stored width/length (mm/inches) to pixels
+    if (tool.toolBrand === "SHAPE" || tool.metadata?.isFingerCut) {
+      const widthPx =
+        tool.unit === "mm"
+          ? mmToPx(tool.width || 0)
+          : inchesToPx(tool.width || 0);
+      const heightPx =
+        tool.unit === "mm"
+          ? mmToPx(tool.length || 0)
+          : inchesToPx(tool.length || 0);
+
+      return {
+        toolWidth: Math.max(20, widthPx),
+        toolHeight: Math.max(20, heightPx),
+      };
+    }
+
+    // Image tools: use metadata.length (treated as height) + aspect ratio
+    if (tool.metadata?.length) {
+      const toolHeightPx = inchesToPx(tool.metadata.length);
+
+      let aspectRatio = 1.6;
+      if (
+        tool.metadata?.naturalWidth &&
+        tool.metadata?.naturalHeight &&
+        tool.metadata.naturalWidth > 0 &&
+        tool.metadata.naturalHeight > 0
+      ) {
+        aspectRatio = tool.metadata.naturalWidth / tool.metadata.naturalHeight;
+      }
+
+      const toolWidthPx = toolHeightPx * aspectRatio;
+
+      return {
+        toolWidth: Math.max(20, toolWidthPx),
+        toolHeight: Math.max(20, toolHeightPx),
+      };
+    }
+
+    // Fallback for legacy cases
+    return {
+      toolWidth: tool.width || 50,
+      toolHeight: tool.length || 50,
     };
+  };
 
+  // Generate DXF file using Gradio
+  // Inside Header.tsx
+  const generateDxfFile = async () => {
+    if (droppedTools.length === 0) {
+      setSaveError(
+        "Cannot download DXF with no tools. Please add at least one tool."
+      );
+      return;
+    }
 
-    // Helpers to compute inches for length/depth using fetched tool or dropped tool
-    const toInches = (value: number | undefined, sourceUnit?: string) => {
-        if (typeof value !== 'number') return undefined;
-        return sourceUnit === 'mm' ? mmToInches(value) : value;
-    };
+    setIsDxfGenerating(true);
+    setSaveError(null);
 
-
-
-    const computeLengthInches = (droppedTool: DroppedTool, fetchedTool: FetchedTool) => {
-        const cvLen = fetchedTool?.cvResponse?.dimensions?.length_inches;
-        if (typeof cvLen === 'number' && cvLen > 0) return parseFloat(cvLen.toFixed(3));
-
-        const dbLen = toInches(fetchedTool?.length, fetchedTool?.unit);
-        if (typeof dbLen === 'number' && dbLen > 0) return parseFloat(dbLen.toFixed(3));
-
-        const dtLen = toInches(droppedTool.length, droppedTool.unit);
-        if (typeof dtLen === 'number' && dtLen > 0) return parseFloat(dtLen.toFixed(3));
-
-        return 5.0; // final fallback
-    };
-
-    const computeDepthInches = async (droppedTool: DroppedTool, fetchedTool?: FetchedTool): Promise<number> => {
-        let toolData = fetchedTool;
-
-        // Fetch tool from DB if not provided and not a shape/finger cut
-        const isShape = droppedTool.toolBrand === 'SHAPE';
-        const isFingerCut = droppedTool.toolBrand === 'FINGERCUT' || droppedTool.metadata?.isFingerCut;
-        if (!toolData && !isShape && !isFingerCut) {
-            const authToken = getAuthToken();
-            if (authToken) {
-                const toolId = droppedTool.metadata?.originalId || droppedTool.id.split('-').slice(0, -1).join('-');
-                try {
-                    const res = await fetch(`/api/user/tool/getTool?toolId=${toolId}`, {
-                        headers: { Authorization: `Bearer ${authToken}` },
-                    });
-                    if (res.ok) {
-                        const json = await res.json();
-                        toolData = json.tool;
-                    }
-                } catch { }
-            }
-        }
-
-        const cvDepth = toolData?.cvResponse?.dimensions?.depth_inches;
-        if (typeof cvDepth === 'number' && cvDepth > 0) return parseFloat(cvDepth.toFixed(3));
-
-        const dbDepthRaw = toolData?.depth;
-        const dbDepthUnit = toolData?.unit;
-        if (typeof dbDepthRaw === 'number' && dbDepthRaw > 0) {
-            const dbDepthInches = dbDepthUnit === 'mm' ? mmToInches(dbDepthRaw) : dbDepthRaw;
-            return parseFloat(dbDepthInches.toFixed(3));
-        }
-
-        const dtDepthInches = droppedTool.unit === 'mm' ? mmToInches(droppedTool.depth) : droppedTool.depth;
-        if (typeof dtDepthInches === 'number' && dtDepthInches > 0) return parseFloat(dtDepthInches.toFixed(3));
-
-        return 0.2; // final fallback
-    };
-
-
-    // Helper function to convert pixel position to inches with bottom-left origin
-    const convertPositionToInches = (
-        pixelPosition: number,
-        canvasDimension: number,
-        isX: boolean = true
-    ): number => {
-        // Choose logical canvas size in inches for axis
-        const canvasInchesX = unit === 'mm' ? mmToInches(canvasWidth) : canvasWidth;
-        const canvasInchesY = unit === 'mm' ? mmToInches(canvasHeight) : canvasHeight;
-
-        // Read actual rendered canvas size and remove zoom to get base CSS pixels
-        const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLDivElement;
-        const DPI = 96;
-
-        let baseWidthPx = canvasInchesX * DPI;
-        let baseHeightPx = canvasInchesY * DPI;
-
-        if (canvasElement) {
-            const rect = canvasElement.getBoundingClientRect();
-            // Get viewport zoom from the canvas transform
-            const transform = canvasElement.style.transform;
-            const scaleMatch = transform.match(/scale\(([^)]+)\)/);
-            const zoom = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
-
-            baseWidthPx = rect.width / zoom;
-            baseHeightPx = rect.height / zoom;
-        }
-
-        // Pixels per inch for each axis
-        const ppiX = baseWidthPx / canvasInchesX;
-        const ppiY = baseHeightPx / canvasInchesY;
-
-        // Convert position
-        let inches = isX ? pixelPosition / ppiX : pixelPosition / ppiY;
-
-        // Bottom-left origin for Y
-        if (!isX) inches = canvasInchesY - inches;
-
-        return Number(inches.toFixed(2));
-    };
-
-    // Helper function to get tool dimensions (aligned with Canvas.tsx)
-    const getToolDimensions = (tool: DroppedTool) => {
-        const DPI = 96;
-        const mmToPx = (mm: number) => (mm / 25.4) * DPI;
-        const inchesToPx = (inches: number) => inches * DPI;
-
-        // Shapes and finger cuts: convert stored width/length (mm/inches) to pixels
-        if (tool.toolBrand === 'SHAPE' || tool.metadata?.isFingerCut) {
-            const widthPx =
-                tool.unit === 'mm'
-                    ? mmToPx(tool.width || 0)
-                    : inchesToPx(tool.width || 0);
-            const heightPx =
-                tool.unit === 'mm'
-                    ? mmToPx(tool.length || 0)
-                    : inchesToPx(tool.length || 0);
-
-            return {
-                toolWidth: Math.max(20, widthPx),
-                toolHeight: Math.max(20, heightPx),
-            };
-        }
-
-        // Image tools: use metadata.length (treated as height) + aspect ratio
-        if (tool.metadata?.length) {
-            const toolHeightPx = inchesToPx(tool.metadata.length);
-
-            let aspectRatio = 1.6;
-            if (
-                tool.metadata?.naturalWidth &&
-                tool.metadata?.naturalHeight &&
-                tool.metadata.naturalWidth > 0 &&
-                tool.metadata.naturalHeight > 0
-            ) {
-                aspectRatio = tool.metadata.naturalWidth / tool.metadata.naturalHeight;
-            }
-
-            const toolWidthPx = toolHeightPx * aspectRatio;
-
-            return {
-                toolWidth: Math.max(20, toolWidthPx),
-                toolHeight: Math.max(20, toolHeightPx),
-            };
-        }
-
-        // Fallback for legacy cases
-        return {
-            toolWidth: tool.width || 50,
-            toolHeight: tool.length || 50,
-        };
-    };
-
-    // Generate DXF file using Gradio
-    // Inside Header.tsx
-    const generateDxfFile = async () => {
-        if (droppedTools.length === 0) {
-            setSaveError("Cannot download DXF with no tools. Please add at least one tool.");
-            return;
-        }
-
-        setIsDxfGenerating(true);
-        setSaveError(null);
-
+    try {
+      // Get metadata
+      let layoutName = "Tool Layout";
+      const sessionData = sessionStorage.getItem("layoutForm");
+      if (sessionData) {
         try {
-            // Get metadata
-            let layoutName = "Tool Layout";
-            const sessionData = sessionStorage.getItem("layoutForm");
-            if (sessionData) {
-                try {
-                    const layoutForm = JSON.parse(sessionData) as LayoutFormData;
-                    layoutName = layoutForm.layoutName || "Tool Layout";
-                } catch (err) {
-                    console.error("Error parsing session data:", err);
-                }
-            }
-
-            // Convert canvas dimensions to inches
-            const canvasWidthInches = unit === "mm" ? mmToInches(canvasWidth) : canvasWidth;
-            const canvasHeightInches = unit === "mm" ? mmToInches(canvasHeight) : canvasHeight;
-            const canvasThicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
-
-            const authToken = localStorage.getItem("auth-token");
-            if (!authToken) throw new Error("Missing auth token");
-
-            // Prepare arrays for tools and shapes
-            const tools: ToolPayload[] = [];
-            const shapes: ShapePayload[] = [];
-
-            // Process all dropped items
-            for (const droppedTool of droppedTools) {
-                // Get tool dimensions to calculate bottom-left position
-                const { toolHeight } = getToolDimensions(droppedTool);
-
-                // Convert positions to inches with bottom-left origin for Y
-                const xInches = convertPositionToInches(droppedTool.x, canvasWidth, true);
-                const yInches = convertPositionToInches(droppedTool.y + toolHeight, canvasHeight, false);
-
-                // Treat shapes and finger cuts as custom shapes
-                const isShape = droppedTool.toolBrand === 'SHAPE';
-                const isFingerCut = droppedTool.toolBrand === 'FINGERCUT' || droppedTool.metadata?.isFingerCut;
-
-                if (isShape || isFingerCut) {
-                    let shapeType: 'rectangle' | 'circle' | 'polygon' = 'rectangle';
-                    type ShapeData =
-                        | { width_inches: number; height_inches: number }
-                        | { radius_inches: number }
-                        | { points: { x: number; y: number }[] };
-
-                    let shapeData: ShapeData;
-                    let name = droppedTool.name;
-
-                    if (isFingerCut || droppedTool.name.toLowerCase().includes('finger')) {
-                        // Finger Cut: rectangle using width × length
-                        const widthInches = unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
-                        const heightInches = unit === "mm" ? mmToInches(droppedTool.length) : droppedTool.length;
-                        shapeData = { width_inches: widthInches, height_inches: heightInches };
-                        shapeType = 'rectangle';
-                        name = "Finger Cut Rectangle";
-                    } else if (droppedTool.name.toLowerCase().includes('circle') || droppedTool.image?.includes('circle.svg')) {
-                        // Circle: radius from diameter (max of width/length)
-                        shapeType = 'circle';
-                        const diameter = Math.max(droppedTool.width, droppedTool.length);
-                        const radiusInches = unit === "mm" ? mmToInches(diameter / 2) : diameter / 2;
-                        shapeData = { radius_inches: radiusInches };
-                    } else if (droppedTool.name.toLowerCase().includes('polygon')) {
-                        // Polygon: simple rectangle path (extend as needed)
-                        shapeType = 'polygon';
-                        const widthInches = unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
-                        const heightInches = unit === "mm" ? mmToInches(droppedTool.length) : droppedTool.length;
-                        shapeData = {
-                            points: [
-                                { x: 0, y: 0 },
-                                { x: widthInches, y: 0 },
-                                { x: widthInches, y: heightInches },
-                                { x: 0, y: heightInches }
-                            ]
-                        };
-                    } else {
-                        // Default rectangle
-                        const widthInches = unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
-                        const heightInches = unit === "mm" ? mmToInches(droppedTool.length) : droppedTool.length;
-                        shapeData = { width_inches: widthInches, height_inches: heightInches };
-                        shapeType = 'rectangle';
-                    }
-
-                    // Push shape entry in the payload
-                    shapes.push({
-                        tool_id: droppedTool.id,
-                        name,
-                        brand: "Custom",
-                        is_custom_shape: true,
-                        shape_type: shapeType,
-                        shape_data: shapeData,
-                        position_inches: { x: xInches, y: yInches },
-                        rotation_degrees: droppedTool.rotation || 0
-                    });
-
-                    continue; // Skip the regular tool branch for shapes
-                }
-
-                // Regular tool: fetch dxf_link and include standard fields
-                const toolId = droppedTool.metadata?.originalId || droppedTool.id.split('-').slice(0, -1).join('-');
-                const toolRes = await fetch(`/api/user/tool/getTool?toolId=${toolId}`, {
-                    headers: { Authorization: `Bearer ${authToken}` },
-                });
-
-                if (!toolRes.ok) {
-                    throw new Error(`Failed to fetch tool data for ID: ${toolId}`);
-                }
-
-                const { tool } = await toolRes.json();
-
-                if (!tool?.cvResponse?.dxf_url) {
-                    throw new Error(`Tool ${toolId} has no DXF link`);
-                }
-
-                tools.push({
-                    tool_id: toolId,
-                    name: droppedTool.name,
-                    brand: tool.toolBrand || "Brand",
-                    dxf_link: (tool.cvResponse.dxf_url || '').trim(),
-                    position_inches: { x: xInches, y: yInches },
-                    rotation_degrees: droppedTool.rotation || 0,
-                    height_diagonal_inches: computeLengthInches(droppedTool, tool),
-                    depth_inches: await computeDepthInches(droppedTool, tool),
-                    flip_horizontal: droppedTool.flipHorizontal || false,
-                    flip_vertical: droppedTool.flipVertical || false,
-                    opacity: droppedTool.opacity || 100,
-                    smooth: droppedTool.smooth || 0
-                });
-            }
-
-            // Prepare the request data (tools + shapes together)
-            const requestData = {
-                canvas_information: {
-                    width_inches: canvasWidthInches,
-                    height_inches: canvasHeightInches,
-                    thickness_inches: canvasThicknessInches,
-                    has_overlaps: hasOverlaps,
-                },
-                layout_metadata: {
-                    layout_name: layoutName,
-                    brand: "CustomBrand",      // TODO: wire to sessionForm if available
-                    container_type: "Drawer",  // TODO: wire to sessionForm if available
-                },
-                tools: [...tools, ...shapes],
-                output_filename: `${layoutName.replace(/\s+/g, "_")}-layout.dxf`,
-                upload_to_s3: true,
-            };
-
-            console.log("Sending to Canvas DXF API:", requestData);
-
-            // Update the fetch call to use our proxy API
-            const response = await fetch(
-                "/api/dxf-proxy",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(requestData),
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error(`Request failed with status ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (!data.success) {
-                throw new Error(data.error || "Failed to download DXF file");
-            }
-
-            // Download the file
-            if (data.s3_url) {
-                const link = document.createElement("a");
-                link.href = data.s3_url;
-                link.download = data.output_filename || requestData.output_filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
-                setShowDropdown(false);
-                console.log("DXF file downloaded successfully");
-            } else {
-                throw new Error("No download URL provided in the response");
-            }
+          const layoutForm = JSON.parse(sessionData) as LayoutFormData;
+          layoutName = layoutForm.layoutName || "Tool Layout";
         } catch (err) {
-            console.error("Error downloading DXF:", err);
-            setSaveError(err instanceof Error ? err.message : "Failed to download DXF file");
-        } finally {
-            setIsDxfGenerating(false);
+          console.error("Error parsing session data:", err);
         }
-    };
+      }
 
-    // Generate comprehensive text file data (always in inches + diagonal height + position in inches)
-    const generateTextFileData = (): string => {
-        const timestamp = new Date().toISOString();
+      // Convert canvas dimensions to inches
+      const canvasWidthInches =
+        unit === "mm" ? mmToInches(canvasWidth) : canvasWidth;
+      const canvasHeightInches =
+        unit === "mm" ? mmToInches(canvasHeight) : canvasHeight;
+      const canvasThicknessInches =
+        unit === "mm" ? mmToInches(thickness) : thickness;
 
-        let content = `Tool Layout Export\n`;
-        content += `Generated: ${timestamp}\n`;
-        content += `${'='.repeat(50)}\n\n`;
+      const authToken = localStorage.getItem("auth-token");
+      if (!authToken) throw new Error("Missing auth token");
 
-        // Canvas Information
-        content += `CANVAS INFORMATION\n`;
-        content += `${'-'.repeat(20)}\n`;
-        content += `Width: ${unit === 'mm' ? mmToInches(canvasWidth).toFixed(2) : canvasWidth} inches\n`;
-        content += `Height: ${unit === 'mm' ? mmToInches(canvasHeight).toFixed(2) : canvasHeight} inches\n`;
-        content += `Thickness: ${unit === 'mm' ? mmToInches(thickness).toFixed(2) : thickness} inches\n`;
-        content += `Has Overlaps: ${hasOverlaps ? 'Yes' : 'No'}\n`;
-        content += `Total Tools: ${droppedTools.length}\n\n`;
+      // Prepare arrays for tools and shapes
+      const tools: ToolPayload[] = [];
+      const shapes: ShapePayload[] = [];
 
-        // Session Data
-        const sessionData = sessionStorage.getItem('layoutForm');
-        if (sessionData) {
-            try {
-                const layoutForm = JSON.parse(sessionData) as LayoutFormData;
-                content += `LAYOUT METADATA\n`;
-                content += `${'-'.repeat(20)}\n`;
-                content += `Layout Name: ${layoutForm.layoutName || 'N/A'}\n`;
-            } catch (error) {
-                console.error('Error parsing session data:', error);
-            }
+      // Process all dropped items
+      for (const droppedTool of droppedTools) {
+        // Get tool dimensions to calculate bottom-left position
+        const { toolHeight } = getToolDimensions(droppedTool);
+
+        // Convert positions to inches with bottom-left origin for Y
+        const xInches = convertPositionToInches(
+          droppedTool.x,
+          canvasWidth,
+          true
+        );
+        const yInches = convertPositionToInches(
+          droppedTool.y + toolHeight,
+          canvasHeight,
+          false
+        );
+
+        // Treat shapes and finger cuts as custom shapes
+        const isShape = droppedTool.toolBrand === "SHAPE";
+        const isFingerCut =
+          droppedTool.toolBrand === "FINGERCUT" ||
+          droppedTool.metadata?.isFingerCut;
+
+        if (isShape || isFingerCut) {
+          let shapeType: "rectangle" | "circle" | "polygon" = "rectangle";
+          type ShapeData =
+            | { width_inches: number; height_inches: number }
+            | { radius_inches: number }
+            | { points: { x: number; y: number }[] };
+
+          let shapeData: ShapeData;
+          let name = droppedTool.name;
+
+          if (
+            isFingerCut ||
+            droppedTool.name.toLowerCase().includes("finger")
+          ) {
+            // Finger Cut: rectangle using width × length
+            const widthInches =
+              unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
+            const heightInches =
+              unit === "mm"
+                ? mmToInches(droppedTool.length)
+                : droppedTool.length;
+            shapeData = {
+              width_inches: widthInches,
+              height_inches: heightInches,
+            };
+            shapeType = "rectangle";
+            name = "Finger Cut Rectangle";
+          } else if (
+            droppedTool.name.toLowerCase().includes("circle") ||
+            droppedTool.image?.includes("circle.svg")
+          ) {
+            // Circle: radius from diameter (max of width/length)
+            shapeType = "circle";
+            const diameter = Math.max(droppedTool.width, droppedTool.length);
+            const radiusInches =
+              unit === "mm" ? mmToInches(diameter / 2) : diameter / 2;
+            shapeData = { radius_inches: radiusInches };
+          } else if (droppedTool.name.toLowerCase().includes("polygon")) {
+            // Polygon: simple rectangle path (extend as needed)
+            shapeType = "polygon";
+            const widthInches =
+              unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
+            const heightInches =
+              unit === "mm"
+                ? mmToInches(droppedTool.length)
+                : droppedTool.length;
+            shapeData = {
+              points: [
+                { x: 0, y: 0 },
+                { x: widthInches, y: 0 },
+                { x: widthInches, y: heightInches },
+                { x: 0, y: heightInches },
+              ],
+            };
+          } else {
+            // Default rectangle
+            const widthInches =
+              unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
+            const heightInches =
+              unit === "mm"
+                ? mmToInches(droppedTool.length)
+                : droppedTool.length;
+            shapeData = {
+              width_inches: widthInches,
+              height_inches: heightInches,
+            };
+            shapeType = "rectangle";
+          }
+
+          // Push shape entry in the payload
+          shapes.push({
+            tool_id: droppedTool.id,
+            name,
+            brand: "Custom",
+            is_custom_shape: true,
+            shape_type: shapeType,
+            shape_data: shapeData,
+            position_inches: { x: xInches, y: yInches, z: 0 },
+            rotation_degrees: droppedTool.rotation || 0,
+            cut_depth_inches: 0.2,
+          });
+
+          continue; // Skip the regular tool branch for shapes
         }
 
-        // Tool Information
-        content += `TOOLS DETAILS\n`;
-        content += `${'-'.repeat(20)}\n`;
-
-        droppedTools.forEach((tool, index) => {
-            content += `Tool ${index + 1}:\n`;
-            content += `  ID: ${tool.id}\n`;
-            content += `  Original ID: ${tool.metadata?.originalId || 'N/A'}\n`;
-            content += `  Name: ${tool.name}\n`;
-            content += `  Brand: ${tool.toolBrand}\n`;
-
-            // Convert position from pixels to inches
-            const xInches = convertPositionToInches(tool.x, canvasWidth);
-            const yInches = convertPositionToInches(tool.y, canvasHeight);
-            content += `  Position (pixels): (${Math.round(tool.x)}, ${Math.round(tool.y)})\n`;
-            content += `  Position (inches): (${xInches.toFixed(2)}, ${yInches.toFixed(2)})\n`;
-
-            content += `  Rotation: ${tool.rotation}°\n`;
-
-            // Use length instead of width × length
-            if (tool.metadata?.length) {
-                content += `  Height (Diagonal): ${tool.metadata.length} inches\n`;
-            } else if (tool.width && tool.length) {
-                const diagonal = Math.sqrt(tool.width ** 2 + tool.length ** 2);
-                const diagInches = tool.unit === 'mm' ? mmToInches(diagonal).toFixed(2) : diagonal.toFixed(2);
-                content += `  Height (Diagonal): ${diagInches} inches (calculated)\n`;
-            } else {
-                content += `  Height (Diagonal): N/A\n`;
-            }
-
-            content += `  Depth: ${tool.unit === 'mm' ? mmToInches(tool.depth).toFixed(2) : tool.depth} inches\n`;
-            content += `  Flip Horizontal: ${tool.flipHorizontal}\n`;
-            content += `  Flip Vertical: ${tool.flipVertical}\n`;
-            content += `  Opacity: ${tool.opacity}%\n`;
-            content += `  Smooth: ${tool.smooth}\n`;
-
-            if (tool.groupId) {
-                content += `  Group ID: ${tool.groupId}\n`;
-            }
-
-            content += '\n';
+        // Regular tool: fetch dxf_link and include standard fields
+        const toolId =
+          droppedTool.metadata?.originalId ||
+          droppedTool.id.split("-").slice(0, -1).join("-");
+        const toolRes = await fetch(`/api/user/tool/getTool?toolId=${toolId}`, {
+          headers: { Authorization: `Bearer ${authToken}` },
         });
 
-        // Summary Statistics
-        content += `SUMMARY\n`;
-        content += `${'-'.repeat(20)}\n`;
-        const brands = [...new Set(droppedTools.map(tool => tool.toolBrand))];
-        const toolTypes = [...new Set(droppedTools.map(tool => tool.name))];
-
-        content += `Unique Brands: ${brands.join(', ')}\n`;
-        content += `Tool Types: ${toolTypes.join(', ')}\n`;
-        content += `Layout Valid: ${!hasOverlaps ? 'Yes' : 'No'}\n`;
-
-        return content;
-    };
-
-    // Download text file
-    const downloadTextFile = () => {
-        try {
-            const content = generateTextFileData();
-            const blob = new Blob([content], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const filename = `tool-layout-${timestamp}.txt`;
-
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-
-            setShowDropdown(false);
-        } catch (error) {
-            console.error('Error downloading text file:', error);
-            setSaveError('Failed to generate text file');
+        if (!toolRes.ok) {
+          throw new Error(`Failed to fetch tool data for ID: ${toolId}`);
         }
-    };
 
+        const { tool } = await toolRes.json();
 
-    // Replace the uploadToDigitalOcean function in your Header.tsx with this:
+        if (!tool?.cvResponse?.dxf_url) {
+          throw new Error(`Tool ${toolId} has no DXF link`);
+        }
 
-    const uploadToDigitalOcean = async (blob: Blob): Promise<string> => {
+        tools.push({
+          tool_id: toolId,
+          name: droppedTool.name,
+          brand: tool.toolBrand || "Brand",
+          dxf_link: (tool.cvResponse.dxf_url || "").trim(),
+          position_inches: { x: xInches, y: yInches, z: 0 },
+          rotation_degrees: droppedTool.rotation || 0,
+          height_diagonal_inches: computeLengthInches(droppedTool, tool),
+          depth_inches: await computeDepthInches(droppedTool, tool),
+          cut_depth_inches: await computeDepthInches(droppedTool, tool),
+          flip_horizontal: droppedTool.flipHorizontal || false,
+          flip_vertical: droppedTool.flipVertical || false,
+          opacity: droppedTool.opacity || 100,
+          smooth: droppedTool.smooth || 0,
+        });
+      }
+
+      // Prepare the request data (tools + shapes together)
+      const requestData = {
+        canvas_information: {
+          width_inches: canvasWidthInches,
+          height_inches: canvasHeightInches,
+          thickness_inches: canvasThicknessInches,
+          has_overlaps: hasOverlaps,
+        },
+        layout_metadata: {
+          layout_name: layoutName,
+          brand: "CustomBrand", // TODO: wire to sessionForm if available
+          container_type: "Drawer", // TODO: wire to sessionForm if available
+        },
+        tools: [...tools, ...shapes],
+        output_filename: `${layoutName.replace(/\s+/g, "_")}-layout.dxf`,
+        upload_to_s3: true,
+      };
+
+      console.log("Sending to Canvas DXF API:", requestData);
+
+      // Update the fetch call to use our proxy API
+      const response = await fetch("/api/dxf-proxy", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to download DXF file");
+      }
+
+      // Download the file
+      if (data.s3_url) {
+        const link = document.createElement("a");
+        link.href = data.s3_url;
+        link.download = data.output_filename || requestData.output_filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        setShowDropdown(false);
+        console.log("DXF file downloaded successfully");
+      } else {
+        throw new Error("No download URL provided in the response");
+      }
+    } catch (err) {
+      console.error("Error downloading DXF:", err);
+      setSaveError(
+        err instanceof Error ? err.message : "Failed to download DXF file"
+      );
+    } finally {
+      setIsDxfGenerating(false);
+    }
+  };
+
+  // Generate comprehensive text file data (always in inches + diagonal height + position in inches)
+  const generateTextFileData = (): string => {
+    const timestamp = new Date().toISOString();
+
+    let content = `Tool Layout Export\n`;
+    content += `Generated: ${timestamp}\n`;
+    content += `${"=".repeat(50)}\n\n`;
+
+    // Canvas Information
+    content += `CANVAS INFORMATION\n`;
+    content += `${"-".repeat(20)}\n`;
+    content += `Width: ${
+      unit === "mm" ? mmToInches(canvasWidth).toFixed(2) : canvasWidth
+    } inches\n`;
+    content += `Height: ${
+      unit === "mm" ? mmToInches(canvasHeight).toFixed(2) : canvasHeight
+    } inches\n`;
+    content += `Thickness: ${
+      unit === "mm" ? mmToInches(thickness).toFixed(2) : thickness
+    } inches\n`;
+    content += `Has Overlaps: ${hasOverlaps ? "Yes" : "No"}\n`;
+    content += `Total Tools: ${droppedTools.length}\n\n`;
+
+    // Session Data
+    const sessionData = sessionStorage.getItem("layoutForm");
+    if (sessionData) {
+      try {
+        const layoutForm = JSON.parse(sessionData) as LayoutFormData;
+        content += `LAYOUT METADATA\n`;
+        content += `${"-".repeat(20)}\n`;
+        content += `Layout Name: ${layoutForm.layoutName || "N/A"}\n`;
+      } catch (error) {
+        console.error("Error parsing session data:", error);
+      }
+    }
+
+    // Tool Information
+    content += `TOOLS DETAILS\n`;
+    content += `${"-".repeat(20)}\n`;
+
+    droppedTools.forEach((tool, index) => {
+      content += `Tool ${index + 1}:\n`;
+      content += `  ID: ${tool.id}\n`;
+      content += `  Original ID: ${tool.metadata?.originalId || "N/A"}\n`;
+      content += `  Name: ${tool.name}\n`;
+      content += `  Brand: ${tool.toolBrand}\n`;
+
+      // Convert position from pixels to inches
+      const xInches = convertPositionToInches(tool.x, canvasWidth);
+      const yInches = convertPositionToInches(tool.y, canvasHeight);
+      content += `  Position (pixels): (${Math.round(tool.x)}, ${Math.round(
+        tool.y
+      )})\n`;
+      content += `  Position (inches): (${xInches.toFixed(
+        2
+      )}, ${yInches.toFixed(2)})\n`;
+
+      content += `  Rotation: ${tool.rotation}°\n`;
+
+      // Use length instead of width × length
+      if (tool.metadata?.length) {
+        content += `  Height (Diagonal): ${tool.metadata.length} inches\n`;
+      } else if (tool.width && tool.length) {
+        const diagonal = Math.sqrt(tool.width ** 2 + tool.length ** 2);
+        const diagInches =
+          tool.unit === "mm"
+            ? mmToInches(diagonal).toFixed(2)
+            : diagonal.toFixed(2);
+        content += `  Height (Diagonal): ${diagInches} inches (calculated)\n`;
+      } else {
+        content += `  Height (Diagonal): N/A\n`;
+      }
+
+      content += `  Depth: ${
+        tool.unit === "mm" ? mmToInches(tool.depth).toFixed(2) : tool.depth
+      } inches\n`;
+      content += `  Flip Horizontal: ${tool.flipHorizontal}\n`;
+      content += `  Flip Vertical: ${tool.flipVertical}\n`;
+      content += `  Opacity: ${tool.opacity}%\n`;
+      content += `  Smooth: ${tool.smooth}\n`;
+
+      if (tool.groupId) {
+        content += `  Group ID: ${tool.groupId}\n`;
+      }
+
+      content += "\n";
+    });
+
+    // Summary Statistics
+    content += `SUMMARY\n`;
+    content += `${"-".repeat(20)}\n`;
+    const brands = [...new Set(droppedTools.map((tool) => tool.toolBrand))];
+    const toolTypes = [...new Set(droppedTools.map((tool) => tool.name))];
+
+    content += `Unique Brands: ${brands.join(", ")}\n`;
+    content += `Tool Types: ${toolTypes.join(", ")}\n`;
+    content += `Layout Valid: ${!hasOverlaps ? "Yes" : "No"}\n`;
+
+    return content;
+  };
+
+  // Download text file
+  const downloadTextFile = () => {
+    try {
+      const content = generateTextFileData();
+      const blob = new Blob([content], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      const filename = `tool-layout-${timestamp}.txt`;
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      setShowDropdown(false);
+    } catch (error) {
+      console.error("Error downloading text file:", error);
+      setSaveError("Failed to generate text file");
+    }
+  };
+
+  // Replace the uploadToDigitalOcean function in your Header.tsx with this:
+
+  const uploadToDigitalOcean = async (blob: Blob): Promise<string> => {
+    try {
+      // Create form data with the image blob
+      const formData = new FormData();
+      formData.append("image", blob, "layout.png");
+
+      // Upload through your own API endpoint (no CORS issues)
+      const response = await fetch("/api/upload-url", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.error || `HTTP ${response.status}: Upload failed`
+        );
+      }
+
+      const { success, fileUrl } = await response.json();
+
+      if (!success || !fileUrl) {
+        throw new Error("Invalid response from upload API");
+      }
+
+      console.log("Successfully uploaded image:", fileUrl);
+      return fileUrl;
+    } catch (error) {
+      console.error("Error uploading to DigitalOcean:", error);
+      throw new Error(
+        `Upload failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  };
+
+  // Capture and download layout image
+
+  const captureCanvasImage = async (): Promise<Blob> => {
+    const layoutElement = document.querySelector(
+      '[data-canvas="true"]'
+    ) as HTMLElement;
+    if (!layoutElement) {
+      throw new Error(
+        "Canvas element not found. Make sure the canvas has data-canvas='true' attribute."
+      );
+    }
+
+    // Save original styles to restore later
+    const originalTransform = layoutElement.style.transform;
+    const originalPosition = layoutElement.style.position;
+    const originalZIndex = layoutElement.style.zIndex;
+
+    try {
+      // Temporarily adjust styles for better screenshot
+      layoutElement.style.transform = "none";
+      layoutElement.style.position = "static";
+      layoutElement.style.zIndex = "auto";
+
+      // Wait a bit for styles to apply
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const dataUrl = await htmlToImage.toPng(layoutElement, {
+        backgroundColor: "#ffffff",
+        cacheBust: true,
+        pixelRatio: 1, // Adjust for quality vs file size
+        quality: 0.9,
+        width: layoutElement.offsetWidth,
+        height: layoutElement.offsetHeight,
+      });
+
+      // Convert base64 to Blob
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+
+      console.log(`Canvas image captured: ${blob.size} bytes`);
+      return blob;
+    } catch (error) {
+      console.error("Error capturing canvas image:", error);
+      throw new Error(
+        `Failed to capture image: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    } finally {
+      // Always restore original styles
+      layoutElement.style.transform = originalTransform;
+      layoutElement.style.position = originalPosition;
+      layoutElement.style.zIndex = originalZIndex;
+    }
+  };
+
+  const handleSaveAndExit = async (options?: { skipRedirect?: boolean }) => {
+    if (droppedTools.length === 0) {
+      setSaveError("Cannot save empty layout. Please add at least one tool.");
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+
+    let imageUrl: string | null = null;
+
+    try {
+      const authToken = getAuthToken();
+      if (!authToken)
+        throw new Error("Authentication required. Please log in again.");
+
+      let additionalData: LayoutFormData = {};
+      const sessionData = sessionStorage.getItem("layoutForm");
+      if (sessionData) {
         try {
-            // Create form data with the image blob
-            const formData = new FormData();
-            formData.append('image', blob, 'layout.png');
+          additionalData = JSON.parse(sessionData) as LayoutFormData;
+        } catch (error) {
+          console.error("Error parsing session data:", error);
+        }
+      }
 
-            // Upload through your own API endpoint (no CORS issues)
-            const response = await fetch('/api/upload-url', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${getAuthToken()}`
-                },
-                body: formData
-            });
+      // Step 1: Capture and upload image
+      try {
+        console.log("Capturing canvas image...");
+        const canvasBlob = await captureCanvasImage();
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || `HTTP ${response.status}: Upload failed`);
+        console.log("Uploading image to DigitalOcean...");
+        imageUrl = await uploadToDigitalOcean(canvasBlob);
+
+        console.log("Image uploaded successfully:", imageUrl);
+      } catch (imageError) {
+        console.warn("Failed to capture/upload image:", imageError);
+        // Continue saving without image - don't fail the entire operation
+        setSaveError(
+          "Warning: Could not save layout image, but layout data will still be saved."
+        );
+      }
+
+      // Step 2: Save layout data with image URL
+      const layoutData = {
+        name:
+          additionalData.layoutName ||
+          `Layout ${new Date().toLocaleDateString()}`,
+        canvas: {
+          width: additionalData.canvasWidth ?? canvasWidth,
+          height: additionalData.canvasHeight ?? canvasHeight,
+          unit: additionalData.units ?? unit,
+          thickness: additionalData.thickness ?? thickness,
+        },
+        tools: droppedTools.map((tool) => {
+          // Determine shape info
+          const isShape = tool.toolBrand === "SHAPE";
+          const isFingerCut =
+            tool.toolBrand === "FINGERCUT" || tool.metadata?.isFingerCut;
+
+          let shapeType: "rectangle" | "circle" | "polygon" | undefined;
+          let shapeData: Record<string, unknown> | undefined;
+
+          if (isShape || isFingerCut) {
+            if (isFingerCut || tool.name.toLowerCase().includes("finger")) {
+              const widthInches =
+                unit === "mm" ? mmToInches(tool.width) : tool.width;
+              const heightInches =
+                unit === "mm" ? mmToInches(tool.length) : tool.length;
+              shapeType = "rectangle";
+              shapeData = {
+                width_inches: widthInches,
+                height_inches: heightInches,
+              };
+            } else if (
+              tool.name.toLowerCase().includes("circle") ||
+              (tool.image || "").includes("circle.svg")
+            ) {
+              const diameter = Math.max(tool.width, tool.length);
+              const radiusInches =
+                unit === "mm" ? mmToInches(diameter / 2) : diameter / 2;
+              shapeType = "circle";
+              shapeData = { radius_inches: radiusInches };
+            } else if (tool.name.toLowerCase().includes("polygon")) {
+              const widthInches =
+                unit === "mm" ? mmToInches(tool.width) : tool.width;
+              const heightInches =
+                unit === "mm" ? mmToInches(tool.length) : tool.length;
+              shapeType = "polygon";
+              shapeData = {
+                points: [
+                  { x: 0, y: 0 },
+                  { x: widthInches, y: 0 },
+                  { x: widthInches, y: heightInches },
+                  { x: 0, y: heightInches },
+                ],
+              };
+            } else {
+              const widthInches =
+                unit === "mm" ? mmToInches(tool.width) : tool.width;
+              const heightInches =
+                unit === "mm" ? mmToInches(tool.length) : tool.length;
+              shapeType = "rectangle";
+              shapeData = {
+                width_inches: widthInches,
+                height_inches: heightInches,
+              };
             }
+          }
 
-            const { success, fileUrl } = await response.json();
-
-            if (!success || !fileUrl) {
-                throw new Error('Invalid response from upload API');
-            }
-
-            console.log('Successfully uploaded image:', fileUrl);
-            return fileUrl;
-
-        } catch (error) {
-            console.error('Error uploading to DigitalOcean:', error);
-            throw new Error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-    };
-
-
-    // Capture and download layout image
-
-    const captureCanvasImage = async (): Promise<Blob> => {
-        const layoutElement = document.querySelector('[data-canvas="true"]') as HTMLElement;
-        if (!layoutElement) {
-            throw new Error("Canvas element not found. Make sure the canvas has data-canvas='true' attribute.");
-        }
-
-        // Save original styles to restore later
-        const originalTransform = layoutElement.style.transform;
-        const originalPosition = layoutElement.style.position;
-        const originalZIndex = layoutElement.style.zIndex;
-
-        try {
-            // Temporarily adjust styles for better screenshot
-            layoutElement.style.transform = "none";
-            layoutElement.style.position = "static";
-            layoutElement.style.zIndex = "auto";
-
-            // Wait a bit for styles to apply
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            const dataUrl = await htmlToImage.toPng(layoutElement, {
-                backgroundColor: "#ffffff",
-                cacheBust: true,
-                pixelRatio: 1, // Adjust for quality vs file size
-                quality: 0.9,
-                width: layoutElement.offsetWidth,
-                height: layoutElement.offsetHeight,
-            });
-
-            // Convert base64 to Blob
-            const res = await fetch(dataUrl);
-            const blob = await res.blob();
-
-            console.log(`Canvas image captured: ${blob.size} bytes`);
-            return blob;
-
-        } catch (error) {
-            console.error("Error capturing canvas image:", error);
-            throw new Error(`Failed to capture image: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        } finally {
-            // Always restore original styles
-            layoutElement.style.transform = originalTransform;
-            layoutElement.style.position = originalPosition;
-            layoutElement.style.zIndex = originalZIndex;
-        }
-    };
-
-
-
-    const handleSaveAndExit = async (options?: { skipRedirect?: boolean }) => {
-        if (droppedTools.length === 0) {
-            setSaveError("Cannot save empty layout. Please add at least one tool.");
-            return;
-        }
-
-        setIsSaving(true);
-        setSaveError(null);
-        setSaveSuccess(false);
-
-        let imageUrl: string | null = null;
-
-        try {
-            const authToken = getAuthToken();
-            if (!authToken) throw new Error("Authentication required. Please log in again.");
-
-            let additionalData: LayoutFormData = {};
-            const sessionData = sessionStorage.getItem("layoutForm");
-            if (sessionData) {
-                try {
-                    additionalData = JSON.parse(sessionData) as LayoutFormData;
-                } catch (error) {
-                    console.error("Error parsing session data:", error);
+          const base = {
+            id: tool.id,
+            originalId: tool.metadata?.originalId,
+            name: tool.name,
+            x: convertPositionToInches(tool.x, canvasWidth, true),
+            y: convertPositionToInches(tool.y, canvasHeight, false),
+            rotation: tool.rotation,
+            flipHorizontal: tool.flipHorizontal,
+            flipVertical: tool.flipVertical,
+            depth: tool.depth,
+            unit: tool.unit,
+            opacity: tool.opacity || 100,
+            smooth: tool.smooth || 0,
+            image: tool.image,
+            groupId: tool.groupId,
+            // NEW: compute and persist real physical dimensions
+            realWidth: (() => {
+              if (tool.metadata?.length) {
+                const heightInches = tool.metadata.length;
+                let aspect = 1.6;
+                if (
+                  tool.metadata?.naturalWidth &&
+                  tool.metadata?.naturalHeight &&
+                  tool.metadata.naturalHeight > 0
+                ) {
+                  aspect =
+                    tool.metadata.naturalWidth / tool.metadata.naturalHeight;
                 }
-            }
+                const widthInches = heightInches * aspect;
+                return tool.unit === "mm" ? widthInches * 25.4 : widthInches;
+              }
+              // shapes and non-image tools: use current width/length (already in tool.unit)
+              if (typeof tool.width === "number") return tool.width;
+              return undefined;
+            })(),
+            realHeight: (() => {
+              if (tool.metadata?.length) {
+                const heightInches = tool.metadata.length;
+                return tool.unit === "mm" ? heightInches * 25.4 : heightInches;
+              }
+              if (typeof tool.length === "number") return tool.length;
+              return undefined;
+            })(),
+            metadata: tool.metadata,
+          };
 
-            // Step 1: Capture and upload image
-            try {
-                console.log("Capturing canvas image...");
-                const canvasBlob = await captureCanvasImage();
+          return shapeType
+            ? { ...base, isCustomShape: true, shapeType, shapeData }
+            : base;
+        }),
+        stats: {
+          totalTools: droppedTools.length,
+          validLayout: !hasOverlaps,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        snapshotUrl: imageUrl, // Will be null if upload failed
+        ...additionalData,
+      };
 
-                console.log("Uploading image to DigitalOcean...");
-                imageUrl = await uploadToDigitalOcean(canvasBlob);
+      console.log("Saving layout data:", {
+        ...layoutData,
+        snapshotUrl: imageUrl ? "✅ Included" : "❌ Failed",
+      });
 
-                console.log("Image uploaded successfully:", imageUrl);
-            } catch (imageError) {
-                console.warn("Failed to capture/upload image:", imageError);
-                // Continue saving without image - don't fail the entire operation
-                setSaveError("Warning: Could not save layout image, but layout data will still be saved.");
-            }
-
-            // Step 2: Save layout data with image URL
-            const layoutData = {
-                name: additionalData.layoutName || `Layout ${new Date().toLocaleDateString()}`,
-                canvas: {
-                    width: additionalData.canvasWidth ?? canvasWidth,
-                    height: additionalData.canvasHeight ?? canvasHeight,
-                    unit: additionalData.units ?? unit,
-                    thickness: additionalData.thickness ?? thickness,
-                },
-                tools: droppedTools.map((tool) => {
-                    // Determine shape info
-                    const isShape = tool.toolBrand === 'SHAPE';
-                    const isFingerCut = tool.toolBrand === 'FINGERCUT' || tool.metadata?.isFingerCut;
-
-                    let shapeType: 'rectangle' | 'circle' | 'polygon' | undefined;
-                    let shapeData: Record<string, unknown> | undefined;
-
-                    if (isShape || isFingerCut) {
-                        if (isFingerCut || tool.name.toLowerCase().includes('finger')) {
-                            const widthInches = unit === "mm" ? mmToInches(tool.width) : tool.width;
-                            const heightInches = unit === "mm" ? mmToInches(tool.length) : tool.length;
-                            shapeType = 'rectangle';
-                            shapeData = { width_inches: widthInches, height_inches: heightInches };
-                        } else if (tool.name.toLowerCase().includes('circle') || (tool.image || '').includes('circle.svg')) {
-                            const diameter = Math.max(tool.width, tool.length);
-                            const radiusInches = unit === "mm" ? mmToInches(diameter / 2) : diameter / 2;
-                            shapeType = 'circle';
-                            shapeData = { radius_inches: radiusInches };
-                        } else if (tool.name.toLowerCase().includes('polygon')) {
-                            const widthInches = unit === "mm" ? mmToInches(tool.width) : tool.width;
-                            const heightInches = unit === "mm" ? mmToInches(tool.length) : tool.length;
-                            shapeType = 'polygon';
-                            shapeData = {
-                                points: [
-                                    { x: 0, y: 0 },
-                                    { x: widthInches, y: 0 },
-                                    { x: widthInches, y: heightInches },
-                                    { x: 0, y: heightInches }
-                                ]
-                            };
-                        } else {
-                            const widthInches = unit === "mm" ? mmToInches(tool.width) : tool.width;
-                            const heightInches = unit === "mm" ? mmToInches(tool.length) : tool.length;
-                            shapeType = 'rectangle';
-                            shapeData = { width_inches: widthInches, height_inches: heightInches };
-                        }
-                    }
-
-                    const base = {
-                        id: tool.id,
-                        originalId: tool.metadata?.originalId,
-                        name: tool.name,
-                        x: convertPositionToInches(tool.x, canvasWidth, true),
-                        y: convertPositionToInches(tool.y, canvasHeight, false),
-                        rotation: tool.rotation,
-                        flipHorizontal: tool.flipHorizontal,
-                        flipVertical: tool.flipVertical,
-                        depth: tool.depth,
-                        unit: tool.unit,
-                        opacity: tool.opacity || 100,
-                        smooth: tool.smooth || 0,
-                        image: tool.image,
-                        groupId: tool.groupId,
-                        // NEW: compute and persist real physical dimensions
-                        realWidth: (() => {
-                            if (tool.metadata?.length) {
-                                const heightInches = tool.metadata.length;
-                                let aspect = 1.6;
-                                if (
-                                    tool.metadata?.naturalWidth &&
-                                    tool.metadata?.naturalHeight &&
-                                    tool.metadata.naturalHeight > 0
-                                ) {
-                                    aspect = tool.metadata.naturalWidth / tool.metadata.naturalHeight;
-                                }
-                                const widthInches = heightInches * aspect;
-                                return tool.unit === 'mm' ? widthInches * 25.4 : widthInches;
-                            }
-                            // shapes and non-image tools: use current width/length (already in tool.unit)
-                            if (typeof tool.width === 'number') return tool.width;
-                            return undefined;
-                        })(),
-                        realHeight: (() => {
-                            if (tool.metadata?.length) {
-                                const heightInches = tool.metadata.length;
-                                return tool.unit === 'mm' ? heightInches * 25.4 : heightInches;
-                            }
-                            if (typeof tool.length === 'number') return tool.length;
-                            return undefined;
-                        })(),
-                        metadata: tool.metadata,
-                    };
-
-                    return shapeType
-                        ? { ...base, isCustomShape: true, shapeType, shapeData }
-                        : base;
-                }),
-                stats: {
-                    totalTools: droppedTools.length,
-                    validLayout: !hasOverlaps,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                },
-                snapshotUrl: imageUrl, // Will be null if upload failed
-                ...additionalData,
-            };
-
-            console.log("Saving layout data:", { ...layoutData, snapshotUrl: imageUrl ? "✅ Included" : "❌ Failed" });
-
-            const editingLayoutId = (() => {
-                try { return sessionStorage.getItem('editingLayoutId'); } catch { return null; }
-            })();
-
-            // Always update when an editing id exists
-            const endpoint = editingLayoutId
-                ? `/api/layouts?id=${editingLayoutId}`
-                : `/api/layouts`;
-
-            const method = editingLayoutId ? "PUT" : "POST";
-
-            const response = await fetch(endpoint, {
-                method,
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${authToken}`,
-                },
-                body: JSON.stringify(layoutData),
-            });
-
-            const result = await response.json();
-            if (!response.ok || !result.success) {
-                throw new Error(result.error || "Failed to save layout");
-            }
-
-            // Derive id + snapshotUrl from response
-            const savedLayoutId = method === "POST"
-                ? String(result.id)
-                : String(editingLayoutId || result.data?._id);
-
-            const savedSnapshotUrl: string | null = method === "POST"
-                ? (result.snapshotUrl ?? null)
-                : (result.data?.snapshotUrl ?? null);
-
-            // Persist editing id for subsequent updates (no duplicates)
-            try { sessionStorage.setItem('editingLayoutId', savedLayoutId); } catch { }
-
-            setSaveError(null);
-            setSaveSuccess(true);
-
-            // Only clear form data when redirecting; keep it for Add to Cart
-            if (!options?.skipRedirect) {
-                try { sessionStorage.removeItem("layoutForm"); } catch { }
-            }
-
-            // if (!options?.skipRedirect) {
-            //     setTimeout(() => {
-            //         onSaveLayout?.();
-            //         window.location.href = "/workspace";
-            //     }, 1500);
-            // }
-
-            // Return for callers like Add to Cart
-            return { id: savedLayoutId, snapshotUrl: savedSnapshotUrl };
-
-        } catch (error) {
-            console.error("Error saving layout:", error);
-            setSaveError(error instanceof Error ? error.message : "Failed to save layout");
-        } finally {
-            setIsSaving(false);
+      const editingLayoutId = (() => {
+        try {
+          return sessionStorage.getItem("editingLayoutId");
+        } catch {
+          return null;
         }
-    };
+      })();
 
+      // Always update when an editing id exists
+      const endpoint = editingLayoutId
+        ? `/api/layouts?id=${editingLayoutId}`
+        : `/api/layouts`;
 
-    const handleExit = () => {
-        try { sessionStorage.removeItem("layoutForm"); } catch { }
-        window.location.href = "/workspace";
-    };
+      const method = editingLayoutId ? "PUT" : "POST";
 
-
-    const exportOptions = [
-        {
-            icon: File,
-            label: 'Download DXF File',
-            action: generateDxfFile,
-            disabled: droppedTools.length === 0,
-            loading: isDxfGenerating
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
         },
-        {
-            icon: ShoppingCart,
-            label: 'Add to cart',
-            action: handleAddToCart,
-            disabled: false
-        },
-    ];
+        body: JSON.stringify(layoutData),
+      });
 
-    return (
-        <div className="bg-white border-b border-gray-200 px-4 py-4">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                    <Image
-                        className="cursor-pointer"
-                        onClick={() => window.history.back()}
-                        src={"/images/icons/workspace/Back.svg"}
-                        alt="Back"
-                        width={35}
-                        height={35}
-                    />
-                    <h1 className="ml-2 text-2xl font-bold text-gray-900">{readOnly ? 'Inspect Layout' : 'Design Your Tool Layout'}</h1>
-                </div>
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to save layout");
+      }
 
-                <div className="flex items-center space-x-3">
-                    {!readOnly && (
-                        <div className="flex items-center space-x-2">
-                            <>
-                                <button
-                                    className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors ${isSaving || hasOverlaps || droppedTools.length === 0
-                                        ? 'bg-gray-400 cursor-not-allowed'
-                                        : saveSuccess
-                                            ? 'bg-green-500 hover:bg-green-600'
-                                            : 'bg-primary'
-                                        } text-white`}
-                                    onClick={() => handleSaveAndExit()}
-                                    disabled={isSaving || hasOverlaps || droppedTools.length === 0}
-                                >
-                                    {isSaving ? (
-                                        <>
-                                            <RefreshCw className="w-4 h-4 animate-spin" />
-                                            <span>Saving...</span>
-                                        </>
-                                    ) : saveSuccess ? (
-                                        <>
-                                            <CheckCircle className="w-4 h-4" />
-                                            <span>Saved!</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Save className="w-4 h-4" />
-                                            <span>Save</span>
-                                        </>
-                                    )}
-                                </button>
-                            </>
+      // Derive id + snapshotUrl from response
+      const savedLayoutId =
+        method === "POST"
+          ? String(result.id)
+          : String(editingLayoutId || result.data?._id);
 
-                            <button
-                                className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors bg-primary text-white`}
-                                onClick={() => handleExit()}
-                            >
-                                <span>Exit</span>
-                            </button>
-                        </div>
-                    )}
+      const savedSnapshotUrl: string | null =
+        method === "POST"
+          ? result.snapshotUrl ?? null
+          : result.data?.snapshotUrl ?? null;
 
-                    {/* Export Options Dropdown */}
-                    {!readOnly && (
-                        <div className="relative" ref={dropdownRef}>
-                            <button
-                                className="px-4 py-4 rounded-2xl bg-primary hover:bg-primary/90 transition-colors"
-                                onClick={() => setShowDropdown(!showDropdown)}
-                            >
-                                <MoreHorizontal className="w-5 h-5 text-white" />
-                            </button>
+      // Persist editing id for subsequent updates (no duplicates)
+      try {
+        sessionStorage.setItem("editingLayoutId", savedLayoutId);
+      } catch {}
 
-                            {showDropdown && (
-                                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                                    <div className="py-2">
-                                        <div className="px-4 py-2 text-sm font-medium text-gray-700 border-b border-gray-100">
-                                            Export Options
-                                        </div>
-                                        {exportOptions.map((option, index) => (
-                                            <button
-                                                key={index}
-                                                className={`w-full px-4 py-3 text-left text-sm flex items-center space-x-3 transition-colors ${option.disabled
-                                                    ? 'text-gray-400 cursor-not-allowed'
-                                                    : 'text-gray-700 hover:bg-gray-50 cursor-pointer'
-                                                    }`}
-                                                onClick={option.disabled ? undefined : option.action}
-                                                disabled={option.disabled}
-                                            >
-                                                {option.loading ? (
-                                                    <RefreshCw className="w-4 h-4 animate-spin" />
-                                                ) : (
-                                                    <option.icon className="w-4 h-4" />
-                                                )}
-                                                <span>
-                                                    {option.loading ? 'Downloading DXF...' : option.label}
-                                                </span>
-                                                {option.disabled && !option.loading && droppedTools.length === 0 && (
-                                                    <span className="ml-auto text-xs text-gray-400">(Add tools first)</span>
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
+      setSaveError(null);
+      setSaveSuccess(true);
 
-            {/* Success Message */}
-            {saveSuccess && (
-                <div className="mt-3 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
-                    <div className="flex items-start space-x-2">
-                        <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                        <div>
-                            <p className="text-sm font-medium text-green-800">Layout Saved Successfully!</p>
-                        </div>
-                    </div>
-                </div>
-            )}
+      // Only clear form data when redirecting; keep it for Add to Cart
+      if (!options?.skipRedirect) {
+        try {
+          sessionStorage.removeItem("layoutForm");
+        } catch {}
+      }
 
-            {/* Saving Message */}
-            {isSaving && !saveSuccess && (
-                <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
-                    <div className="flex items-start space-x-2">
-                        <RefreshCw className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5 animate-spin" />
-                        <div>
-                            <p className="text-sm font-medium text-blue-800">Saving Layout...</p>
-                        </div>
-                    </div>
-                </div>
-            )}
+      // if (!options?.skipRedirect) {
+      //     setTimeout(() => {
+      //         onSaveLayout?.();
+      //         window.location.href = "/workspace";
+      //     }, 1500);
+      // }
 
-            {/* DXF Generation Message */}
-            {isDxfGenerating && (
-                <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3">
-                    <div className="flex items-start space-x-2">
-                        <RefreshCw className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5 animate-spin" />
-                        <div>
-                            <p className="text-sm font-medium text-blue-800">Downloading DXF File...</p>
-                        </div>
-                    </div>
-                </div>
-            )}
+      // Return for callers like Add to Cart
+      return { id: savedLayoutId, snapshotUrl: savedSnapshotUrl };
+    } catch (error) {
+      console.error("Error saving layout:", error);
+      setSaveError(
+        error instanceof Error ? error.message : "Failed to save layout"
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
-            {/* Error Message */}
-            {saveError && (
-                <div className="mt-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
-                    <div className="flex items-start space-x-2">
-                        <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <div>
-                            <p className="text-sm font-medium text-red-800">Operation Failed</p>
-                            <p className="text-sm text-red-700 mt-1">{saveError}</p>
-                        </div>
-                    </div>
-                </div>
-            )}
+  const handleExit = () => {
+    try {
+      sessionStorage.removeItem("layoutForm");
+    } catch {}
+    window.location.href = "/workspace";
+  };
 
-            {/* Layout Status */}
+  const exportOptions = [
+    {
+      icon: File,
+      label: "Download DXF File",
+      action: generateDxfFile,
+      disabled: droppedTools.length === 0,
+      loading: isDxfGenerating,
+    },
+    {
+      icon: ShoppingCart,
+      label: "Add to cart",
+      action: handleAddToCart,
+      disabled: false,
+    },
+  ];
 
-            <div className="mt-3 flex items-center justify-between text-sm">
-                <div className="flex items-center space-x-4">
-                    <span className="text-gray-600">
-                        Tools: <span className="font-medium">{droppedTools.length}</span>
-                    </span>
-                    <span className="text-gray-600">
-                        Canvas: <span className="font-medium">{canvasWidth} × {canvasHeight} {unit}</span>
-                    </span>
-                </div>
-
-                {!readOnly && (
-                    <div className="flex items-center space-x-2">
-                        {hasOverlaps ? (
-                            <>
-                                <AlertTriangle className="w-4 h-4 text-red-600" />
-                                <span className="text-red-600">Invalid Layout</span>
-                            </>
-                        ) : droppedTools.length === 0 ? (
-                            <>
-                                <AlertTriangle className="w-4 h-4 text-yellow-600" />
-                                <span className="text-yellow-600">No Tools</span>
-                            </>
-                        ) : (
-                            <>
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                <span className="text-green-600">Ready to Save</span>
-                            </>
-                        )}
-                    </div>
-                )}
-            </div>
-
+  return (
+    <div className="bg-white px-4 py-4 border-gray-200 border-b">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center space-x-3">
+          <Image
+            className="cursor-pointer"
+            onClick={() => window.history.back()}
+            src={"/images/icons/workspace/Back.svg"}
+            alt="Back"
+            width={35}
+            height={35}
+          />
+          <h1 className="ml-2 font-bold text-gray-900 text-2xl">
+            {readOnly ? "Inspect Layout" : "Design Your Tool Layout"}
+          </h1>
         </div>
-    );
+
+        <div className="flex items-center space-x-3">
+          {!readOnly && (
+            <div className="flex items-center space-x-2">
+              <>
+                <button
+                  className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors ${
+                    isSaving || hasOverlaps || droppedTools.length === 0
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : saveSuccess
+                      ? "bg-green-500 hover:bg-green-600"
+                      : "bg-primary"
+                  } text-white`}
+                  onClick={() => handleSaveAndExit()}
+                  disabled={
+                    isSaving || hasOverlaps || droppedTools.length === 0
+                  }
+                >
+                  {isSaving ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : saveSuccess ? (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Saved!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Save</span>
+                    </>
+                  )}
+                </button>
+              </>
+
+              <button
+                className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors bg-primary text-white`}
+                onClick={() => handleExit()}
+              >
+                <span>Exit</span>
+              </button>
+            </div>
+          )}
+
+          {/* Export Options Dropdown */}
+          {!readOnly && (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                className="bg-primary hover:bg-primary/90 px-4 py-4 rounded-2xl transition-colors"
+                onClick={() => setShowDropdown(!showDropdown)}
+              >
+                <MoreHorizontal className="w-5 h-5 text-white" />
+              </button>
+
+              {showDropdown && (
+                <div className="right-0 z-50 absolute bg-white shadow-lg mt-2 border border-gray-200 rounded-lg w-56">
+                  <div className="py-2">
+                    <div className="px-4 py-2 border-gray-100 border-b font-medium text-gray-700 text-sm">
+                      Export Options
+                    </div>
+                    {exportOptions.map((option, index) => (
+                      <button
+                        key={index}
+                        className={`w-full px-4 py-3 text-left text-sm flex items-center space-x-3 transition-colors ${
+                          option.disabled
+                            ? "text-gray-400 cursor-not-allowed"
+                            : "text-gray-700 hover:bg-gray-50 cursor-pointer"
+                        }`}
+                        onClick={option.disabled ? undefined : option.action}
+                        disabled={option.disabled}
+                      >
+                        {option.loading ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <option.icon className="w-4 h-4" />
+                        )}
+                        <span>
+                          {option.loading ? "Downloading DXF..." : option.label}
+                        </span>
+                        {option.disabled &&
+                          !option.loading &&
+                          droppedTools.length === 0 && (
+                            <span className="ml-auto text-gray-400 text-xs">
+                              (Add tools first)
+                            </span>
+                          )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Success Message */}
+      {saveSuccess && (
+        <div className="bg-green-50 mt-3 px-4 py-3 border border-green-200 rounded-lg">
+          <div className="flex items-start space-x-2">
+            <CheckCircle className="flex-shrink-0 mt-0.5 w-5 h-5 text-green-500" />
+            <div>
+              <p className="font-medium text-green-800 text-sm">
+                Layout Saved Successfully!
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Saving Message */}
+      {isSaving && !saveSuccess && (
+        <div className="bg-blue-50 mt-3 px-4 py-3 border border-blue-200 rounded-lg">
+          <div className="flex items-start space-x-2">
+            <RefreshCw className="flex-shrink-0 mt-0.5 w-5 h-5 text-blue-500 animate-spin" />
+            <div>
+              <p className="font-medium text-blue-800 text-sm">
+                Saving Layout...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DXF Generation Message */}
+      {isDxfGenerating && (
+        <div className="bg-blue-50 mt-3 px-4 py-3 border border-blue-200 rounded-lg">
+          <div className="flex items-start space-x-2">
+            <RefreshCw className="flex-shrink-0 mt-0.5 w-5 h-5 text-blue-500 animate-spin" />
+            <div>
+              <p className="font-medium text-blue-800 text-sm">
+                Downloading DXF File...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {saveError && (
+        <div className="bg-red-50 mt-3 px-4 py-3 border border-red-200 rounded-lg">
+          <div className="flex items-start space-x-2">
+            <AlertTriangle className="flex-shrink-0 mt-0.5 w-5 h-5 text-red-500" />
+            <div>
+              <p className="font-medium text-red-800 text-sm">
+                Operation Failed
+              </p>
+              <p className="mt-1 text-red-700 text-sm">{saveError}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Layout Status */}
+
+      <div className="flex justify-between items-center mt-3 text-sm">
+        <div className="flex items-center space-x-4">
+          <span className="text-gray-600">
+            Tools: <span className="font-medium">{droppedTools.length}</span>
+          </span>
+          <span className="text-gray-600">
+            Canvas:{" "}
+            <span className="font-medium">
+              {canvasWidth} × {canvasHeight} {unit}
+            </span>
+          </span>
+        </div>
+
+        {!readOnly && (
+          <div className="flex items-center space-x-2">
+            {hasOverlaps ? (
+              <>
+                <AlertTriangle className="w-4 h-4 text-red-600" />
+                <span className="text-red-600">Invalid Layout</span>
+              </>
+            ) : droppedTools.length === 0 ? (
+              <>
+                <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                <span className="text-yellow-600">No Tools</span>
+              </>
+            ) : (
+              <>
+                <div className="bg-green-500 rounded-full w-2 h-2"></div>
+                <span className="text-green-600">Ready to Save</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 export default Header;
