@@ -64,9 +64,9 @@ interface ShapePayload {
   is_custom_shape: true;
   shape_type: "rectangle" | "circle" | "polygon";
   shape_data:
-    | { width_inches: number; height_inches: number }
-    | { radius_inches: number }
-    | { points: { x: number; y: number }[] };
+  | { width_inches: number; height_inches: number }
+  | { radius_inches: number }
+  | { points: { x: number; y: number }[] };
   position_inches: { x: number; y: number; z: number };
   rotation_degrees: number;
   cut_depth_inches: number;
@@ -140,9 +140,8 @@ const Header: React.FC<HeaderProps> = ({
       const layoutName =
         additionalData.layoutName ||
         `Layout ${new Date().toLocaleDateString()}`;
-      const containerSize = `${additionalData.canvasWidth ?? canvasWidth}" × ${
-        additionalData.canvasHeight ?? canvasHeight
-      }"`;
+      const containerSize = `${additionalData.canvasWidth ?? canvasWidth}" × ${additionalData.canvasHeight ?? canvasHeight
+        }"`;
 
       // Save layout via Save & Exit handler (single source of truth)
       const saveResult = await handleSaveAndExit({ skipRedirect: true });
@@ -285,10 +284,16 @@ const Header: React.FC<HeaderProps> = ({
             const json = await res.json();
             toolData = json.tool;
           }
-        } catch {}
+        } catch { }
       }
     }
 
+    // Prefer CV depth if available
+    const cvDepth = toolData?.cvResponse?.dimensions?.depth_inches;
+    if (typeof cvDepth === "number" && cvDepth > 0)
+      return parseFloat(cvDepth.toFixed(3));
+
+    // Fall back to DB depth, converting from mm if necessary
     const dbDepthRaw = toolData?.depth;
     const dbDepthUnit = toolData?.unit;
     if (typeof dbDepthRaw === "number" && dbDepthRaw > 0) {
@@ -297,14 +302,8 @@ const Header: React.FC<HeaderProps> = ({
       return parseFloat(dbDepthInches.toFixed(3));
     }
 
-    const cvDepth = toolData?.cvResponse?.dimensions?.depth_inches;
-    if (typeof cvDepth === "number" && cvDepth > 0)
-      return parseFloat(cvDepth.toFixed(3));
-
-    const dtDepthInches =
-      droppedTool.unit === "mm"
-        ? mmToInches(droppedTool.depth)
-        : droppedTool.depth;
+    // Treat droppedTool.depth as inches regardless of tool.unit
+    const dtDepthInches = droppedTool.depth;
     if (typeof dtDepthInches === "number" && dtDepthInches > 0)
       return parseFloat(dtDepthInches.toFixed(3));
 
@@ -665,15 +664,12 @@ const Header: React.FC<HeaderProps> = ({
     // Canvas Information
     content += `CANVAS INFORMATION\n`;
     content += `${"-".repeat(20)}\n`;
-    content += `Width: ${
-      unit === "mm" ? mmToInches(canvasWidth).toFixed(2) : canvasWidth
-    } inches\n`;
-    content += `Height: ${
-      unit === "mm" ? mmToInches(canvasHeight).toFixed(2) : canvasHeight
-    } inches\n`;
-    content += `Thickness: ${
-      unit === "mm" ? mmToInches(thickness).toFixed(2) : thickness
-    } inches\n`;
+    content += `Width: ${unit === "mm" ? mmToInches(canvasWidth).toFixed(2) : canvasWidth
+      } inches\n`;
+    content += `Height: ${unit === "mm" ? mmToInches(canvasHeight).toFixed(2) : canvasHeight
+      } inches\n`;
+    content += `Thickness: ${unit === "mm" ? mmToInches(thickness).toFixed(2) : thickness
+      } inches\n`;
     content += `Has Overlaps: ${hasOverlaps ? "Yes" : "No"}\n`;
     content += `Total Tools: ${droppedTools.length}\n\n`;
 
@@ -727,9 +723,7 @@ const Header: React.FC<HeaderProps> = ({
         content += `  Height (Diagonal): N/A\n`;
       }
 
-      content += `  Depth: ${
-        tool.unit === "mm" ? mmToInches(tool.depth).toFixed(2) : tool.depth
-      } inches\n`;
+      content += `  Depth: ${Number(tool.depth).toFixed(2)} inches\n`;
       content += `  Flip Horizontal: ${tool.flipHorizontal}\n`;
       content += `  Flip Vertical: ${tool.flipVertical}\n`;
       content += `  Opacity: ${tool.opacity}%\n`;
@@ -815,8 +809,7 @@ const Header: React.FC<HeaderProps> = ({
     } catch (error) {
       console.error("Error uploading to DigitalOcean:", error);
       throw new Error(
-        `Upload failed: ${
-          error instanceof Error ? error.message : "Unknown error"
+        `Upload failed: ${error instanceof Error ? error.message : "Unknown error"
         }`
       );
     }
@@ -866,8 +859,7 @@ const Header: React.FC<HeaderProps> = ({
     } catch (error) {
       console.error("Error capturing canvas image:", error);
       throw new Error(
-        `Failed to capture image: ${
-          error instanceof Error ? error.message : "Unknown error"
+        `Failed to capture image: ${error instanceof Error ? error.message : "Unknown error"
         }`
       );
     } finally {
@@ -1097,16 +1089,20 @@ const Header: React.FC<HeaderProps> = ({
       // Persist editing id for subsequent updates (no duplicates)
       try {
         sessionStorage.setItem("editingLayoutId", savedLayoutId);
-      } catch {}
+      } catch { }
 
       setSaveError(null);
       setSaveSuccess(true);
+
+      setTimeout(() => {
+        setSaveSuccess(false);
+      }, 3000);
 
       // Only clear form data when redirecting; keep it for Add to Cart
       if (!options?.skipRedirect) {
         try {
           sessionStorage.removeItem("layoutForm");
-        } catch {}
+        } catch { }
       }
 
       // if (!options?.skipRedirect) {
@@ -1131,7 +1127,7 @@ const Header: React.FC<HeaderProps> = ({
   const handleExit = () => {
     try {
       sessionStorage.removeItem("layoutForm");
-    } catch {}
+    } catch { }
     window.location.href = "/workspace";
   };
 
@@ -1173,13 +1169,12 @@ const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center space-x-2">
               <>
                 <button
-                  className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors ${
-                    isSaving || hasOverlaps || droppedTools.length === 0
+                  className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors ${isSaving || hasOverlaps || droppedTools.length === 0
                       ? "bg-gray-400 cursor-not-allowed"
                       : saveSuccess
-                      ? "bg-green-500 hover:bg-green-600"
-                      : "bg-primary"
-                  } text-white`}
+                        ? "bg-green-500 hover:bg-green-600"
+                        : "bg-primary"
+                    } text-white`}
                   onClick={() => handleSaveAndExit()}
                   disabled={
                     isSaving || hasOverlaps || droppedTools.length === 0
@@ -1232,11 +1227,10 @@ const Header: React.FC<HeaderProps> = ({
                     {exportOptions.map((option, index) => (
                       <button
                         key={index}
-                        className={`w-full px-4 py-3 text-left text-sm flex items-center space-x-3 transition-colors ${
-                          option.disabled
+                        className={`w-full px-4 py-3 text-left text-sm flex items-center space-x-3 transition-colors ${option.disabled
                             ? "text-gray-400 cursor-not-allowed"
                             : "text-gray-700 hover:bg-gray-50 cursor-pointer"
-                        }`}
+                          }`}
                         onClick={option.disabled ? undefined : option.action}
                         disabled={option.disabled}
                       >

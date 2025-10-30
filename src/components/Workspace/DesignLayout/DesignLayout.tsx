@@ -73,7 +73,7 @@ function DesignLayout({
     const convertedCanvasHeight = parseFloat(convertValue(canvasHeight, unit, newUnit).toFixed(3));
     const convertedThickness = parseFloat(convertValue(thickness, unit, newUnit).toFixed(3));
 
-    // Convert all existing tools' width/length/real dims + thickness to preserve visual size
+    // Convert width/length/real dims only. Depth remains inches, unchanged.
     const convertedTools = droppedTools.map(tool => {
       const convertedWidth =
         typeof tool.width === 'number'
@@ -106,7 +106,7 @@ function DesignLayout({
         length: convertedLength,
         realWidth: convertedRealWidth,
         realHeight: convertedRealHeight,
-        depth: convertedToolDepth,
+        depth: tool.depth, // keep inches, do not convert
         unit: newUnit,
       };
     });

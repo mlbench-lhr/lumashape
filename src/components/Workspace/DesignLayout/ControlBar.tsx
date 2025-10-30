@@ -249,31 +249,15 @@ const ControlBar: React.FC<ControlBarProps> = ({
             disabled={readOnly}
             className="bg-white text-gray-900 px-2 py-1 w-32 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
           >
-            {unit === "inches" ? (
-              <>
-                <option value={0.5}>0.500 inches</option>
-                <option value={0.75}>0.750 inches</option>
-                <option value={1}>1.000 inches</option>
-                <option value={1.25}>1.250 inches</option>
-                <option value={1.5}>1.500 inches</option>
-                <option value={1.75}>1.750 inches</option>
-                <option value={2}>2.000 inches</option>
-                <option value={2.5}>2.500 inches</option>
-                <option value={3}>3.000 inches</option>
-              </>
-            ) : (
-              <>
-                <option value={12.7}>12.7 mm</option>
-                <option value={19.05}>19.05 mm</option>
-                <option value={25.4}>25.4 mm</option>
-                <option value={31.75}>31.75 mm</option>
-                <option value={38.1}>38.1 mm</option>
-                <option value={44.45}>44.45 mm</option>
-                <option value={50.8}>50.8 mm</option>
-                <option value={63.5}>63.5 mm</option>
-                <option value={76.2}>76.2 mm</option>
-              </>
-            )}
+            <option value={0.5}>0.500 inches</option>
+            <option value={0.75}>0.750 inches</option>
+            <option value={1}>1.000 inches</option>
+            <option value={1.25}>1.250 inches</option>
+            <option value={1.5}>1.500 inches</option>
+            <option value={1.75}>1.750 inches</option>
+            <option value={2}>2.000 inches</option>
+            <option value={2.5}>2.500 inches</option>
+            <option value={3}>3.000 inches</option>
           </select>
 
         </div>
