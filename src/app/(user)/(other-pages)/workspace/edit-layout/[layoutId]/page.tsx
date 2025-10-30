@@ -23,6 +23,7 @@ interface ShapeData {
 
 interface ToolMetadata {
   toolBrand?: string;
+  toolType?: string;
   length?: number;
   depth?: number;
   naturalWidth?: number;
@@ -128,6 +129,8 @@ export default function EditLayoutPage({
         let heightPxFallback = 0;
 
         let toolBrand: string = t.metadata?.toolBrand || '';
+        // NEW: capture shape toolType from DB shapeType
+        let shapeToolType: 'circle' | 'square' | 'polygon' | '' = '';
 
         // Handle shapes
         if (t.isCustomShape && t.shapeType && t.shapeData) {
@@ -143,6 +146,8 @@ export default function EditLayoutPage({
             const hInches = sd.height_inches;
             widthCanvasUnits = canvasUnit === 'mm' ? wInches * 25.4 : wInches;
             lengthCanvasUnits = canvasUnit === 'mm' ? hInches * 25.4 : hInches;
+            // NEW: rectangle -> square
+            shapeToolType = 'square';
           } else if (
             t.shapeType === 'circle' &&
             typeof sd.radius_inches === 'number'
@@ -150,6 +155,8 @@ export default function EditLayoutPage({
             const diameterInches = sd.radius_inches * 2;
             widthCanvasUnits = canvasUnit === 'mm' ? diameterInches * 25.4 : diameterInches;
             lengthCanvasUnits = widthCanvasUnits;
+            // NEW: circle -> circle
+            shapeToolType = 'circle';
           } else if (Array.isArray(sd.points)) {
             const points = sd.points;
             const minX = Math.min(...points.map((p) => p.x));
@@ -160,6 +167,8 @@ export default function EditLayoutPage({
             const heightInches = maxY - minY;
             widthCanvasUnits = canvasUnit === 'mm' ? widthInches * 25.4 : widthInches;
             lengthCanvasUnits = canvasUnit === 'mm' ? heightInches * 25.4 : heightInches;
+            // NEW: polygon -> polygon
+            shapeToolType = 'polygon';
           }
         } else {
           // Non-shape tools
@@ -204,6 +213,8 @@ export default function EditLayoutPage({
           realWidth: t.realWidth,
           realHeight: t.realHeight,
           toolBrand,
+          // NEW: ensure Canvas renderer knows the shape kind
+          toolType: shapeToolType || (t.metadata?.toolType ?? ''),
         } as DroppedTool;
       });
 
