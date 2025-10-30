@@ -504,7 +504,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-95 text-white text-xs px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 backdrop-blur-sm shadow-lg">
                   <div className="text-center space-y-1">
                     <div className="text-gray-400">
-                      {`Depth: ${tool.unit === 'mm' ? mmToInches(tool.depth).toFixed(2) : tool.depth} inches`}
+                      {`Depth: ${Number(tool.depth).toFixed(2)} inches`}
                     </div>
                     {!isShape && (
                     <div className="text-gray-400">
