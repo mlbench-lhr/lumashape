@@ -3,6 +3,7 @@ import mongoose, { Document, Model } from "mongoose";
 
 /* ---------------------- Types ---------------------- */
 
+// interface Tool
 interface Tool {
   id: string;
   name: string;
@@ -26,6 +27,7 @@ interface Tool {
   realHeight?: number;
   metadata?: Record<string, unknown>;
   toolBrand?: string;
+  depth?: number;
 }
 
 interface Canvas {
@@ -85,6 +87,7 @@ export interface LayoutModel extends Model<LayoutDocument> {
 /* ---------------------- Schemas ---------------------- */
 
 // Tool Schema
+// Tool schema definition
 const ToolSchema = new mongoose.Schema<Tool>(
   {
     id: { type: String, required: true },
@@ -109,6 +112,7 @@ const ToolSchema = new mongoose.Schema<Tool>(
     realHeight: { type: Number, required: false },
     metadata: { type: mongoose.Schema.Types.Mixed, required: false },
     toolBrand: { type: String, required: false },
+    depth: { type: Number, required: false },
   },
   { _id: false }
 );

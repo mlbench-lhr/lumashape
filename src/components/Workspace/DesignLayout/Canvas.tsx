@@ -245,13 +245,17 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             const isShape = tool.toolBrand === 'SHAPE';
             const isFingerCut = tool.metadata?.isFingerCut;
 
+            // Helpers for physical → pixel conversion
+            const inchesToPx = (inches: number) => inches * 96;
+            const mmToPx = (mm: number) => (mm / 25.4) * 96;
+
             // Calculate opacity and blur values
             const opacity = (tool.opacity || 100) / 100;
             const blurAmount = (tool.smooth || 0) / 10;
 
-            // Calculate position in inches (from bottom-left corner of the TOOL)
-            const positionXInches = convertPositionToInches(tool.x, canvasWidth, true);
-            const positionYInches = convertPositionToInches(tool.y + toolHeight, canvasHeight, false);
+            // Maintain a physical 0.25 inch gap between outer and inner vectors
+            const GAP_INCHES = typeof tool.metadata?.gapInches === 'number' ? tool.metadata.gapInches : 0.25;
+            const gapPx = tool.unit === 'mm' ? mmToPx(GAP_INCHES * 25.4) : inchesToPx(GAP_INCHES);
 
             return (
               <div
@@ -335,35 +339,92 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     </svg>
                   </div>
                 ) : (
-                  // Regular tool rendering
-                  tool.image && (
-                    <div className="relative w-full h-full">
-                      <img
-                        src={tool.image}
-                        alt={tool.name}
-                        onLoad={(e) => {
-                          const img = e.currentTarget;
-                          props.setDroppedTools(prev =>
-                            prev.map(t =>
-                              t.id === tool.id
-                                ? {
-                                  ...t,
-                                  metadata: {
-                                    ...t.metadata,
-                                    naturalWidth: img.naturalWidth,
-                                    naturalHeight: img.naturalHeight,
-                                  },
-                                }
-                                : t
-                            )
-                          );
-                        }}
-                        className={`relative w-full h-full object-contain transition-all duration-200 ${isOverlapping ? 'brightness-75 saturate-150' : ''}`}
-                        style={{ opacity: opacity, filter: `blur(${blurAmount}px)` }}
-                        draggable={false}
-                      />
-                    </div>
-                  )
+                    // Vector double-outline for shapes
+                    isShape ? (
+                      <svg
+                        width="100%"
+                        height="100%"
+                        viewBox={`0 0 ${toolWidth} ${toolHeight}`}
+                        className="absolute inset-0"
+                        style={{ opacity, filter: `blur(${blurAmount}px)` }}
+                      >
+                        {tool.toolType === 'circle' ? (
+                          <>
+                            {/* Outer circle */}
+                            <circle
+                              cx={toolWidth / 2}
+                              cy={toolHeight / 2}
+                              r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - 1)}
+                              fill="none"
+                              stroke={isOverlapping ? '#f87171' : '#266ca8'}
+                              strokeWidth={2}
+                            />
+                            {/* Inner circle with fixed 0.25 inch offset */}
+                            <circle
+                              cx={toolWidth / 2}
+                              cy={toolHeight / 2}
+                              r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - gapPx - 1)}
+                              fill="none"
+                              stroke={isOverlapping ? '#f87171' : '#266ca8'}
+                              strokeWidth={2}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            {/* Outer square */}
+                            <rect
+                              x={1}
+                              y={1}
+                              width={Math.max(0, toolWidth - 2)}
+                              height={Math.max(0, toolHeight - 2)}
+                              fill="none"
+                              stroke={isOverlapping ? '#f87171' : '#266ca8'}
+                              strokeWidth={2}
+                            />
+                            {/* Inner square with fixed 0.25 inch offset */}
+                            <rect
+                              x={gapPx + 1}
+                              y={gapPx + 1}
+                              width={Math.max(0, toolWidth - 2 * (gapPx + 1))}
+                              height={Math.max(0, toolHeight - 2 * (gapPx + 1))}
+                              fill="none"
+                              stroke={isOverlapping ? '#f87171' : '#266ca8'}
+                              strokeWidth={2}
+                            />
+                          </>
+                        )}
+                      </svg>
+                    ) : (
+                      // Regular tool rendering
+                      tool.image && (
+                        <div className="relative w-full h-full">
+                          <img
+                            src={tool.image}
+                            alt={tool.name}
+                            onLoad={(e) => {
+                              const img = e.currentTarget;
+                              props.setDroppedTools(prev =>
+                                prev.map(t =>
+                                  t.id === tool.id
+                                    ? {
+                                      ...t,
+                                      metadata: {
+                                        ...t.metadata,
+                                        naturalWidth: img.naturalWidth,
+                                        naturalHeight: img.naturalHeight,
+                                      },
+                                    }
+                                    : t
+                                )
+                              );
+                            }}
+                            className={`relative w-full h-full object-contain transition-all duration-200 ${isOverlapping ? 'brightness-75 saturate-150' : ''}`}
+                            style={{ opacity, filter: `blur(${blurAmount}px)` }}
+                            draggable={false}
+                          />
+                        </div>
+                      )
+                    )
                 )}
 
                 {/* CLEAN: Subtle selection indicator - tight border only */}
@@ -445,15 +506,21 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     <div className="text-gray-400">
                       {`Depth: ${tool.unit === 'mm' ? mmToInches(tool.depth).toFixed(2) : tool.depth} inches`}
                     </div>
+                    {!isShape && (
                     <div className="text-gray-400">
                       {`Tool Brand: ${tool.toolBrand}`}
                     </div>
+                    )}
+                    {!isShape && (
                     <div className="text-gray-400">
                       {`Tool Type: ${tool.metadata?.toolType}`}
                     </div>
+                    )}
+                    {!isShape && (
                     <div className="text-gray-400">
                       {`SKU or Part Number: ${tool.metadata?.SKUorPartNumber}`}
                     </div>
+                    )}
                     {isShape && (
                       <div className="text-yellow-300">
                         {`Size: ${tool.width?.toFixed(1)} × ${tool.length?.toFixed(1)} ${tool.unit}`}

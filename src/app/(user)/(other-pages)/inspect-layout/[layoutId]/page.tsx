@@ -27,6 +27,7 @@ interface ShapeData {
 
 interface ToolMetadata {
   toolBrand?: string;
+  toolType?: string;
   length?: number;
   depth?: number;
   naturalWidth?: number;
@@ -128,6 +129,8 @@ export default function InspectLayoutPage({
         let heightPxFallback = 0;
 
         let toolBrand: string = t.metadata?.toolBrand || '';
+        // NEW: capture shape toolType from DB shapeType
+        let shapeToolType: 'circle' | 'square' | 'polygon' | '' = '';
 
         if (t.isCustomShape && t.shapeType && t.shapeData) {
           toolBrand = 'SHAPE';
@@ -204,6 +207,8 @@ export default function InspectLayoutPage({
           realWidth: t.realWidth,
           realHeight: t.realHeight,
           toolBrand,
+          // NEW: inform renderer of shape kind
+          toolType: shapeToolType || (t.metadata?.toolType ?? ''),
         } as DroppedTool;
       });
 

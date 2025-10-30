@@ -35,8 +35,8 @@ const data: { left: DataItem[]; right: DataItem[] } = {
     {
       id: 1,
       image: '/images/logo/lumashape.svg',
-      hasBackground: true,  // ✅ Type now recognized
-      showButtons: true     // ✅ Type now recognized
+      hasBackground: true,
+      showButtons: true 
     },
     {
       id: 3,

@@ -16,6 +16,7 @@ export interface Tool {
     outlinesImg?: string;
     contour_image_url?: string;
     length?: number;
+    gapInches?: number;
     dxfLink?: string;
     scaleFactor?: number;
     createdAt?: string;
@@ -48,6 +49,7 @@ export interface DroppedTool extends Tool {
   // Add grouping support
   groupId?: string;
   isSelected?: boolean;
+  gapInches?: number;
   // NEW: Real calculated dimensions based on scale info
   realWidth?: number;   // Calculated from scaleFactor + length
   realHeight?: number;  // Calculated from scaleFactor + length
