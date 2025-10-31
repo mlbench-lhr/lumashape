@@ -22,6 +22,7 @@ interface CanvasProps {
   canvasHeight: number;
   unit: 'mm' | 'inches';
   activeTool: 'cursor' | 'hand' | 'box' | 'fingercut';
+  setActiveTool: (tool: 'cursor' | 'hand' | 'box' | 'fingercut') => void;
   onOverlapChange?: (hasOverlaps: boolean) => void;
   readOnly?: boolean;
 }
@@ -63,6 +64,9 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     fitToView,
     centerCanvas,
     handleFingerCutClick,
+    handleFingerCutEndpointDown,
+    fingerCutStart,
+    fingerCutPreviewEnd,
   } = useCanvas(props);
 
   // Helper function to convert pixel position to inches with bottom-left origin
@@ -231,6 +235,60 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           onClick={handleCanvasClick}
         >
 
+          {/* Preview line for finger cut: first click → live endpoint */}
+          {activeTool === 'fingercut' && fingerCutStart && fingerCutPreviewEnd && (
+            (() => {
+              const dx = fingerCutPreviewEnd.x - fingerCutStart.x;
+              const dy = fingerCutPreviewEnd.y - fingerCutStart.y;
+              const length = Math.max(1, Math.hypot(dx, dy));
+              const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
+              const cx = fingerCutStart.x + dx / 2;
+              const cy = fingerCutStart.y + dy / 2;
+
+              return (
+                <div
+                  className="absolute pointer-events-none"
+                  style={{
+                    left: cx - length / 2,
+                    top: cy,
+                    width: length,
+                    height: 0,
+                    transform: `rotate(${angleDeg}deg)`,
+                  }}
+                >
+                  <div
+                    style={{
+                      borderTop: '2px dashed var(--primary)',
+                    }}
+                  />
+                  {/* Endpoints */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: -4,
+                      top: -4,
+                      width: 8,
+                      height: 8,
+                      borderRadius: 9999,
+                      background: 'var(--primary)',
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      right: -4,
+                      top: -4,
+                      width: 8,
+                      height: 8,
+                      borderRadius: 9999,
+                      background: 'var(--primary)',
+                    }}
+                  />
+                </div>
+              );
+            })()
+          )}
+
           {/* Canvas dimensions indicator */}
           <div className="absolute -top-8 left-0 text-sm text-gray-600 font-medium bg-white px-2 py-1 rounded shadow-sm">
             Canvas: {canvasWidth} × {canvasHeight} {unit}
@@ -260,7 +318,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             return (
               <div
                 key={tool.id}
-                className={`absolute select-none group ${isSelected ? 'z-20' : 'z-10'}`}
+                className="absolute select-none group"
                 style={{
                   left: tool.x,
                   top: tool.y,
@@ -268,163 +326,142 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                   width: `${toolWidth}px`,
                   height: `${toolHeight}px`,
                   cursor: getToolCursor(tool.id),
+                  zIndex: isFingerCut ? 0 : (isSelected ? 20 : 10),
                 }}
                 onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
               >
                 {/* Finger Cut Rendering */}
                 {isFingerCut ? (
                   <div className="relative w-full h-full">
-                    {/* Cylindrical finger cut shape */}
+                    {/* Filled pill: fixed thickness, primary color */}
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        backgroundColor: 'var(--primary)', // #266CA8
+                        borderRadius: `${toolHeight / 2}px`,
+                        opacity: (tool.opacity || 100) / 100,
+                        filter: `blur(${(tool.smooth || 0) / 10}px)`,
+                      }}
+                    />
+                    {/* Endpoint handles (visible when selected, not read-only) */}
+                    {isSelected && !props.readOnly && (
+                      <>
+                        {/* Left end */}
+                        <div
+                          title="Drag to extend/shorten"
+                          className="absolute bg-white border border-blue-500 rounded-full"
+                          style={{
+                            left: -6,
+                            top: toolHeight / 2 - 6,
+                            width: 12,
+                            height: 12,
+                            boxShadow: '0 0 2px rgba(0,0,0,0.3)',
+                            cursor: 'ew-resize',
+                          }}
+                          onMouseDown={(e) => handleFingerCutEndpointDown(e, tool.id, 'left')}
+                        />
+                        {/* Right end */}
+                        <div
+                          title="Drag to extend/shorten"
+                          className="absolute bg-white border border-blue-500 rounded-full"
+                          style={{
+                            right: -6,
+                            top: toolHeight / 2 - 6,
+                            width: 12,
+                            height: 12,
+                            boxShadow: '0 0 2px rgba(0,0,0,0.3)',
+                            cursor: 'ew-resize',
+                          }}
+                          onMouseDown={(e) => handleFingerCutEndpointDown(e, tool.id, 'right')}
+                        />
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  // Vector double-outline for shapes
+                  isShape ? (
                     <svg
                       width="100%"
                       height="100%"
-                      viewBox="0 0 100 100"
+                      viewBox={`0 0 ${toolWidth} ${toolHeight}`}
                       className="absolute inset-0"
-                      style={{
-                        opacity: opacity,
-                        filter: `blur(${blurAmount}px) ${isSelected
-                          ? 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)) brightness(1.05)'
-                          : ''
-                          }`,
-                      }}
+                      style={{ opacity, filter: `blur(${blurAmount}px)` }}
                     >
-                      {/* Main cylinder body */}
-                      <rect
-                        x="15"
-                        y="25"
-                        width="70"
-                        height="50"
-                        fill="none"
-                        stroke={isOverlapping ? '#f87171' : '#60a5fa'}
-                        strokeWidth="2"
-                        strokeDasharray="5,5"
-                        className="transition-colors duration-200"
-                      />
-
-                      {/* Left ellipse (front) */}
-                      <ellipse
-                        cx="15"
-                        cy="50"
-                        rx="8"
-                        ry="25"
-                        fill="none"
-                        stroke={isOverlapping ? '#f87171' : '#60a5fa'}
-                        strokeWidth="2"
-                        className="transition-colors duration-200"
-                      />
-
-                      {/* Right ellipse (back) - dashed to show it's behind */}
-                      <ellipse
-                        cx="85"
-                        cy="50"
-                        rx="8"
-                        ry="25"
-                        fill="none"
-                        stroke={isOverlapping ? '#f87171' : '#60a5fa'}
-                        strokeWidth="2"
-                        strokeDasharray="3,3"
-                        className="transition-colors duration-200"
-                      />
-
-                      {/* Center label */}
-                      <text
-                        x="50"
-                        y="55"
-                        textAnchor="middle"
-                        className={`text-xs font-medium fill-current ${isOverlapping ? 'text-red-600' : 'text-blue-600'}`}
-                        style={{ fontSize: '8px' }}
-                      >
-                        Finger Cut
-                      </text>
-                    </svg>
-                  </div>
-                ) : (
-                    // Vector double-outline for shapes
-                    isShape ? (
-                      <svg
-                        width="100%"
-                        height="100%"
-                        viewBox={`0 0 ${toolWidth} ${toolHeight}`}
-                        className="absolute inset-0"
-                        style={{ opacity, filter: `blur(${blurAmount}px)` }}
-                      >
-                        {tool.toolType === 'circle' ? (
-                          <>
-                            {/* Outer circle */}
-                            <circle
-                              cx={toolWidth / 2}
-                              cy={toolHeight / 2}
-                              r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - 1)}
-                              fill="none"
-                              stroke={isOverlapping ? '#f87171' : '#266ca8'}
-                              strokeWidth={2}
-                            />
-                            {/* Inner circle with fixed 0.25 inch offset */}
-                            <circle
-                              cx={toolWidth / 2}
-                              cy={toolHeight / 2}
-                              r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - gapPx - 1)}
-                              fill="none"
-                              stroke={isOverlapping ? '#f87171' : '#266ca8'}
-                              strokeWidth={2}
-                            />
-                          </>
-                        ) : (
-                          <>
-                            {/* Outer square */}
-                            <rect
-                              x={1}
-                              y={1}
-                              width={Math.max(0, toolWidth - 2)}
-                              height={Math.max(0, toolHeight - 2)}
-                              fill="none"
-                              stroke={isOverlapping ? '#f87171' : '#266ca8'}
-                              strokeWidth={2}
-                            />
-                            {/* Inner square with fixed 0.25 inch offset */}
-                            <rect
-                              x={gapPx + 1}
-                              y={gapPx + 1}
-                              width={Math.max(0, toolWidth - 2 * (gapPx + 1))}
-                              height={Math.max(0, toolHeight - 2 * (gapPx + 1))}
-                              fill="none"
-                              stroke={isOverlapping ? '#f87171' : '#266ca8'}
-                              strokeWidth={2}
-                            />
-                          </>
-                        )}
-                      </svg>
-                    ) : (
-                      // Regular tool rendering
-                      tool.image && (
-                        <div className="relative w-full h-full">
-                          <img
-                            src={tool.image}
-                            alt={tool.name}
-                            onLoad={(e) => {
-                              const img = e.currentTarget;
-                              props.setDroppedTools(prev =>
-                                prev.map(t =>
-                                  t.id === tool.id
-                                    ? {
-                                      ...t,
-                                      metadata: {
-                                        ...t.metadata,
-                                        naturalWidth: img.naturalWidth,
-                                        naturalHeight: img.naturalHeight,
-                                      },
-                                    }
-                                    : t
-                                )
-                              );
-                            }}
-                            className={`relative w-full h-full object-contain transition-all duration-200 ${isOverlapping ? 'brightness-75 saturate-150' : ''}`}
-                            style={{ opacity, filter: `blur(${blurAmount}px)` }}
-                            draggable={false}
+                      {tool.toolType === 'circle' ? (
+                        <>
+                          {/* Outer circle (buffer boundary) */}
+                          <circle
+                            cx={toolWidth / 2}
+                            cy={toolHeight / 2}
+                            r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - 1)}
+                            fill="none"
+                            stroke={isOverlapping ? '#f87171' : '#266ca8'}
+                            strokeWidth={2}
                           />
-                        </div>
-                      )
+                          {/* Inner circle (solid fill shape with 0.25" buffer around) */}
+                          <circle
+                            cx={toolWidth / 2}
+                            cy={toolHeight / 2}
+                            r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - gapPx - 1)}
+                            fill={isOverlapping ? '#f87171' : '#266ca8'}
+                            stroke="none"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          {/* Outer rectangle (buffer boundary) */}
+                          <rect
+                            x={1}
+                            y={1}
+                            width={Math.max(0, toolWidth - 2)}
+                            height={Math.max(0, toolHeight - 2)}
+                            fill="none"
+                            stroke={isOverlapping ? '#f87171' : '#266ca8'}
+                            strokeWidth={2}
+                          />
+                          {/* Inner rectangle (solid fill shape with 0.25" buffer around) */}
+                          <rect
+                            x={gapPx + 1}
+                            y={gapPx + 1}
+                            width={Math.max(0, toolWidth - 2 * (gapPx + 1))}
+                            height={Math.max(0, toolHeight - 2 * (gapPx + 1))}
+                            fill={isOverlapping ? '#f87171' : '#266ca8'}
+                            stroke="none"
+                          />
+                        </>
+                      )}
+                    </svg>
+                  ) : (
+                    // Regular tool rendering
+                    tool.image && (
+                      <div className="relative w-full h-full">
+                        <img
+                          src={tool.image}
+                          alt={tool.name}
+                          onLoad={(e) => {
+                            const img = e.currentTarget;
+                            props.setDroppedTools(prev =>
+                              prev.map(t =>
+                                t.id === tool.id
+                                  ? {
+                                    ...t,
+                                    metadata: {
+                                      ...t.metadata,
+                                      naturalWidth: img.naturalWidth,
+                                      naturalHeight: img.naturalHeight,
+                                    },
+                                  }
+                                  : t
+                              )
+                            );
+                          }}
+                          className={`relative w-full h-full object-contain transition-all duration-200 ${isOverlapping ? 'brightness-75 saturate-150' : ''}`}
+                          style={{ opacity, filter: `blur(${blurAmount}px)` }}
+                          draggable={false}
+                        />
+                      </div>
                     )
+                  )
                 )}
 
                 {/* CLEAN: Subtle selection indicator - tight border only */}
@@ -507,19 +544,19 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                       {`Depth: ${Number(tool.depth).toFixed(2)} inches`}
                     </div>
                     {!isShape && (
-                    <div className="text-gray-400">
-                      {`Tool Brand: ${tool.toolBrand}`}
-                    </div>
+                      <div className="text-gray-400">
+                        {`Tool Brand: ${tool.toolBrand}`}
+                      </div>
                     )}
                     {!isShape && (
-                    <div className="text-gray-400">
-                      {`Tool Type: ${tool.metadata?.toolType}`}
-                    </div>
+                      <div className="text-gray-400">
+                        {`Tool Type: ${tool.metadata?.toolType}`}
+                      </div>
                     )}
                     {!isShape && (
-                    <div className="text-gray-400">
-                      {`SKU or Part Number: ${tool.metadata?.SKUorPartNumber}`}
-                    </div>
+                      <div className="text-gray-400">
+                        {`SKU or Part Number: ${tool.metadata?.SKUorPartNumber}`}
+                      </div>
                     )}
                     {isShape && (
                       <div className="text-yellow-300">

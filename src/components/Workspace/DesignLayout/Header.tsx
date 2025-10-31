@@ -360,8 +360,18 @@ const Header: React.FC<HeaderProps> = ({
     const mmToPx = (mm: number) => (mm / 25.4) * DPI;
     const inchesToPx = (inches: number) => inches * DPI;
 
-    // Shapes and finger cuts: convert stored width/length (mm/inches) to pixels
-    if (tool.toolBrand === "SHAPE" || tool.metadata?.isFingerCut) {
+    // Finger cuts: width/length are stored as CSS pixels on the canvas
+    if (tool.metadata?.isFingerCut) {
+      const widthPx = Math.max(10, typeof tool.width === 'number' ? tool.width : 50);
+      const heightPx = Math.max(10, typeof tool.length === 'number' ? tool.length : inchesToPx(0.5));
+      return {
+        toolWidth: widthPx,
+        toolHeight: heightPx,
+      };
+    }
+
+    // Shapes: convert stored width/length (mm/inches) to pixels
+    if (tool.toolBrand === "SHAPE") {
       const widthPx =
         tool.unit === "mm"
           ? mmToPx(tool.width || 0)
@@ -549,7 +559,7 @@ const Header: React.FC<HeaderProps> = ({
             shape_data: shapeData,
             position_inches: { x: xInches, y: yInches, z: 0 },
             rotation_degrees: droppedTool.rotation || 0,
-            cut_depth_inches: 0.2,
+            cut_depth_inches: droppedTool.depth ?? 0.2,
           });
 
           continue; // Skip the regular tool branch for shapes
@@ -936,16 +946,22 @@ const Header: React.FC<HeaderProps> = ({
 
           if (isShape || isFingerCut) {
             if (isFingerCut || tool.name.toLowerCase().includes("finger")) {
+              // FIX: derive inches from tool.unit, not DOM PPI
               const widthInches =
-                unit === "mm" ? mmToInches(tool.width) : tool.width;
+                tool.unit === "mm"
+                  ? mmToInches(tool.width || 0)
+                  : (tool.width || 0);
               const heightInches =
-                unit === "mm" ? mmToInches(tool.length) : tool.length;
+                tool.unit === "mm"
+                  ? mmToInches(tool.length || 0)
+                  : (tool.length || 0);
+
               shapeType = "rectangle";
               shapeData = {
                 width_inches: widthInches,
                 height_inches: heightInches,
               };
-            } else if (
+            } else if ( 
               tool.name.toLowerCase().includes("circle") ||
               (tool.image || "").includes("circle.svg")
             ) {
@@ -1104,13 +1120,6 @@ const Header: React.FC<HeaderProps> = ({
           sessionStorage.removeItem("layoutForm");
         } catch { }
       }
-
-      // if (!options?.skipRedirect) {
-      //     setTimeout(() => {
-      //         onSaveLayout?.();
-      //         window.location.href = "/workspace";
-      //     }, 1500);
-      // }
 
       // Return for callers like Add to Cart
       return { id: savedLayoutId, snapshotUrl: savedSnapshotUrl };

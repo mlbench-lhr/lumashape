@@ -13,6 +13,7 @@ interface UseCanvasProps {
   canvasHeight: number;
   unit: 'mm' | 'inches';
   activeTool: 'cursor' | 'hand' | 'box' | 'fingercut';
+  setActiveTool: (tool: 'cursor' | 'hand' | 'box' | 'fingercut') => void;
   readOnly?: boolean;
 }
 
@@ -28,6 +29,7 @@ export const useCanvas = ({
   canvasHeight,
   unit,
   activeTool,
+  setActiveTool,
   readOnly,
 }: UseCanvasProps) => {
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -58,6 +60,19 @@ export const useCanvas = ({
   // Overlap detection state
   const [hasOverlaps, setHasOverlaps] = useState(false);
   const [overlappingTools, setOverlappingTools] = useState<string[]>([]);
+
+  // Finger Cut: two-click drawing start point and endpoint-resize state
+  const [fingerCutStart, setFingerCutStart] = useState<{ x: number; y: number } | null>(null);
+  const [fingerCutDrag, setFingerCutDrag] = useState<{
+    toolId: string;
+    end: 'left' | 'right';
+    anchorX: number;
+    anchorY: number;
+    heightPx: number;
+    angleRad: number;
+  } | null>(null);
+
+  const [fingerCutPreviewEnd, setFingerCutPreviewEnd] = useState<{ x: number; y: number } | null>(null);
 
   // Add a version guard to prevent stale async results from overriding current state
   const detectionVersionRef = useRef(0);
@@ -170,6 +185,13 @@ export const useCanvas = ({
       };
     }
 
+    if (tool.metadata?.isFingerCut) {
+      // Width is stored in pixels (length along axis), height fixed at 0.5 inches
+      const toolWidthPx = Math.max(10, typeof tool.width === 'number' ? tool.width : 50);
+      const toolHeightPx = inchesToPx(0.5);
+      return { toolWidth: toolWidthPx, toolHeight: toolHeightPx };
+    }
+
     // Prefer real physical dimensions if present
     if (
       typeof tool.realWidth === 'number' &&
@@ -241,6 +263,8 @@ export const useCanvas = ({
       cy,
     };
   }, [getToolDimensions]);
+
+
 
   // Constrain tool position to canvas boundaries
   const constrainToCanvas = useCallback((tool: DroppedTool, x: number, y: number) => {
@@ -487,8 +511,9 @@ export const useCanvas = ({
     if (!canvasRef.current) return { x: 0, y: 0 };
 
     const rect = canvasRef.current.getBoundingClientRect();
-    const canvasX = (screenX - rect.left - viewport.x) / viewport.zoom;
-    const canvasY = (screenY - rect.top - viewport.y) / viewport.zoom;
+    // FIX: rect already includes the transform translate; only divide by zoom
+    const canvasX = (screenX - rect.left) / viewport.zoom;
+    const canvasY = (screenY - rect.top) / viewport.zoom;
 
     return { x: canvasX, y: canvasY };
   }, [viewport]);
@@ -498,8 +523,9 @@ export const useCanvas = ({
     if (!canvasRef.current) return { x: 0, y: 0 };
 
     const rect = canvasRef.current.getBoundingClientRect();
-    const screenX = canvasX * viewport.zoom + viewport.x + rect.left;
-    const screenY = canvasY * viewport.zoom + viewport.y + rect.top;
+    // FIX: rect already includes translate; don’t add viewport.x/y again
+    const screenX = canvasX * viewport.zoom + rect.left;
+    const screenY = canvasY * viewport.zoom + rect.top;
 
     return { x: screenX, y: screenY };
   }, [viewport]);
@@ -684,9 +710,9 @@ export const useCanvas = ({
 
     // Find the tool being resized to check if it's a perfect shape
     const currentTool = droppedTools.find(t => t.id === resizingToolId);
-    const isPerfectShape = currentTool && currentTool.toolBrand === 'SHAPE' && 
-                          (currentTool.name.toLowerCase().includes('circle') || 
-                           currentTool.name.toLowerCase().includes('square'));
+    const isPerfectShape = currentTool && currentTool.toolBrand === 'SHAPE' &&
+      (currentTool.name.toLowerCase().includes('circle') ||
+        currentTool.name.toLowerCase().includes('square'));
 
     // Calculate new dimensions based on handle
     let newWidth = initialResizeData.toolWidth;
@@ -782,10 +808,10 @@ export const useCanvas = ({
       if (isResizing) {
         // Check if the mousedown is on a resize handle or the tool being resized
         const target = e.target as HTMLElement;
-        const isOnResizeHandle = target.closest('.resize-handle') || 
-                                target.style.cursor?.includes('resize') ||
-                                (target.parentElement && target.parentElement.style.cursor?.includes('resize'));
-        
+        const isOnResizeHandle = target.closest('.resize-handle') ||
+          target.style.cursor?.includes('resize') ||
+          (target.parentElement && target.parentElement.style.cursor?.includes('resize'));
+
         // If clicking outside resize handles, stop resizing
         if (!isOnResizeHandle) {
           e.preventDefault();
@@ -898,6 +924,40 @@ export const useCanvas = ({
     }
   }, [activeTool, setSelectedTools, setSelectedTool, startPan, screenToCanvas]);
 
+  // Start endpoint drag (left or right end of the pill)
+  const handleFingerCutEndpointDown = useCallback((e: React.MouseEvent, toolId: string, end: 'left' | 'right') => {
+    e.stopPropagation();
+    if (readOnly) return;
+
+    const tool = droppedTools.find(t => t.id === toolId);
+    if (!tool) return;
+    const { toolWidth, toolHeight } = getToolDimensions(tool);
+    const angleRad = (tool.rotation * Math.PI) / 180;
+
+    const cx = tool.x + toolWidth / 2;
+    const cy = tool.y + toolHeight / 2;
+    const ux = Math.cos(angleRad);
+    const uy = Math.sin(angleRad);
+
+    // Endpoints on the line
+    const ax = cx - (toolWidth / 2) * ux;
+    const ay = cy - (toolWidth / 2) * uy;
+    const bx = cx + (toolWidth / 2) * ux;
+    const by = cy + (toolWidth / 2) * uy;
+
+    const anchorX = end === 'left' ? bx : ax;
+    const anchorY = end === 'left' ? by : ay;
+
+    setFingerCutDrag({
+      toolId,
+      end,
+      anchorX,
+      anchorY,
+      heightPx: toolHeight,
+      angleRad,
+    });
+  }, [droppedTools, getToolDimensions, readOnly]);
+
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     // Handle resizing first
     if (isResizing) {
@@ -908,6 +968,52 @@ export const useCanvas = ({
     // Handle viewport panning (only when not dragging tools)
     if (isPanning && (activeTool === 'hand' || !isDraggingSelection)) {
       updatePan(e);
+      return;
+    }
+
+    // Live preview for finger cut: update end point while dragging the mouse
+    if (activeTool === 'fingercut' && fingerCutStart) {
+      const pos = screenToCanvas(e.clientX, e.clientY);
+      setFingerCutPreviewEnd(pos);
+    }
+
+    // Endpoint drag active
+    if (fingerCutDrag) {
+      const { toolId, end, anchorX, anchorY, heightPx, angleRad } = fingerCutDrag;
+      const pos = screenToCanvas(e.clientX, e.clientY);
+
+      const ux = Math.cos(angleRad);
+      const uy = Math.sin(angleRad);
+      const vx = pos.x - anchorX;
+      const vy = pos.y - anchorY;
+
+      // Projection along the axis
+      const proj = vx * ux + vy * uy;
+      const newWidthPx = Math.max(10, Math.abs(proj));
+
+      // Signed length controls which side is extended
+      const signedLen = end === 'right' ? proj : -proj;
+
+      const newCx = anchorX + (signedLen / 2) * ux;
+      const newCy = anchorY + (signedLen / 2) * uy;
+
+      setDroppedTools(prev =>
+        prev.map(t => {
+          if (t.id !== toolId) return t;
+          return {
+            ...t,
+            x: newCx - newWidthPx / 2,
+            y: newCy - heightPx / 2,
+            width: newWidthPx,
+            length: heightPx,
+            metadata: {
+              ...t.metadata,
+              fingerCutWidth: newWidthPx,
+              fingerCutLength: heightPx,
+            },
+          };
+        })
+      );
       return;
     }
 
@@ -972,6 +1078,10 @@ export const useCanvas = ({
       }
     }
   }, [
+    fingerCutDrag,
+    screenToCanvas,
+    setDroppedTools,
+    fingerCutStart,
     isPanning,
     activeTool,
     updatePan,
@@ -996,58 +1106,74 @@ export const useCanvas = ({
       handleResizeEnd();
       return;
     }
+    // Finish endpoint drag, if any
+    if (fingerCutDrag) {
+      setFingerCutDrag(null);
+    }
     endPan();
     setDragOffset(null);
     setIsDraggingSelection(false);
     setInitialPositions({});
     setSelectionBox(null);
-  }, [endPan]);
+  }, [isResizing, handleResizeEnd, endPan, fingerCutDrag]);
 
   // Handle finger cut tool click
   const handleFingerCutClick = useCallback((e: React.MouseEvent) => {
     if (readOnly) return;
-    const canvasRect = canvasRef.current?.getBoundingClientRect();
-    if (!canvasRect) return;
+    const pos = screenToCanvas(e.clientX, e.clientY);
 
-    const canvasPos = screenToCanvas(e.clientX, e.clientY);
-    
-    // Create a new finger cut tool
-    const fingerCutTool: DroppedTool = {
+    // First click: capture start point
+    if (!fingerCutStart) {
+      setFingerCutStart(pos);
+      return;
+    }
+
+    // Second click: create the cut between start and current pos
+    const dx = pos.x - fingerCutStart.x;
+    const dy = pos.y - fingerCutStart.y;
+    const lengthPx = Math.max(10, Math.hypot(dx, dy));
+    const angleRad = Math.atan2(dy, dx);
+    const angleDeg = (angleRad * 180) / Math.PI;
+    const thicknessPx = inchesToPx(0.5);
+
+    const centerX = fingerCutStart.x + dx / 2;
+    const centerY = fingerCutStart.y + dy / 2;
+
+    const newTool: DroppedTool = {
       id: `fingercut-${Date.now()}`,
       name: 'Finger Cut',
       icon: '⭕',
       toolBrand: 'FINGERCUT',
       toolType: 'fingerCut',
       SKUorPartNumber: '',
-      x: canvasPos.x - 25, // Center the finger cut
-      y: canvasPos.y - 15,
-      rotation: 0,
+      x: centerX - lengthPx / 2,
+      y: centerY - thicknessPx / 2,
+      rotation: angleDeg,
       flipHorizontal: false,
       flipVertical: false,
-      width: 50, // Default finger cut width
-      length: 30, // Default finger cut length
-      depth: 0.2,
-      unit,
+      width: lengthPx,        // stored in px (length along axis)
+      length: thicknessPx,    // stored in px (height)
+      depth: 0.5,             // inches (not used for rendering thickness)
+      unit,                   // keep current layout unit for consistency
       opacity: 100,
       smooth: 0,
       metadata: {
         isFingerCut: true,
-        fingerCutWidth: 50,
-        fingerCutLength: 30,
-        length: 2.0, // Default size for finger cuts
+        fingerCutWidth: lengthPx,
+        fingerCutLength: thicknessPx,
+        length: 0.5, // inches, for consistency
       },
     };
 
-    // Constrain to canvas boundaries
-    const constrainedPos = constrainToCanvas(fingerCutTool, fingerCutTool.x, fingerCutTool.y);
-    fingerCutTool.x = constrainedPos.x;
-    fingerCutTool.y = constrainedPos.y;
+    setFingerCutStart(null);
+    setFingerCutPreviewEnd(null);
+    setDroppedTools(prev => [...prev, newTool]);
+    setSelectedTool(newTool.id);
+    setSelectedTools([newTool.id]);
+    setActiveTool('cursor');
+  }, [fingerCutStart, screenToCanvas, setDroppedTools, setSelectedTool, setSelectedTools, unit, readOnly, setActiveTool]);
 
-    // Add to dropped tools
-    setDroppedTools(prev => [...prev, fingerCutTool]);
-    setSelectedTool(fingerCutTool.id);
-    setSelectedTools([fingerCutTool.id]);
-  }, [activeTool, screenToCanvas, constrainToCanvas, setDroppedTools, setSelectedTool, setSelectedTools, unit, readOnly]);
+
 
   const handleCanvasClick = useCallback((e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -1130,6 +1256,7 @@ export const useCanvas = ({
     switch (activeTool) {
       case 'cursor': return 'default';
       case 'hand': return 'grab';
+      case 'fingercut': return 'crosshair';
       default: return 'default';
     }
   }, [activeTool, isPanning, isDraggingSelection, readOnly]);
@@ -1142,6 +1269,7 @@ export const useCanvas = ({
       if (isDraggingSelection && selectedTools.includes(toolId)) return 'grabbing';
       return 'move';
     }
+    if (activeTool === 'fingercut') return 'crosshair';
     return 'default';
   }, [activeTool, isDraggingSelection, selectedTools, isPanning, readOnly]);
 
@@ -1194,6 +1322,8 @@ export const useCanvas = ({
     // Refs
     canvasRef,
     canvasContainerRef,
+    fingerCutStart,
+    fingerCutPreviewEnd,
 
     // State
     dragOffset,
@@ -1223,6 +1353,8 @@ export const useCanvas = ({
     handleDeleteSelectedTools,
     handleFingerCutClick,
     autoFixOverlaps,
+    handleFingerCutEndpointDown,
+
 
     // Style helpers
     getCanvasCursor,

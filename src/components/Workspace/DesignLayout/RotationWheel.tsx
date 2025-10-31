@@ -37,10 +37,10 @@ const RotationWheel: React.FC<RotationWheelProps> = ({
 
     // Calculate angle in degrees (0° is right, increases clockwise)
     let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI);
-    
+
     // Normalize to 0-360 range
     if (angle < 0) angle += 360;
-    
+
     return angle;
   }, []);
 
@@ -89,22 +89,34 @@ const RotationWheel: React.FC<RotationWheelProps> = ({
         height: `${wheelSize}px`,
         left: `${-wheelRadius + toolWidth / 2}px`,
         top: `${-wheelRadius + toolHeight / 2}px`,
-        zIndex: 30,
+        zIndex: 9999, // FIXED: High z-index to appear above all tools
         transform: `scale(${inverseScale})`,
         transformOrigin: 'center',
       }}
     >
-      {/* Transparent, subtle ring */}
-      <div
-        className="absolute inset-0 rounded-full border border-black/50 bg-transparent"
-        style={{ boxShadow: 'none' }}
+      {/* SVG for the wheel with center line and ticks */}
+      <svg
+        width={wheelSize}
+        height={wheelSize}
+        className="absolute inset-0"
+        style={{ overflow: 'visible' }}
       >
-        {/* Subtle tick marks */}
+        {/* Transparent circle with black border */}
+        <circle
+          cx={wheelRadius}
+          cy={wheelRadius}
+          r={wheelRadius - 1}
+          fill="transparent"
+          stroke="black"
+          strokeWidth="1"
+        />
+
+        {/* Tick marks */}
         {Array.from({ length: 24 }, (_, i) => {
           const angle = (i * 15) * Math.PI / 180;
           const isMainTick = i % 6 === 0; // 90°
           const tickLength = isMainTick ? 10 : 5;
-          const tickWidth = isMainTick ? 2 : 1;
+          const tickWidth = isMainTick ? 1.5 : 1;
 
           const startRadius = wheelRadius - 12;
           const endRadius = wheelRadius - 12 + tickLength;
@@ -115,55 +127,49 @@ const RotationWheel: React.FC<RotationWheelProps> = ({
           const y2 = Math.sin(angle) * endRadius + wheelRadius;
 
           return (
-            <div
-              key={i}
-              className="absolute bg-black/60"
-              style={{
-                left: `${Math.min(x1, x2)}px`,
-                top: `${Math.min(y1, y2)}px`,
-                width: `${Math.abs(x2 - x1) || tickWidth}px`,
-                height: `${Math.abs(y2 - y1) || tickWidth}px`,
-                transformOrigin: '0 0',
-                transform: `rotate(${angle}rad)`,
-              }}
+            <line
+              key={`tick-${i}`}
+              x1={x1}
+              y1={y1}
+              x2={x2}
+              y2={y2}
+              stroke="black"
+              strokeWidth={tickWidth}
             />
           );
         })}
 
-        {/* Center dot (subtle) */}
-        <div
-          className="absolute w-1.5 h-1.5 bg-black/60 rounded-full"
-          style={{
-            left: `${wheelRadius - 3}px`,
-            top: `${wheelRadius - 3}px`,
-          }}
+        {/* Center dot */}
+        <circle
+          cx={wheelRadius}
+          cy={wheelRadius}
+          r={2}
+          fill="black"
         />
-      </div>
 
-      {/* Smaller green rotation pin */}
+        {/* Line from center to green dot */}
+        <line
+          x1={wheelRadius}
+          y1={wheelRadius}
+          x2={wheelRadius + pinX}
+          y2={wheelRadius + pinY}
+          stroke="black"
+          strokeWidth="1.5"
+          pointerEvents="none"
+        />
+      </svg>
+
+      {/* Green rotation pin */}
       <div
         className="absolute w-3 h-3 bg-green-500 rounded-full cursor-grab active:cursor-grabbing pointer-events-auto shadow-md border border-black/60"
         style={{
-          left: `${wheelRadius + (Math.cos((currentRotation * Math.PI) / 180) * (wheelRadius - 10)) - 6}px`,
-          top: `${wheelRadius + (Math.sin((currentRotation * Math.PI) / 180) * (wheelRadius - 10)) - 6}px`,
+          left: `${wheelRadius + pinX - 6}px`,
+          top: `${wheelRadius + pinY - 6}px`,
           transform: isDragging ? 'scale(1.15)' : 'scale(1)',
           transition: isDragging ? 'none' : 'transform 0.1s ease',
         }}
         onMouseDown={handleMouseDown}
       />
-
-      {/* Angle indicator (optional, subtle) */}
-      <div
-        className="absolute text-[40px] font-medium text-black/80 bg-primary/40 px-1.5 py-0.5 rounded pointer-events-none"
-        style={{
-          left: '50%',
-          top: `${wheelSize + 6}px`,
-          transform: 'translateX(-50%)',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {Math.round(currentRotation)}°
-      </div>
     </div>
   );
 };

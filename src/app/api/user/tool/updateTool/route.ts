@@ -37,6 +37,7 @@ export async function PUT(request: NextRequest) {
             toolId,
             toolBrand,
             toolType,
+            SKUorPartNumber,
         } = body;
 
         // Validate required fields
@@ -47,9 +48,9 @@ export async function PUT(request: NextRequest) {
             );
         }
 
-        if (!toolBrand || !toolType) {
+        if (!toolBrand || !toolType || !SKUorPartNumber) {
             return NextResponse.json(
-                { error: 'Brand and tool type are required' },
+                { error: 'Brand, tool type, and SKU/Part Number are required' },
                 { status: 400 }
             );
         }
@@ -80,6 +81,7 @@ export async function PUT(request: NextRequest) {
         const updateData = {
             toolBrand,
             toolType,
+            SKUorPartNumber,
             updatedAt: new Date()
         };
 

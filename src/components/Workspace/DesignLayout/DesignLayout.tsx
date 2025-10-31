@@ -39,7 +39,7 @@ function DesignLayout({
 
   useEffect(() => {
     if (editingLayoutId) {
-      try { sessionStorage.setItem('editingLayoutId', editingLayoutId); } catch {}
+      try { sessionStorage.setItem('editingLayoutId', editingLayoutId); } catch { }
     }
     if (initialDroppedTools && initialDroppedTools.length) {
       pushState(initialDroppedTools);
@@ -47,7 +47,7 @@ function DesignLayout({
   }, [editingLayoutId, initialDroppedTools, pushState]);
 
   // State for active tool (cursor, hand, box)
-  const [activeTool, setActiveTool] = useState<'cursor' | 'hand' | 'box'>('cursor');
+  const [activeTool, setActiveTool] = useState<'cursor' | 'hand' | 'box' | 'fingercut'>('cursor');
 
   // State for overlap detection (passed from Canvas)
   const [hasOverlaps, setHasOverlaps] = useState<boolean>(false);
@@ -217,6 +217,7 @@ function DesignLayout({
           canvasHeight={canvasHeight}
           unit={unit}
           activeTool={activeTool}
+          setActiveTool={setActiveTool}
           onOverlapChange={setHasOverlaps}
           readOnly={readOnly}
         />
@@ -230,6 +231,7 @@ function DesignLayout({
             canvasWidth={canvasWidth}
             canvasHeight={canvasHeight}
             unit={unit}
+            setActiveTool={setActiveTool}
             readOnly={readOnly}
           />
         </div>
