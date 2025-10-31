@@ -961,7 +961,7 @@ const Header: React.FC<HeaderProps> = ({
                 width_inches: widthInches,
                 height_inches: heightInches,
               };
-            } else if (
+            } else if ( 
               tool.name.toLowerCase().includes("circle") ||
               (tool.image || "").includes("circle.svg")
             ) {
