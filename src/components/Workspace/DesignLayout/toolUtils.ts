@@ -569,6 +569,50 @@ export const updateFingerCutDimensions = (
   );
 };
 
+// Update shape dimensions (circle: diameter; rectangle: width/length)
+export const updateShapeDimensions = (
+  toolId: string,
+  droppedTools: DroppedTool[],
+  updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
+  width?: number,
+  length?: number
+): void => {
+  updateDroppedTools(prev =>
+    prev.map(tool => {
+      if (tool.id === toolId && tool.toolBrand === 'SHAPE') {
+        const isCircle = (tool.toolType === 'circle' || tool.name.toLowerCase().includes('circle'));
+        if (isCircle) {
+          const diameter = typeof width === 'number' ? width : (typeof length === 'number' ? length : tool.width);
+          return { ...tool, width: diameter, length: diameter };
+        }
+        return {
+          ...tool,
+          width: typeof width === 'number' ? width : tool.width,
+          length: typeof length === 'number' ? length : tool.length,
+        };
+      }
+      return tool;
+    })
+  );
+}
+
+// Update shape depth (in inches)
+export const updateShapeDepth = (
+  toolId: string,
+  droppedTools: DroppedTool[],
+  updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
+  depthInches: number
+): void => {
+  if (isNaN(depthInches)) return;
+  updateDroppedTools(prev =>
+    prev.map(tool =>
+      tool.id === toolId && tool.toolBrand === 'SHAPE'
+        ? { ...tool, depth: depthInches }
+        : tool
+    )
+  );
+};
+
 // Update tool appearance - no longer saves to global history
 export const updateToolAppearance = (
   toolId: string,

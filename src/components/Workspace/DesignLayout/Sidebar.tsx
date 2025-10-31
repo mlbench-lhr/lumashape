@@ -20,7 +20,9 @@ import {
     createShape,
     updateToolAppearance,
     createFingerCut,
-    updateFingerCutDimensions
+    updateFingerCutDimensions,
+    updateShapeDimensions,
+    updateShapeDepth
 } from './toolUtils';
 
 interface SidebarProps {
@@ -97,6 +99,69 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     const selectedToolObject = selectedTool ? droppedTools.find(tool => tool.id === selectedTool) : null;
     const isFingerCutSelected = selectedToolObject?.metadata?.isFingerCut;
+    const isShapeSelected = selectedToolObject?.toolBrand === 'SHAPE';
+
+    // Local draft state for shape inputs
+    const [shapeSettingsDraft, setShapeSettingsDraft] = useState({
+        diameter: '',
+        width: '',
+        length: '',
+        depth: '',
+    });
+
+    useEffect(() => {
+        if (isShapeSelected && selectedToolObject) {
+            if (selectedToolObject.toolType === 'circle') {
+                setShapeSettingsDraft({
+                    diameter: String(selectedToolObject.width ?? ''),
+                    width: '',
+                    length: '',
+                    depth: String(selectedToolObject.depth ?? ''),
+                });
+            } else {
+                setShapeSettingsDraft({
+                    diameter: '',
+                    width: String(selectedToolObject.width ?? ''),
+                    length: String(selectedToolObject.length ?? ''),
+                    depth: String(selectedToolObject.depth ?? ''),
+                });
+            }
+        }
+    }, [isShapeSelected, selectedToolObject]);
+
+    const applyShapeSettings = useCallback(() => {
+        if (!selectedTool || !isShapeSelected || !selectedToolObject) return;
+
+        if (selectedToolObject.toolType === 'circle') {
+            const diameter = parseFloat(shapeSettingsDraft.diameter);
+            const depth = parseFloat(shapeSettingsDraft.depth);
+
+            if (!isNaN(diameter) && diameter > 0) {
+                updateShapeDimensions(selectedTool, droppedTools, setDroppedTools, diameter, diameter);
+            }
+            if (!isNaN(depth) && depth >= 0) {
+                updateShapeDepth(selectedTool, droppedTools, setDroppedTools, depth);
+            }
+        } else {
+            const width = parseFloat(shapeSettingsDraft.width);
+            const length = parseFloat(shapeSettingsDraft.length);
+            const depth = parseFloat(shapeSettingsDraft.depth);
+
+            const widthArg = !isNaN(width) && width > 0 ? width : undefined;
+            const lengthArg = !isNaN(length) && length > 0 ? length : undefined;
+            if (widthArg !== undefined || lengthArg !== undefined) {
+                // Fallback to current values to maintain function arity
+                const w = widthArg !== undefined ? widthArg : selectedToolObject.width;
+                const l = lengthArg !== undefined ? lengthArg : selectedToolObject.length;
+                updateShapeDimensions(selectedTool, droppedTools, setDroppedTools, w, l);
+            }
+            if (!isNaN(depth) && depth >= 0) {
+                updateShapeDepth(selectedTool, droppedTools, setDroppedTools, depth);
+            }
+        }
+
+        onHistoryChange?.();
+    }, [selectedTool, isShapeSelected, selectedToolObject, shapeSettingsDraft, droppedTools, setDroppedTools, onHistoryChange]);
 
     // Extract database tool data into separate variables
     const extractToolData = (dbTool: DatabaseTool) => {
@@ -197,6 +262,26 @@ const Sidebar: React.FC<SidebarProps> = ({
             setActionLoading(null);
         }
     };
+
+    const handleCircleDiameterChange = useCallback((diameter: number) => {
+        if (!selectedTool || !isShapeSelected || !selectedToolObject) return;
+        updateShapeDimensions(selectedTool, droppedTools, setDroppedTools, diameter, diameter);
+        onHistoryChange?.();
+    }, [selectedTool, isShapeSelected, selectedToolObject, droppedTools, setDroppedTools, onHistoryChange]);
+
+    const handleRectangleDimensionChange = useCallback((dimension: 'width' | 'length', value: number) => {
+        if (!selectedTool || !isShapeSelected || !selectedToolObject) return;
+        const newWidth = dimension === 'width' ? value : selectedToolObject.width;
+        const newLength = dimension === 'length' ? value : selectedToolObject.length;
+        updateShapeDimensions(selectedTool, droppedTools, setDroppedTools, newWidth, newLength);
+        onHistoryChange?.();
+    }, [selectedTool, isShapeSelected, selectedToolObject, droppedTools, setDroppedTools, onHistoryChange]);
+
+    const handleShapeDepthChange = useCallback((depthInches: number) => {
+        if (!selectedTool || !isShapeSelected) return;
+        updateShapeDepth(selectedTool, droppedTools, setDroppedTools, depthInches);
+        onHistoryChange?.();
+    }, [selectedTool, isShapeSelected, droppedTools, setDroppedTools, onHistoryChange]);
 
     // Handle finger cut creation
     const handleCreateFingerCut = useCallback(() => {
@@ -568,8 +653,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                                         onClick={() => handleAddToInventoryFromLayout(tool)}
                                         disabled={!canAdd}
                                         className={`px-2 py-1 text-xs rounded border ${canAdd
-                                                ? 'text-primary border-primary hover:bg-primary/10'
-                                                : 'text-gray-400 border-gray-200 cursor-not-allowed'
+                                            ? 'text-primary border-primary hover:bg-primary/10'
+                                            : 'text-gray-400 border-gray-200 cursor-not-allowed'
                                             }`}
                                         title={
                                             !originalId
@@ -702,15 +787,15 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             {/* Finger Cut Controls */}
-            {isFingerCutSelected && selectedToolObject && (
-                <div className="bg-blue-50 p-4 rounded-lg">
-                    <h3 className="text-sm font-medium text-blue-800 mb-3 flex items-center gap-2">
+            {/* {isFingerCutSelected && selectedToolObject && (
+                <div className="bg-primary-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-primary-800 mb-3 flex items-center gap-2">
                         <Hand className="w-4 h-4" />
                         Finger Cut Settings
                     </h3>
                     <div className="space-y-3">
                         <div>
-                            <label className="block text-xs font-medium text-blue-700 mb-1">
+                            <label className="block text-xs font-medium text-primary-700 mb-1">
                                 Width ({unit})
                             </label>
                             <input
@@ -724,7 +809,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium text-blue-700 mb-1">
+                            <label className="block text-xs font-medium text-primary-700 mb-1">
                                 Length ({unit})
                             </label>
                             <input
@@ -742,7 +827,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </div>
                     </div>
                 </div>
-            )}
+            )} */}
+
+
 
             {/* Alignment Section */}
             {/* <div>
@@ -832,24 +919,121 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <span className="text-xs text-gray-500 text-center leading-tight">square</span>
                     </div>
                     <div className="flex flex-col items-center">
+                        {/* Finger cut tool toggle (activates drawing mode) */}
                         <button
-                            className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center mb-1 transition-colors cursor-pointer"
-                            onClick={() => handleCreateShape('cylinder')}
+                            className="flex flex-col items-center space-y-1 p-2 rounded hover:bg-gray-100"
+                            onClick={() => setActiveTool('fingercut')}
+                            disabled={readOnly}
+                            title="Finger Cut (draw between two points)"
                         >
-                            <div className='w-6 h-6'>
-                                <Image
-                                    src="/images/workspace/cylinder.svg"
-                                    alt="cylindrical finger cut"
-                                    width={24}
-                                    height={24}
-                                    className="w-full h-full object-contain"
-                                />
-                            </div>
+                            <Image
+                                src="/images/workspace/cylinder.svg"
+                                alt="cylindrical finger cut"
+                                width={24}
+                                height={24}
+                                className="w-6 h-6"
+                            />
+                            <span className="text-xs text-gray-500 text-center leading-tight">finger cut</span>
                         </button>
-                        <span className="text-xs text-gray-500 text-center leading-tight">finger cut</span>
                     </div>
                 </div>
             </div>
+
+            {/* Shape Settings */}
+            {isShapeSelected && selectedToolObject && (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                    <h3 className="text-sm font-medium text-primary mb-3">Shape Settings</h3>
+
+                    {selectedToolObject.toolType === 'circle' ? (
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-xs font-medium text-primary mb-1">
+                                    Diameter ({unit})
+                                </label>
+                                <input
+                                    type="number"
+                                    value={shapeSettingsDraft.diameter}
+                                    onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, diameter: e.target.value }))}
+                                    className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
+                                    min="1"
+                                    step="0.01"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-primary mb-1">
+                                    Depth (inches)
+                                </label>
+                                <input
+                                    type="number"
+                                    value={shapeSettingsDraft.depth}
+                                    onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, depth: e.target.value }))}
+                                    className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
+                                    min="0"
+                                    step="0.01"
+                                />
+                            </div>
+                            <div className="flex justify-end">
+                                <button
+                                    onClick={applyShapeSettings}
+                                    className="px-3 py-1 text-sm rounded bg-primary text-white"
+                                >
+                                    Apply
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-xs font-medium text-primary mb-1">
+                                    Width ({unit})
+                                </label>
+                                <input
+                                    type="number"
+                                    value={shapeSettingsDraft.width}
+                                    onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, width: e.target.value }))}
+                                    className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
+                                    min="1"
+                                    step="0.01"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-primary mb-1">
+                                    Length ({unit})
+                                </label>
+                                <input
+                                    type="number"
+                                    value={shapeSettingsDraft.length}
+                                    onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, length: e.target.value }))}
+                                    className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
+                                    min="1"
+                                    step="0.01"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-primary mb-1">
+                                    Depth (inches)
+                                </label>
+                                <input
+                                    type="number"
+                                    value={shapeSettingsDraft.depth}
+                                    onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, depth: e.target.value }))}
+                                    className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
+                                    min="0"
+                                    step="0.01"
+                                />
+                            </div>
+                            <div className="flex justify-end">
+                                <button
+                                    onClick={applyShapeSettings}
+                                    className="px-3 py-1 text-sm rounded bg-primary text-white hover:bg-blue-700"
+                                >
+                                    Apply
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Tool Properties Section (if tool is selected) */}
             {/* {selectedToolObject && (

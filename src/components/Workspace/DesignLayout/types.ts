@@ -24,6 +24,7 @@ export interface Tool {
     version?: number;
     naturalWidth?: number;
     naturalHeight?: number;
+    thicknessInches?: number;
     originalId?: string;
     isFingerCut?: boolean;
     fingerCutWidth?: number;

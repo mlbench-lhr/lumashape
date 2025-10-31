@@ -427,10 +427,10 @@ const PublishedLayoutsTab = () => {
     return (
         <div>
             {/* Filter Section */}
-            <div className="mb-6">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 flex-wrap">
-                    {/* Search Bar */}
-                    <div className="relative w-full lg:w-[300px] xl:w-[350px]">
+            <div className="mb-6 space-y-4">
+                {/* Search Bar Row */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="relative w-full sm:max-w-[350px]">
                         <img
                             src="images/icons/explore/search_icon.svg"
                             alt="search"
@@ -444,124 +444,134 @@ const PublishedLayoutsTab = () => {
                             className="w-full pl-10 pr-4 py-2 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                         />
                     </div>
+                </div>
 
-                    {/* First Row of Filters */}
-                    <div className="flex flex-wrap items-center gap-3">
+                {/* Filters Row */}
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* Thickness */}
+                    <div className="relative">
+                        <select
+                            className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[120px]"
+                            value={selectedThickness}
+                            onChange={(e) => setSelectedThickness(e.target.value)}
+                        >
+                            <option value="">Thickness</option>
+                            {getThicknessOptions().map(option => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                        <img
+                            src="/images/icons/explore/published_layouts/thickness.svg"
+                            alt="thickness"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4"
+                        />
+                    </div>
 
-                        {/* Thickness - independent of unit */}
+                    {/* Unit + Length + Width */}
+                    <div className="appearance-none relative flex items-center gap-1 py-1 pl-3 pr-3 border rounded-md text-gray-700 focus:outline-none min-w-[300px]">
+                        {/* Unit */}
                         <div className="relative">
                             <select
-                                className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[120px]"
-                                value={selectedThickness}
-                                onChange={(e) => setSelectedThickness(e.target.value)}
+                                className="appearance-none bg-transparent text-gray-700 font-medium pr-6 pl-1 py-1 outline-none"
+                                value={selectedUnit}
+                                onChange={handleUnitChange}
                             >
-                                <option value="">Thickness</option>
-                                {getThicknessOptions().map(option => (
-                                    <option key={option.value} value={option.value}>
-                                        {option.label}
-                                    </option>
-                                ))}
+                                <option value="">Unit</option>
+                                <option value="mm">mm</option>
+                                <option value="inches">inches</option>
                             </select>
+                            <ChevronDown className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
+                        </div>
+
+                        <span className="h-5 w-px bg-gray-200" />
+
+                        {/* Length */}
+                        <div className="relative flex items-center gap-2">
+                            <span className="text-gray-500 text-sm">L</span>
+                            <input
+                                type="number"
+                                placeholder="0"
+                                value={selectedLength}
+                                onChange={handleLengthChange}
+                                min="0"
+                                step={selectedUnit === "mm" ? "1" : "0.1"}
+                                disabled={!selectedUnit}
+                                className="bg-transparent border-none outline-none w-[40px] text-gray-800 disabled:text-gray-400"
+                            />
                             <img
-                                src="/images/icons/explore/published_layouts/thickness.svg"
-                                alt="thickness"
-                                className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4"
+                                src="/images/icons/explore/published_layouts/length.svg"
+                                alt="length"
+                                className="w-5 h-5"
                             />
                         </div>
 
-                        {/* Combined Unit + Length + Width (compact pill) */}
-                        <div className="appearance-none relative flex items-center gap-1 py-1 pl-3 pr-3 border rounded-md text-gray-700 focus:outline-none min-w-[300px]">
-                            {/* Unit selector */}
-                            <div className="relative">
-                                <select
-                                    className="appearance-none bg-transparent text-gray-700 font-medium pr-6 pl-1 py-1 outline-none"
-                                    value={selectedUnit}
-                                    onChange={handleUnitChange}
-                                >
-                                    <option value="">Unit</option>
-                                    <option value="mm">mm</option>
-                                    <option value="inches">inches</option>
-                                </select>
-                                <ChevronDown className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
-                            </div>
+                        <span className="h-5 w-px bg-gray-200" />
 
-                            <span className="h-5 w-px bg-gray-200" />
-
-                            {/* Length inline */}
-                            <div className="relative flex items-center gap-2">
-                                <span className="text-gray-500 text-sm">L</span>
-                                <input
-                                    type="number"
-                                    placeholder="0"
-                                    value={selectedLength}
-                                    onChange={handleLengthChange}
-                                    min="0"
-                                    step={selectedUnit === "mm" ? "1" : "0.1"}
-                                    disabled={!selectedUnit}
-                                    className="bg-transparent border-none outline-none w-[40px] text-gray-800 disabled:text-gray-400"
-                                />
-                                <img
-                                    src="/images/icons/explore/published_layouts/length.svg"
-                                    alt="length"
-                                    className="w-5 h-5"
-                                />
-                            </div>
-
-                            <span className="h-5 w-px bg-gray-200" />
-
-                            {/* Width inline */}
-                            <div className="relative flex items-center gap-2">
-                                <span className="text-gray-500 text-sm">W</span>
-                                <input
-                                    type="number"
-                                    placeholder="0"
-                                    value={selectedWidth}
-                                    onChange={handleWidthChange}
-                                    min="0"
-                                    step={selectedUnit === "mm" ? "1" : "0.1"}
-                                    disabled={!selectedUnit}
-                                    className="bg-transparent border-none outline-none w-[40px] text-gray-800 disabled:text-gray-400"
-                                />
-                                <img
-                                    src="/images/icons/explore/published_layouts/width.svg"
-                                    alt="width"
-                                    className="w-5 h-5"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Contains Tool Type */}
-                        <div className="relative">
-                            <select
-                                className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[180px]"
-                                value={selectedToolType}
-                                onChange={(e) => setSelectedToolType(e.target.value)}
-                            >
-                                <option value="">Contains Tool Type</option>
-                                {availableToolTypes.map(type => (
-                                    <option key={type} value={type}>{type}</option>
-                                ))}
-                            </select>
-                            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
-                        </div>
-
-                        {/* Contains Tool Brand */}
-                        <div className="relative">
-                            <select
-                                className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[180px]"
-                                value={selectedToolBrand}
-                                onChange={(e) => setSelectedToolBrand(e.target.value)}
-                            >
-                                <option value="">Contains Tool Brand</option>
-                                {availableToolBrands.map(brand => (
-                                    <option key={brand} value={brand}>{brand}</option>
-                                ))}
-                            </select>
-                            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
+                        {/* Width */}
+                        <div className="relative flex items-center gap-2">
+                            <span className="text-gray-500 text-sm">W</span>
+                            <input
+                                type="number"
+                                placeholder="0"
+                                value={selectedWidth}
+                                onChange={handleWidthChange}
+                                min="0"
+                                step={selectedUnit === "mm" ? "1" : "0.1"}
+                                disabled={!selectedUnit}
+                                className="bg-transparent border-none outline-none w-[40px] text-gray-800 disabled:text-gray-400"
+                            />
+                            <img
+                                src="/images/icons/explore/published_layouts/width.svg"
+                                alt="width"
+                                className="w-5 h-5"
+                            />
                         </div>
                     </div>
+
+                    {/* Tool Type */}
+                    <div className="relative">
+                        <select
+                            className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[180px]"
+                            value={selectedToolType}
+                            onChange={(e) => setSelectedToolType(e.target.value)}
+                        >
+                            <option value="">Contains Tool Type</option>
+                            {availableToolTypes.map(type => (
+                                <option key={type} value={type}>{type}</option>
+                            ))}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
+                    </div>
+
+                    {/* Tool Brand */}
+                    <div className="relative">
+                        <select
+                            className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[180px]"
+                            value={selectedToolBrand}
+                            onChange={(e) => setSelectedToolBrand(e.target.value)}
+                        >
+                            <option value="">Contains Tool Brand</option>
+                            {availableToolBrands.map(brand => (
+                                <option key={brand} value={brand}>{brand}</option>
+                            ))}
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
+                    </div>
+
+                    {/* Clear Filters */}
+                    {(searchTerm || selectedToolType || selectedToolBrand || selectedLength || selectedWidth || selectedUnit || selectedThickness) && (
+                        <button
+                            onClick={clearFilters}
+                            className="px-3 py-2 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50 focus:outline-none"
+                        >
+                            Clear Filters
+                        </button>
+                    )}
                 </div>
             </div>
+
 
             <p className="text-gray-700 text-base leading-relaxed mb-4">
                 Browse community-made layouts with ready-to-cut designs. Save them to your

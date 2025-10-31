@@ -11,8 +11,8 @@ interface ControlBarProps {
   setThickness: (thickness: number) => void;
   unit: 'mm' | 'inches';
   setUnit: (unit: 'mm' | 'inches') => void;
-  activeTool: 'cursor' | 'hand' | 'box';
-  setActiveTool: (tool: 'cursor' | 'hand' | 'box') => void;
+  activeTool: 'cursor' | 'hand' | 'box' | 'fingercut';
+  setActiveTool: (tool: 'cursor' | 'hand' | 'box' | 'fingercut') => void;
   selectedToolId?: string | null;
   canUndo?: boolean;
   canRedo?: boolean;
