@@ -1,10 +1,28 @@
 // app/api/layouts/publishLayout/route.ts
 import { NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
+import jwt, { JsonWebTokenError } from "jsonwebtoken";
 import dbConnect from "@/utils/dbConnect";
 import Layout from "@/lib/models/layout";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
+
+// Define a clear type for Tool
+interface ToolMetadata {
+  SKUorPartNumber?: string;
+  isFingerCut?: boolean;
+  [key: string]: unknown; // allow extra keys safely
+}
+
+interface Tool {
+  toolBrand?: string;
+  isCustomShape?: boolean;
+  shapeType?: string;
+  metadata?: ToolMetadata;
+}
+
+interface JwtPayload {
+  email: string;
+}
 
 export async function PATCH(req: Request) {
   try {
@@ -16,7 +34,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as { email: string };
+    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
 
     // Get layout ID from request body
     const { id } = await req.json();
@@ -40,6 +58,37 @@ export async function PATCH(req: Request) {
       );
     }
 
+    // Ensure type safety for tools
+    const tools: Tool[] = Array.isArray(layout.tools) ? layout.tools : [];
+
+    const isShapeOrFingerCut = (t: Tool): boolean => {
+      const brand = t.toolBrand?.toUpperCase() ?? "";
+      const meta = t.metadata;
+      return (
+        t.isCustomShape === true ||
+        !!t.shapeType ||
+        brand === "SHAPE" ||
+        brand === "FINGERCUT" ||
+        meta?.isFingerCut === true
+      );
+    };
+
+    const hasMissingSku = tools.some((t: Tool) => {
+      if (isShapeOrFingerCut(t)) return false;
+      const sku = t.metadata?.SKUorPartNumber;
+      return !sku || sku.trim().length === 0;
+    });
+
+    if (hasMissingSku) {
+      return NextResponse.json(
+        {
+          error:
+            "Cannot publish layout: all non-shape tools must include a SKU or Part Number.",
+        },
+        { status: 400 }
+      );
+    }
+
     // Update published status and date
     layout.published = true;
     layout.publishedDate = new Date();
@@ -55,7 +104,7 @@ export async function PATCH(req: Request) {
   } catch (err) {
     console.error("Error publishing layout:", err);
 
-    if (err instanceof jwt.JsonWebTokenError) {
+    if (err instanceof JsonWebTokenError) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 

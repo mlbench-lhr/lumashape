@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { MoreVertical, ThumbsDown, ThumbsUp, Download } from "lucide-react";
+import { useUser } from '@/context/UserContext';
 
 interface UserInteraction {
     hasLiked: boolean;
@@ -51,6 +52,16 @@ const PublishedToolsTab = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedToolType, setSelectedToolType] = useState("");
     const [selectedBrand, setSelectedBrand] = useState("");
+
+    const { user } = useUser();
+
+    const isSelfOwnedTool = (t: ToolWithInteraction) => {
+        const email = user?.email?.toLowerCase().trim();
+        return !!email && (
+            t.userEmail?.toLowerCase().trim() === email ||
+            t.createdBy?.email?.toLowerCase().trim() === email
+        );
+    };
 
 
     useEffect(() => {
@@ -138,6 +149,10 @@ const PublishedToolsTab = () => {
     // Handle add to inventory
     const handleAddToInventory = async (tool: ToolWithInteraction) => {
         try {
+            if (isSelfOwnedTool(tool)) {
+                alert("You cannot add your own published tool to your inventory.");
+                return;
+            }
             setActionLoading(`add-${tool._id}`);
             const token = getAuthToken();
 
@@ -346,17 +361,13 @@ const PublishedToolsTab = () => {
                                             >
                                                 <button
                                                     onClick={() => handleMenuClick("Add", tool)}
-                                                    disabled={actionLoading === `add-${tool._id}`}
+                                                    disabled={actionLoading === `add-${tool._id}` || isSelfOwnedTool(tool)}
                                                     className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-50 disabled:opacity-50"
                                                 >
-                                                    <Image
-                                                        src="/images/icons/edit.svg"
-                                                        width={16}
-                                                        height={16}
-                                                        alt="add"
-                                                    />
-                                                    <span className="text-[#266ca8] text-sm font-medium">
-                                                        {actionLoading === `add-${tool._id}` ? "Adding..." : "Add to My Tool Inventory"}
+                                                    <Image src="/images/icons/edit.svg" width={16} height={16} alt="add" />
+                                                    <span className={`text-sm font-medium ${isSelfOwnedTool(tool) ? 'text-gray-400' : 'text-[#266ca8]'}`}>
+                                                        {isSelfOwnedTool(tool) ? "Owned by you" :
+                                                            actionLoading === `add-${tool._id}` ? "Adding..." : "Add to My Tool Inventory"}
                                                     </span>
                                                 </button>
                                                 <button

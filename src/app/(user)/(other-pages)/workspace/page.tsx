@@ -173,6 +173,35 @@ const MyLayouts = () => {
     }
   };
 
+  // New: unpublishLayout
+  const unpublishLayout = async (id: string) => {
+    try {
+      const token = localStorage.getItem("auth-token");
+      if (!token) return;
+
+      const res = await fetch(`/api/layouts/unpublishLayout`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Failed to unpublish layout");
+      }
+
+      setLayouts((prev) =>
+        prev.map((l) => (l._id === id ? { ...l, published: false } : l))
+      );
+    } catch (err) {
+      console.error("Error unpublishing layout:", err);
+      alert(err instanceof Error ? err.message : "Failed to unpublish layout");
+    }
+  };
+
   // Update the handleMenuClick function to handle delete action
   const handleMenuClick = async (action: string, layout: Layout) => {
     setOpenDropdown(null);
@@ -183,12 +212,15 @@ const MyLayouts = () => {
       }
     } else if (action === "Publish to profile") {
       publishLayout(layout._id);
+    } else if (action === "Unpublish from profile") {
+      unpublishLayout(layout._id);
     } else if (action === "Edit") {
       router.push(`/workspace/edit-layout/${layout._id}`);
     }
   };
 
 
+  // Function: publishLayout
   const publishLayout = async (id: string) => {
     try {
       const token = localStorage.getItem("auth-token");
@@ -203,9 +235,10 @@ const MyLayouts = () => {
         body: JSON.stringify({ id }),
       });
 
-
-      if (!res.ok) throw new Error("Failed to publish layout");
       const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Failed to publish layout");
+      }
 
       // Update layouts in state
       setLayouts((prev) =>
@@ -215,6 +248,7 @@ const MyLayouts = () => {
       );
     } catch (err) {
       console.error("Error publishing layout:", err);
+      alert(err instanceof Error ? err.message : "Failed to publish layout");
     }
   };
 
@@ -357,12 +391,17 @@ const MyLayouts = () => {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleMenuClick("Publish to profile", layout);
+                                    handleMenuClick(
+                                      layout.published ? "Unpublish from profile" : "Publish to profile",
+                                      layout
+                                    );
                                   }}
                                   className="w-full px-1 py-1 sm:px-3 sm:py-2 text-left flex items-center gap-[5px] hover:bg-gray-50"
                                 >
                                   <Image src="/images/icons/share.svg" width={16} height={16} alt="share" />
-                                  <span className="text-[10px] sm:text-[14px] font-medium text-[#808080]">Publish to profile</span>
+                                  <span className="text-[10px] sm:text-[14px] font-medium text-[#808080]">
+                                    {layout.published ? "Unpublish from profile" : "Publish to profile"}
+                                  </span>
                                 </button>
 
                                 <button

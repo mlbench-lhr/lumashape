@@ -182,6 +182,8 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedTools, handleDeleteSelectedTools, props.readOnly, droppedTools]);
 
+  const [hoveredToolId, setHoveredToolId] = React.useState<string | null>(null);
+
   return (
     <div className="flex-1 relative bg-gray-100 overflow-hidden">
       {/* Overlap Notification */}
@@ -315,6 +317,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             const GAP_INCHES = typeof tool.metadata?.gapInches === 'number' ? tool.metadata.gapInches : 0.25;
             const gapPx = tool.unit === 'mm' ? mmToPx(GAP_INCHES * 25.4) : inchesToPx(GAP_INCHES);
 
+
             return (
               <div
                 key={tool.id}
@@ -326,9 +329,12 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                   width: `${toolWidth}px`,
                   height: `${toolHeight}px`,
                   cursor: getToolCursor(tool.id),
-                  zIndex: isFingerCut ? 0 : (isSelected ? 20 : 10),
+                  // Raise hovered tool above everything else
+                  zIndex: hoveredToolId === tool.id ? 9999 : (isFingerCut ? 0 : (isSelected ? 20 : 10)),
                 }}
                 onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
+                onMouseEnter={() => setHoveredToolId(tool.id)}
+                onMouseLeave={() => setHoveredToolId(prev => (prev === tool.id ? null : prev))}
               >
                 {/* Finger Cut Rendering */}
                 {isFingerCut ? (
@@ -389,7 +395,24 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     >
                       {tool.toolType === 'circle' ? (
                         <>
-                          {/* Outer circle (buffer boundary) */}
+                          {/* Gray gap ring (fills the 0.25" annulus) */}
+                          <circle
+                            cx={toolWidth / 2}
+                            cy={toolHeight / 2}
+                            r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - gapPx / 2 - 1)}
+                            fill="none"
+                            stroke="#dee3ebff"
+                            strokeWidth={gapPx}
+                          />
+                          {/* Inner circle (solid fill shape) */}
+                          <circle
+                            cx={toolWidth / 2}
+                            cy={toolHeight / 2}
+                            r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - gapPx - 1)}
+                            fill={isOverlapping ? '#f87171' : '#266ca8'}
+                            stroke="none"
+                          />
+                          {/* Outer circle (buffer boundary stroke on top) */}
                           <circle
                             cx={toolWidth / 2}
                             cy={toolHeight / 2}
@@ -398,18 +421,28 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                             stroke={isOverlapping ? '#f87171' : '#266ca8'}
                             strokeWidth={2}
                           />
-                          {/* Inner circle (solid fill shape with 0.25" buffer around) */}
-                          <circle
-                            cx={toolWidth / 2}
-                            cy={toolHeight / 2}
-                            r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - gapPx - 1)}
-                            fill={isOverlapping ? '#f87171' : '#266ca8'}
-                            stroke="none"
-                          />
                         </>
                       ) : (
                         <>
-                          {/* Outer rectangle (buffer boundary) */}
+                          {/* Gray gap fill region (outer rect) */}
+                          <rect
+                            x={1}
+                            y={1}
+                            width={Math.max(0, toolWidth - 2)}
+                            height={Math.max(0, toolHeight - 2)}
+                            fill="#dee3ebff"
+                            stroke="none"
+                          />
+                          {/* Inner rectangle (solid fill shape, overlays center) */}
+                          <rect
+                            x={gapPx + 1}
+                            y={gapPx + 1}
+                            width={Math.max(0, toolWidth - 2 * (gapPx + 1))}
+                            height={Math.max(0, toolHeight - 2 * (gapPx + 1))}
+                            fill={isOverlapping ? '#f87171' : '#266ca8'}
+                            stroke="none"
+                          />
+                          {/* Outer rectangle stroke on top */}
                           <rect
                             x={1}
                             y={1}
@@ -418,15 +451,6 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                             fill="none"
                             stroke={isOverlapping ? '#f87171' : '#266ca8'}
                             strokeWidth={2}
-                          />
-                          {/* Inner rectangle (solid fill shape with 0.25" buffer around) */}
-                          <rect
-                            x={gapPx + 1}
-                            y={gapPx + 1}
-                            width={Math.max(0, toolWidth - 2 * (gapPx + 1))}
-                            height={Math.max(0, toolHeight - 2 * (gapPx + 1))}
-                            fill={isOverlapping ? '#f87171' : '#266ca8'}
-                            stroke="none"
                           />
                         </>
                       )}
@@ -488,7 +512,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 )} */}
 
                 {/* Rotation Wheel - show only for primary selected tool */}
-                {!props.readOnly && isPrimarySelection && (
+                {!props.readOnly && isPrimarySelection && tool.toolType !== 'circle' && (
                   <RotationWheel
                     toolId={tool.id}
                     currentRotation={tool.rotation}
@@ -538,7 +562,10 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 )}
 
                 {/* ENHANCED: Tool info tooltip */}
-                <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-95 text-white text-xs px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 backdrop-blur-sm shadow-lg">
+                <div
+                  className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-95 text-white text-xs px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap backdrop-blur-sm shadow-lg"
+                  style={{ zIndex: 9999 }}
+                >
                   <div className="text-center space-y-1">
                     <div className="text-gray-400">
                       {`Depth: ${Number(tool.depth).toFixed(2)} inches`}
@@ -548,17 +575,17 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                         {`Tool Brand: ${tool.toolBrand}`}
                       </div>
                     )}
-                    {!isShape && (
+                    {!isShape && tool.toolBrand !== "FINGERCUT" && (
                       <div className="text-gray-400">
                         {`Tool Type: ${tool.metadata?.toolType}`}
                       </div>
                     )}
-                    {!isShape && (
+                    {!isShape && tool.toolBrand !== "FINGERCUT" && (
                       <div className="text-gray-400">
                         {`SKU or Part Number: ${tool.metadata?.SKUorPartNumber}`}
                       </div>
                     )}
-                    {isShape && (
+                    {isShape && isFingerCut &&(
                       <div className="text-yellow-300">
                         {`Size: ${tool.width?.toFixed(1)} × ${tool.length?.toFixed(1)} ${tool.unit}`}
                       </div>

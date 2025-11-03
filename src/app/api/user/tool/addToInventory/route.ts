@@ -36,6 +36,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Tool not found" }, { status: 404 });
     }
 
+    // NEW: Block adding your own published tool
+    const requesterEmail = decoded.email.toLowerCase().trim();
+    const originalOwnerEmail = (originalTool.userEmail || "").toLowerCase().trim();
+    if (originalOwnerEmail === requesterEmail) {
+      return NextResponse.json(
+        { error: "You cannot add your own tool to your inventory" },
+        { status: 403 }
+      );
+    }
+
     // Check if user already has this tool in their inventory
     const existingTool = await Tool.findOne({
       userEmail: decoded.email,

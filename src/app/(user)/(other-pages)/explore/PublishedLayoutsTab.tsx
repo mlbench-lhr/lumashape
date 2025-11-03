@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { MoreVertical, Download, Check, ChevronDown, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/context/UserContext';
 
 interface UserInteraction {
     hasLiked: boolean;
@@ -71,6 +72,17 @@ const PublishedLayoutsTab = () => {
     // Dynamic options for dropdowns
     const [availableToolTypes, setAvailableToolTypes] = useState<string[]>([]);
     const [availableToolBrands, setAvailableToolBrands] = useState<string[]>([]);
+
+
+    const { user } = useUser();
+
+    const isSelfOwnedLayout = (l: LayoutWithInteraction) => {
+        const email = user?.email?.toLowerCase().trim();
+        return !!email && (
+            l.userEmail?.toLowerCase().trim() === email ||
+            l.createdBy?.email?.toLowerCase().trim() === email
+        );
+    };
 
     const startPurchaseFlow = async (itemId: string) => {
         try {
@@ -374,13 +386,19 @@ const PublishedLayoutsTab = () => {
 
     const handleMenuClick = async (action: string, layout: LayoutWithInteraction) => {
         if (action === "Add") {
+            if (isSelfOwnedLayout(layout)) {
+                alert("You cannot add your own published layout to your workspace.");
+                setOpenDropdown(null);
+                return;
+            }
             if (isLayoutDownloaded(layout)) {
-                await addToWorkspace(layout)
+                await addToWorkspace(layout);
             } else {
-                await startPurchaseFlow(layout._id)
+                await startPurchaseFlow(layout._id);
             }
         } else if (action === "Inspect") {
             router.push(`/inspect-layout/${layout._id}`);
+            setOpenDropdown(null);
         }
     };
 
@@ -648,30 +666,29 @@ const PublishedLayoutsTab = () => {
                                             >
                                                 <button
                                                     onClick={() => handleMenuClick("Add", layout)}
-                                                    disabled={actionLoading === layout._id}
+                                                    disabled={actionLoading === layout._id || isSelfOwnedLayout(layout)}
                                                     className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     {actionLoading === layout._id ? (
                                                         <div className="w-4 h-4 border-2 border-[#266ca8] border-t-transparent rounded-full animate-spin" />
+                                                    ) : isSelfOwnedLayout(layout) ? (
+                                                        <Check className="w-4 h-4 text-gray-400" />
                                                     ) : isLayoutDownloaded(layout) ? (
                                                         <Check className="w-4 h-4 text-green-500" />
                                                     ) : (
-                                                        <Image
-                                                            src="/images/icons/edit.svg"
-                                                            width={16}
-                                                            height={16}
-                                                            alt="add"
-                                                        />
+                                                        <Image src="/images/icons/edit.svg" width={16} height={16} alt="add" />
                                                     )}
-                                                    <span className={`text-sm font-medium ${isLayoutDownloaded(layout)
-                                                        ? 'text-green-500'
-                                                        : 'text-[#266ca8]'
+                                                    <span className={`text-sm font-medium ${isSelfOwnedLayout(layout) ? 'text-gray-400'
+                                                            : isLayoutDownloaded(layout) ? 'text-green-500'
+                                                                : 'text-[#266ca8]'
                                                         }`}>
                                                         {actionLoading === layout._id
                                                             ? "Adding..."
-                                                            : isLayoutDownloaded(layout)
-                                                                ? "Added to Workspace"
-                                                                : "Add to My Workspace"
+                                                            : isSelfOwnedLayout(layout)
+                                                                ? "Owned by you"
+                                                                : isLayoutDownloaded(layout)
+                                                                    ? "Added to Workspace"
+                                                                    : "Add to My Workspace"
                                                         }
                                                     </span>
                                                 </button>

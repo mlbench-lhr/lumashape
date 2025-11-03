@@ -118,6 +118,7 @@ const MobileToolsInventory = () => {
   };
 
   // Publish tool API
+  // Function: publishTool
   const publishTool = async (toolId: string) => {
     try {
       const token = localStorage.getItem("auth-token");
@@ -135,12 +136,10 @@ const MobileToolsInventory = () => {
         body: JSON.stringify({ toolId }),
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || "Failed to publish tool");
-      }
-
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to publish tool");
+      }
 
       // Update the tool in local state
       setTools(prev => prev.map(tool =>
@@ -156,7 +155,7 @@ const MobileToolsInventory = () => {
 
     } catch (error) {
       console.error("Error publishing tool:", error);
-      // Optionally show an error message to the user
+      alert(error instanceof Error ? error.message : "Failed to publish tool");
     }
   };
 
@@ -184,6 +183,35 @@ const MobileToolsInventory = () => {
     }
   };
 
+  // New: unpublishTool
+  const unpublishTool = async (toolId: string) => {
+    try {
+      const token = localStorage.getItem("auth-token");
+      if (!token) return;
+
+      const res = await fetch("/api/user/tool/unpublishTool", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ toolId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to unpublish tool");
+      }
+
+      setTools(prev =>
+        prev.map(t => (t._id === toolId ? { ...t, published: false } : t))
+      );
+    } catch (error) {
+      console.error("Error unpublishing tool:", error);
+      alert(error instanceof Error ? error.message : "Failed to unpublish tool");
+    }
+  };
+
   const handleMenuClick = async (action: string, tool: Tool) => {
     // Always close dropdown first
     setOpenDropdown(null);
@@ -192,6 +220,8 @@ const MobileToolsInventory = () => {
       router.push(`/tools-inventory/edit/${tool._id}`);
     } else if (action === "Publish to profile") {
       await publishTool(tool._id);
+    } else if (action === "Unpublish from profile") {
+      await unpublishTool(tool._id);
     } else if (action === "Delete") {
       if (window.confirm("Are you sure you want to delete this tool?")) {
         deleteTool(tool._id);
@@ -494,16 +524,17 @@ const MobileToolsInventory = () => {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleMenuClick("Publish to profile", tool);
+                                    handleMenuClick(
+                                      tool.published ? "Unpublish from profile" : "Publish to profile",
+                                      tool
+                                    );
                                   }}
-                                  disabled={tool.published}
-                                  className={`w-full px-1 py-1 sm:px-3 sm:py-2 text-left flex items-center gap-[5px] hover:bg-gray-50 ${tool.published ? 'opacity-50 cursor-not-allowed' : ''
-                                    }`}
+                                  className="w-full px-1 py-1 sm:px-3 sm:py-2 text-left flex items-center gap-[5px] hover:bg-gray-50"
+                                  data-dropdown
                                 >
                                   <Image src="/images/icons/share.svg" width={16} height={16} alt="share" />
-                                  <span className={`text-[10px] sm:text-[14px] font-medium ${tool.published ? 'text-gray-400' : 'text-[#808080]'
-                                    }`}>
-                                    {tool.published ? 'Already Published' : 'Publish to profile'}
+                                  <span className="text-[10px] sm:text-[14px] font-medium text-[#808080]">
+                                    {tool.published ? "Unpublish from profile" : "Publish to profile"}
                                   </span>
                                 </button>
 

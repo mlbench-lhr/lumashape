@@ -42,6 +42,14 @@ export async function PATCH(req: Request) {
       );
     }
 
+    // Enforce SKU/PartNumber requirement before publishing
+    if (!tool.SKUorPartNumber || tool.SKUorPartNumber.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Cannot publish tool: SKU or Part Number is required." },
+        { status: 400 }
+      );
+    }
+
     // Update published status and date
     tool.published = true;
     tool.publishedDate = new Date();

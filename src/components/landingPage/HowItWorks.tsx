@@ -42,7 +42,7 @@ const data: { left: DataItem[]; right: DataItem[] } = {
       id: 3,
       title: 'Build Your Layout',
       description:
-        'Drag tools into the layout builder and customize your design with rotation, text, finger holes, cut depths, and more.',
+        'Use tools from your tool inventory to build and customize your layout.',
     },
     {
       id: 5,
@@ -51,7 +51,7 @@ const data: { left: DataItem[]; right: DataItem[] } = {
     {
       id: 7,
       title: 'Share and Earn',
-      description: 'Publish your layouts to the community and earn 25% when others import them.',
+      description: 'Publish your work to the Lumashape ecosystem and profit when it is used by others',
     }
   ],
   right: [
@@ -59,7 +59,7 @@ const data: { left: DataItem[]; right: DataItem[] } = {
       id: 2,
       title: 'Scan Your Tools',
       description:
-        'Photograph each tool on printer paper. Lumashape detects the contour and saves it to your inventory.',
+        'Use the Lumashape mobile app to scan each tool. Our AI captures the contour and saves it directly to your tool inventory.',
     },
     {
       id: 4,
@@ -100,13 +100,13 @@ function HowItWorks() {
         viewport={{ once: false }}
       >
         <Text as="h2" className="text-4xl font-bold text-center max-w-[80%] mx-auto mb-4">
-          <span className="text-blue-600">How </span>It Works
+          <span className="text-primary">How </span>It Works
         </Text>
         <Text
           as="p"
           className="text-center text-gray-600 mx-auto md:max-w-[80%] text-lg"
         >
-          Lumashape simplifies the file creation process, offering an intuitive and user-friendly experience powered by advanced AI.
+          Lumashape simplifies foam insert design with advanced AI, making the process fast, accurate, and effortless
         </Text>
       </motion.div>
 

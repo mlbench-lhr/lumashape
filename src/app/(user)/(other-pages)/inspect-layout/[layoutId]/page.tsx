@@ -129,8 +129,16 @@ export default function InspectLayoutPage({
         let heightPxFallback = 0;
 
         let toolBrand: string = t.metadata?.toolBrand || '';
-        // NEW: capture shape toolType from DB shapeType
-        const shapeToolType: 'circle' | 'square' | 'polygon' | '' = '';
+        const shapeToolType: 'circle' | 'square' | 'polygon' | '' =
+          t.isCustomShape && t.shapeType
+            ? t.shapeType === 'circle'
+              ? 'circle'
+              : t.shapeType === 'rectangle'
+              ? 'square'
+              : t.shapeType === 'polygon'
+              ? 'polygon'
+              : ''
+            : '';
 
         if (t.isCustomShape && t.shapeType && t.shapeData) {
           toolBrand = 'SHAPE';
@@ -207,7 +215,6 @@ export default function InspectLayoutPage({
           realWidth: t.realWidth,
           realHeight: t.realHeight,
           toolBrand,
-          // NEW: inform renderer of shape kind
           toolType: shapeToolType || (t.metadata?.toolType ?? ''),
         } as DroppedTool;
       });
