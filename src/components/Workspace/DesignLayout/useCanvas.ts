@@ -285,13 +285,45 @@ export const useCanvas = ({
 
 
 
-  // Constrain tool position to canvas boundaries
+  // Constrain tool position to canvas boundaries (rotation-aware)
   const constrainToCanvas = useCallback((tool: DroppedTool, x: number, y: number) => {
-    const { toolWidth, toolHeight } = getToolDimensions(tool);
+    const { toolWidth: w, toolHeight: h } = getToolDimensions(tool);
     const { width: canvasWidthPx, height: canvasHeightPx } = getCanvasBounds();
 
-    const constrainedX = Math.max(0, Math.min(x, canvasWidthPx - toolWidth));
-    const constrainedY = Math.max(0, Math.min(y, canvasHeightPx - toolHeight));
+    // Compute rotated AABB extents (depends on rotation, not position)
+    const angle = ((tool.rotation || 0) * Math.PI) / 180;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const rotW = Math.abs(w * cos) + Math.abs(h * sin);
+    const rotH = Math.abs(w * sin) + Math.abs(h * cos);
+
+    const wHalf = w / 2;
+    const hHalf = h / 2;
+    const rotWHalf = rotW / 2;
+    const rotHHalf = rotH / 2;
+
+    // Allowed x/y ranges ensuring rotated AABB stays inside canvas
+    const minX = rotWHalf - wHalf;                                 // AABB.left >= 0
+    const maxX = canvasWidthPx - (wHalf + rotWHalf);               // AABB.right <= canvasWidth
+    const minY = rotHHalf - hHalf;                                 // AABB.top >= 0
+    const maxY = canvasHeightPx - (hHalf + rotHHalf);              // AABB.bottom <= canvasHeight
+
+    let constrainedX: number;
+    let constrainedY: number;
+
+    // If rotated AABB is wider than canvas, center horizontally
+    if (rotW <= canvasWidthPx) {
+      constrainedX = Math.max(minX, Math.min(x, maxX));
+    } else {
+      constrainedX = canvasWidthPx / 2 - wHalf;
+    }
+
+    // If rotated AABB is taller than canvas, center vertically
+    if (rotH <= canvasHeightPx) {
+      constrainedY = Math.max(minY, Math.min(y, maxY));
+    } else {
+      constrainedY = canvasHeightPx / 2 - hHalf;
+    }
 
     return { x: constrainedX, y: constrainedY };
   }, [getToolDimensions, getCanvasBounds]);

@@ -28,12 +28,29 @@ const DraggableTool: React.FC<DraggableToolProps> = ({ tool, readOnly = false, a
           <span className="text-lg">{tool.icon}</span>
         )}
       </div>
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-900">{tool.name}</span>
-          <div className="bg-red-600 text-white text-xs px-2 py-0.5 rounded font-medium">
+          <span className="text-sm font-medium text-gray-900 truncate">{tool.name}</span>
+          <div className="bg-red-600 text-white text-xs px-2 py-0.5 rounded font-medium shrink-0">
             {tool.toolBrand}
           </div>
+        </div>
+        {/* Details: brand, type, SKU/Part, depth */}
+        <div className="mt-1 space-y-0.5 text-xs leading-tight">
+          <div className="flex justify-between gap-4">
+            <span className="text-gray-500">SKU/Part</span>
+            <span className="text-gray-900 truncate">
+              {tool.metadata?.SKUorPartNumber || (tool as any).SKUorPartNumber || '—'}
+            </span>
+          </div>
+          {typeof (tool.metadata?.depth ?? (tool as any).depth) === 'number' && (
+            <div className="flex justify-between gap-4">
+              <span className="text-gray-500">Depth</span>
+              <span className="text-gray-900 truncate">
+                {(tool.metadata?.depth ?? (tool as any).depth)}
+              </span>
+            </div>
+          )}
         </div>
       </div>
       {actions && <div className="shrink-0">{actions}</div>}
