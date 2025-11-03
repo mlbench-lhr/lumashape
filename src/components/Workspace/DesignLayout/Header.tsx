@@ -137,11 +137,8 @@ const Header: React.FC<HeaderProps> = ({
         }
       }
 
-      const layoutName =
-        additionalData.layoutName ||
-        `Layout ${new Date().toLocaleDateString()}`;
-      const containerSize = `${additionalData.canvasWidth ?? canvasWidth}" × ${additionalData.canvasHeight ?? canvasHeight
-        }"`;
+      const layoutName = await resolveLayoutName(additionalData);
+      const containerSize = `${additionalData.canvasWidth ?? canvasWidth}" × ${additionalData.canvasHeight ?? canvasHeight}"`;
 
       // Save layout via Save & Exit handler (single source of truth)
       const saveResult = await handleSaveAndExit({ skipRedirect: true });
@@ -233,6 +230,47 @@ const Header: React.FC<HeaderProps> = ({
       console.error("Error accessing localStorage:", error);
       return null;
     }
+  };
+
+  // NEW: resolve the layout name without overwriting existing names on update
+  const resolveLayoutName = async (additionalData: LayoutFormData): Promise<string> => {
+    const fromSession = (additionalData.layoutName || "").trim();
+    if (fromSession) return fromSession;
+
+    let editingId: string | null = null;
+    try {
+      editingId = sessionStorage.getItem("editingLayoutId");
+    } catch {}
+
+    if (editingId) {
+      // Prefer cached name if available
+      try {
+        const cached = sessionStorage.getItem("editingLayoutName");
+        if (cached && cached.trim()) return cached.trim();
+      } catch {}
+
+      // Fallback: fetch existing layout name to avoid overwriting
+      try {
+        const token = getAuthToken();
+        if (token) {
+          const res = await fetch(`/api/layouts?id=${editingId}`, {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const json = await res.json().catch(() => ({}));
+          const existingName = json?.data?.name;
+          if (typeof existingName === "string" && existingName.trim()) {
+            try {
+              sessionStorage.setItem("editingLayoutName", existingName);
+            } catch {}
+            return existingName;
+          }
+        }
+      } catch {}
+    }
+
+    // Final fallback for brand-new layouts
+    return `Layout ${new Date().toLocaleDateString()}`;
   };
 
   // Helpers to compute inches for length/depth using fetched tool or dropped tool
@@ -360,13 +398,36 @@ const Header: React.FC<HeaderProps> = ({
     const mmToPx = (mm: number) => (mm / 25.4) * DPI;
     const inchesToPx = (inches: number) => inches * DPI;
 
-    // Finger cuts: width/length are stored as CSS pixels on the canvas
+    // Finger cuts: convert stored physical units to pixels
     if (tool.metadata?.isFingerCut) {
-      const widthPx = Math.max(10, typeof tool.width === 'number' ? tool.width : 50);
-      const heightPx = Math.max(10, typeof tool.length === 'number' ? tool.length : inchesToPx(0.5));
+      const DPI = 96;
+      const mmToPx = (mm: number) => (mm / 25.4) * DPI;
+      const inchesToPx = (inches: number) => inches * DPI;
+
+      // Legacy heuristic: treat obviously large values as px from older data
+      const looksLikePx =
+        (tool.unit === 'inches' && ((tool.width ?? 0) > 50 || (tool.length ?? 0) > 2)) ||
+        (tool.unit === 'mm' && ((tool.width ?? 0) > 1000 || (tool.length ?? 0) > 50));
+
+      if (looksLikePx) {
+        const widthPx = Math.max(10, typeof tool.width === 'number' ? tool.width : 50);
+        const heightPx = Math.max(10, typeof tool.length === 'number' ? tool.length : inchesToPx(0.2));
+        return { toolWidth: widthPx, toolHeight: heightPx };
+      }
+
+      const defaultThicknessInches = 0.2;
+      const widthPx =
+        tool.unit === 'mm'
+          ? mmToPx(tool.width || 0)
+          : inchesToPx(tool.width || 0);
+      const heightPx =
+        tool.unit === 'mm'
+          ? mmToPx((tool.length ?? defaultThicknessInches * 25.4))
+          : inchesToPx((tool.length ?? defaultThicknessInches));
+
       return {
-        toolWidth: widthPx,
-        toolHeight: heightPx,
+        toolWidth: Math.max(20, widthPx),
+        toolHeight: Math.max(20, heightPx),
       };
     }
 
@@ -925,10 +986,9 @@ const Header: React.FC<HeaderProps> = ({
       }
 
       // Step 2: Save layout data with image URL
+      const nameToSave = await resolveLayoutName(additionalData);
       const layoutData = {
-        name:
-          additionalData.layoutName ||
-          `Layout ${new Date().toLocaleDateString()}`,
+        name: nameToSave,
         canvas: {
           width: additionalData.canvasWidth ?? canvasWidth,
           height: additionalData.canvasHeight ?? canvasHeight,
@@ -1102,9 +1162,10 @@ const Header: React.FC<HeaderProps> = ({
           ? result.snapshotUrl ?? null
           : result.data?.snapshotUrl ?? null;
 
-      // Persist editing id for subsequent updates (no duplicates)
+      // Persist editing id and name for subsequent updates (no duplicates)
       try {
         sessionStorage.setItem("editingLayoutId", savedLayoutId);
+        sessionStorage.setItem("editingLayoutName", nameToSave);
       } catch { }
 
       setSaveError(null);

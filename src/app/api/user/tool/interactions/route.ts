@@ -105,7 +105,13 @@ export async function POST(req: Request) {
         break;
 
       case "download":
-        // For downloads, we can allow multiple downloads by same user
+        // NEW: Block counting downloads for owner
+        if (tool.userEmail?.toLowerCase().trim() === userEmail) {
+          return NextResponse.json(
+            { error: "You cannot download your own tool" },
+            { status: 403 }
+          );
+        }
         updateOperations = {
           $inc: { downloads: 1 },
           $addToSet: { downloadedByUsers: userEmail }

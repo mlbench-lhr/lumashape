@@ -186,10 +186,29 @@ export const useCanvas = ({
     }
 
     if (tool.metadata?.isFingerCut) {
-      // Width is stored in pixels (length along axis), height fixed at 0.5 inches
-      const toolWidthPx = Math.max(10, typeof tool.width === 'number' ? tool.width : 50);
-      const toolHeightPx = inchesToPx(0.5);
-      return { toolWidth: toolWidthPx, toolHeight: toolHeightPx };
+      // Legacy heuristic: if values look like px (huge in inches), treat them as px
+      const looksLikePx =
+        (tool.unit === 'inches' && ((tool.width ?? 0) > 50 || (tool.length ?? 0) > 2)) ||
+        (tool.unit === 'mm' && ((tool.width ?? 0) > 1000 || (tool.length ?? 0) > 50));
+
+      if (looksLikePx) {
+        const widthPx = Math.max(10, typeof tool.width === 'number' ? tool.width : 50);
+        const heightPx = Math.max(10, typeof tool.length === 'number' ? tool.length : inchesToPx(0.5));
+        return { toolWidth: widthPx, toolHeight: heightPx };
+      }
+
+      // Normal path: convert stored physical units to px
+      const widthPx =
+        tool.unit === 'mm'
+          ? mmToPx(tool.width || 0)
+          : inchesToPx(tool.width || 0);
+      const defaultThicknessInches = 0.5;
+      const heightPx =
+        tool.unit === 'mm'
+          ? mmToPx((tool.length ?? defaultThicknessInches * 25.4))
+          : inchesToPx((tool.length ?? defaultThicknessInches));
+
+      return { toolWidth: Math.max(10, widthPx), toolHeight: Math.max(10, heightPx) };
     }
 
     // Prefer real physical dimensions if present
@@ -640,7 +659,7 @@ export const useCanvas = ({
         flipVertical: false,
         width: 50, // Legacy fallback
         length: 50, // Legacy fallback
-        depth: tool.metadata?.depth || 0.2,
+        depth: tool.metadata?.depth || 0.5,
         SKUorPartNumber: tool.metadata?.SKUorPartNumber || '',
         unit,
         opacity: 100,
@@ -997,6 +1016,11 @@ export const useCanvas = ({
       const newCx = anchorX + (signedLen / 2) * ux;
       const newCy = anchorY + (signedLen / 2) * uy;
 
+      // Convert px back to physical units for storage
+      const pxToUnits = (px: number) => unit === 'mm' ? (px / 96) * 25.4 : (px / 96);
+      const newWidthUnits = pxToUnits(newWidthPx);
+      const heightUnits = pxToUnits(heightPx);
+
       setDroppedTools(prev =>
         prev.map(t => {
           if (t.id !== toolId) return t;
@@ -1004,12 +1028,12 @@ export const useCanvas = ({
             ...t,
             x: newCx - newWidthPx / 2,
             y: newCy - heightPx / 2,
-            width: newWidthPx,
-            length: heightPx,
+            width: newWidthUnits,    // store in units
+            length: heightUnits,     // store in units
             metadata: {
               ...t.metadata,
-              fingerCutWidth: newWidthPx,
-              fingerCutLength: heightPx,
+              fingerCutWidth: newWidthUnits,
+              fingerCutLength: heightUnits,
             },
           };
         })
@@ -1134,7 +1158,14 @@ export const useCanvas = ({
     const lengthPx = Math.max(10, Math.hypot(dx, dy));
     const angleRad = Math.atan2(dy, dx);
     const angleDeg = (angleRad * 180) / Math.PI;
-    const thicknessPx = inchesToPx(0.5);
+
+    // Convert drawn pixel distance to physical units for storage
+    const widthInches = lengthPx / 96;
+    const widthUnits = unit === 'mm' ? widthInches * 25.4 : widthInches;
+
+    const defaultThicknessInches = 0.5;
+    const thicknessUnits = unit === 'mm' ? defaultThicknessInches * 25.4 : defaultThicknessInches;
+    const thicknessPx = unit === 'mm' ? mmToPx(thicknessUnits) : inchesToPx(thicknessUnits);
 
     const centerX = fingerCutStart.x + dx / 2;
     const centerY = fingerCutStart.y + dy / 2;
@@ -1151,17 +1182,16 @@ export const useCanvas = ({
       rotation: angleDeg,
       flipHorizontal: false,
       flipVertical: false,
-      width: lengthPx,        // stored in px (length along axis)
-      length: thicknessPx,    // stored in px (height)
-      depth: 0.5,             // inches (not used for rendering thickness)
-      unit,                   // keep current layout unit for consistency
+      width: widthUnits,       // store in physical units
+      length: thicknessUnits,  // store in physical units
+      depth: 0.5,
+      unit,                    // inches|mm
       opacity: 100,
       smooth: 0,
       metadata: {
         isFingerCut: true,
-        fingerCutWidth: lengthPx,
-        fingerCutLength: thicknessPx,
-        length: 0.5, // inches, for consistency
+        fingerCutWidth: widthUnits,
+        fingerCutLength: thicknessUnits,
       },
     };
 

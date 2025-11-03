@@ -287,11 +287,6 @@ export default function ProfitSharing() {
                     </div>
                 </div>
                 <div className="border rounded-lg p-4">
-                    <div className="text-sm text-gray-600">Platform Share</div>
-                    <div className="text-xl font-semibold">${(platformShareCents / 100).toFixed(2)}</div>
-                    <div className="text-xs text-gray-500">Lifetime fees</div>
-                </div>
-                <div className="border rounded-lg p-4">
                     <div className="text-sm text-gray-600">Total Spent</div>
                     <div className="text-xl font-semibold">${spentDollar}</div>
                     <div className="text-xs text-gray-500">Purchases</div>
@@ -309,10 +304,8 @@ export default function ProfitSharing() {
                         <thead>
                             <tr className="text-left text-gray-600">
                                 <th className="py-2 pr-3">Date</th>
-                                <th className="py-2 pr-3">Type</th>
                                 <th className="py-2 pr-3">Item</th>
-                                <th className="py-2 pr-3">Seller Share</th>
-                                <th className="py-2 pr-3">Platform Share</th>
+                                <th className="py-2 pr-3">Amount</th>
                                 <th className="py-2 pr-3">Status</th>
                             </tr>
                         </thead>
@@ -323,10 +316,8 @@ export default function ProfitSharing() {
                                 filteredEarnings.map((tx) => (
                                     <tr key={tx._id} className="border-t">
                                         <td className="py-2 pr-3">{new Date(tx.createdAt).toLocaleDateString()}</td>
-                                        <td className="py-2 pr-3 capitalize">{tx.itemType}</td>
                                         <td className="py-2 pr-3">{tx.itemName || tx.itemId}</td>
                                         <td className="py-2 pr-3">${(tx.sellerShareCents / 100).toFixed(2)}</td>
-                                        <td className="py-2 pr-3">${(tx.platformShareCents / 100).toFixed(2)}</td>
                                         <td className="py-2 pr-3">
                                             <span className={`px-2 py-0.5 rounded text-xs ${tx.paidToSeller ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                                                 {tx.paidToSeller ? 'Paid' : 'Owed'}
@@ -351,7 +342,6 @@ export default function ProfitSharing() {
                         <thead>
                             <tr className="text-left text-gray-600">
                                 <th className="py-2 pr-3">Date</th>
-                                <th className="py-2 pr-3">Type</th>
                                 <th className="py-2 pr-3">Item</th>
                                 <th className="py-2 pr-3">Amount</th>
                                 <th className="py-2 pr-3">Status</th>
@@ -364,7 +354,6 @@ export default function ProfitSharing() {
                                 filteredPayments.map((tx) => (
                                     <tr key={tx._id} className="border-t">
                                         <td className="py-2 pr-3">{new Date(tx.createdAt).toLocaleDateString()}</td>
-                                        <td className="py-2 pr-3 capitalize">{tx.itemType}</td>
                                         <td className="py-2 pr-3">{tx.itemName || tx.itemId}</td>
                                         <td className="py-2 pr-3">-${(tx.amountCents / 100).toFixed(2)}</td>
                                         <td className="py-2 pr-3">

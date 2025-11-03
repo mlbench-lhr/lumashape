@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { MoreVertical, ThumbsDown, ThumbsUp, Download, Check } from "lucide-react";
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/context/UserContext';
 
 interface UserInteraction {
     hasLiked: boolean;
@@ -86,6 +87,24 @@ const TrendingTab = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [addedLayouts, setAddedLayouts] = useState<Set<string>>(new Set());
     const router = useRouter();
+
+    const { user } = useUser();
+
+    const isSelfOwnedTool = (t: TrendingTool) => {
+        const email = user?.email?.toLowerCase().trim();
+        return !!email && (
+            t.userEmail?.toLowerCase().trim() === email ||
+            t.createdBy?.email?.toLowerCase().trim() === email
+        );
+    };
+
+    const isSelfOwnedLayout = (l: TrendingLayout) => {
+        const email = user?.email?.toLowerCase().trim();
+        return !!email && (
+            l.userEmail?.toLowerCase().trim() === email ||
+            l.createdBy?.email?.toLowerCase().trim() === email
+        );
+    };
 
     const startPurchaseFlow = async (itemType: 'tool' | 'layout', itemId: string) => {
         try {
@@ -370,7 +389,11 @@ const TrendingTab = () => {
     // Handle dropdown menu actions for tools
     const handleToolMenuClick = (action: string, tool: TrendingTool) => {
         if (action === "Add") {
-            handleAddToInventory(tool)
+            if (isSelfOwnedTool(tool)) {
+                alert("You cannot add your own published tool to your inventory.");
+            } else {
+                handleAddToInventory(tool);
+            }
         } else if (action === "Explore") {
             console.log("Explore related layouts for:", tool);
         }
@@ -380,10 +403,15 @@ const TrendingTab = () => {
     // Handle dropdown menu actions for layouts
     const handleLayoutMenuClick = async (action: string, layout: TrendingLayout) => {
         if (action === "Add") {
+            if (isSelfOwnedLayout(layout)) {
+                alert("You cannot add your own published layout to your workspace.");
+                setOpenDropdown(null);
+                return;
+            }
             if (isLayoutDownloaded(layout)) {
-                await handleAddLayoutToWorkspace(layout)
+                await handleAddLayoutToWorkspace(layout);
             } else {
-                await startPurchaseFlow('layout', layout._id)
+                await startPurchaseFlow('layout', layout._id);
             }
         } else if (action === "Explore") {
             console.log("Explore related tools for:", layout);
@@ -513,17 +541,13 @@ const TrendingTab = () => {
                                                 >
                                                     <button
                                                         onClick={() => handleToolMenuClick("Add", tool)}
-                                                        disabled={actionLoading === `add-${tool._id}`}
+                                                        disabled={actionLoading === `add-${tool._id}` || isSelfOwnedTool(tool)}
                                                         className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-50 disabled:opacity-50"
                                                     >
-                                                        <Image
-                                                            src="/images/icons/edit.svg"
-                                                            width={16}
-                                                            height={16}
-                                                            alt="add"
-                                                        />
-                                                        <span className="text-[#266ca8] text-sm font-medium">
-                                                            {actionLoading === `add-${tool._id}` ? "Adding..." : "Add to My Tool Inventory"}
+                                                        <Image src="/images/icons/edit.svg" width={16} height={16} alt="add" />
+                                                        <span className={`text-sm font-medium ${isSelfOwnedTool(tool) ? 'text-gray-400' : 'text-[#266ca8]'}`}>
+                                                            {isSelfOwnedTool(tool) ? "Owned by you" :
+                                                                actionLoading === `add-${tool._id}` ? "Adding..." : "Add to My Tool Inventory"}
                                                         </span>
                                                     </button>
                                                     <button

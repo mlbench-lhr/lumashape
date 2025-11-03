@@ -19,62 +19,44 @@ export default function FAQSection() {
 
     const faqItems = [
         {
-            question: "How do I scan my tools into Lumashape?",
-            answer: "Place each tool flat on a single sheet of printer paper (US Letter, A4, or A3 depending on the tool size) and take a clear, overhead photo. Lumashape uses the paper size to automatically scale the contour.",
+            question: "What is Lumashape?",
+            answer: "Lumashape is a platform that makes it easy to scan tools, design layouts, and create custom foam inserts — all within one connected ecosystem.",
         },
         {
-            question: "Can I scan multiple tools at once?",
-            answer: "No. Each tool must be scanned individually to ensure accurate scaling and easy reuse in future layouts.",
+            question: "How does Lumashape work?",
+            answer: "You scan your tools with the mobile app, organize them into layouts through the web app, then either download the cut file for DIY production or order finished foam shadowboards directly through Lumashape.",
         },
         {
-            question: "Do I need CAD experience?",
-            answer: "Not at all. Lumashape handles contour detection, scaling, and layout building automatically—no CAD or manual tracing required.",
+            question: "Is Lumashape free to use?",
+            answer: "Yes — scanning tools, building layouts, and downloading cut files are completely free. The only costs occur when you submit your shadowboard for order fullfilment (to cover material and shipping) or import a completed layout from another creator.",
         },
         {
-            question: "What can I do in the layout builder?",
-            answer: "You can drag in tools, rotate, position, add finger holes, insert text, draw shapes, assign cut depths, and more. It's a full-featured digital workspace for layout creation.",
+            question: "Why does importing a layout cost money?",
+            answer: "Importing a finished layout includes a small fee that goes directly to the creator as a reward for their effort and the timesaving value their design provides.",
         },
         {
-            question: "What file format does Lumashape export?",
-            answer: "DXF. This format is compatible with CO₂ lasers, CNC routers, waterjets, and other cutting machines.",
+            question: "What is the Lumashape ecosystem?",
+            answer: "It’s a shared library where users can upload tool scans and completed layouts for others to explore, import, and build from — fostering collaboration and efficiency.",
         },
         {
-            question: "How does order fulfillment work?",
-            answer: "Instead of cutting locally, you can submit your layout for fulfillment. We'll cut your foam insert to spec and ship it directly to your door.",
+            question: "How does profit sharing work?",
+            answer: "When another user imports your published layout, Lumashape automatically pays you a portion of that transaction as profit sharing.",
         },
         {
-            question: "Can I share my layouts with other users?",
-            answer: "Yes. You can publish tool scans and completed layouts to the Lumashape community to help others save time and effort.",
+            question: "Do I need design or CAD experience?",
+            answer: "No — Lumashape is built to automate the technical work so anyone can create precise, ready-to-cut layouts in minutes.",
         },
         {
-            question: "Do I get paid if others use my layout?",
-            answer: "Yes. You earn 25% of the import fee every time another user imports your published layout into their own project.",
+            question: "Can I use Lumashape without a laser or cutting system?",
+            answer: "Yes. You can still create layouts digitally and have them produced through Lumashape’s order fulfillment option, which includes material and shipping costs.",
         },
         {
-            question: "What causes errors during scanning?",
-            answer: [
-                "Most Commonly:",
-                {
-                    "id": 1,
-                    "cause": "Tool not fully visible or cropped at the paper edge"
-                },
-                {
-                    "id": 2,
-                    "cause": "Shadows, glare, or poor lighting"
-                },
-                {
-                    "id": 3,
-                    "cause": "Wrong paper size selection"
-                },
-                {
-                    "id": 4,
-                    "cause": "Busy or low-contrast backgrounds"
-                }
-            ]
+            question: "Who can contribute to the ecosystem?",
+            answer: "Anyone with a Lumashape account can upload tool scans or publish completed layouts, making it easier for others to stay organized.",
         },
         {
-            question: "Can I reuse my scanned tools in multiple layouts?",
-            answer: "Yes. Once a tool is scanned and added to your inventory, you can use it across any number of layouts without rescanning—saving time and ensuring consistency."
+            question: "What makes Lumashape different?",
+            answer: "Lumashape unites scanning, layout design, and community sharing into a free, connected platform that rewards creators and streamlines tool organization from start to finish.",
         }
 
     ];

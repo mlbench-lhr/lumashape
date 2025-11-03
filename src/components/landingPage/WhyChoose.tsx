@@ -51,7 +51,7 @@ const WhyChoose = () => {
                             as="p1"
                             className="text-center text-secondary-light mx-auto font-medium max-w-[70%]"
                         >
-                            Submit your layout for fulfillment and receive a professionally cut foam insert no equipment needed. Shipping is fast, and quality is guaranteed.
+                            Submit your layout and we’ll handle the rest. Your design is turned into a precision-cut foam insert, shipped quickly with guaranteed quality.
                         </Text>
                     </motion.div>
 

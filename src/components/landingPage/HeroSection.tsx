@@ -47,9 +47,7 @@ function HeroSection() {
           as="p1"
           className="text-center text-secondary-light mx-auto font-medium md:max-w-[75%] mt-5"
         >
-          Lumashape turns photos of your tools into cut-ready layouts no CAD
-          required. Scan, drag, and arrange digitally. Download the DXF or
-          submit for order fulfillment all from a single platform.
+          Lumashape transforms photos of your tools into cut-ready foam inserts. Download cut files or submit your designs for order fulfillment, all within our connected ecosystem for tool organization.
         </Text>
         <div className="my-10 flex justify-center">
           <Button
