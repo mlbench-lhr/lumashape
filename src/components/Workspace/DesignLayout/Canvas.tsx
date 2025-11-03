@@ -401,7 +401,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                             cy={toolHeight / 2}
                             r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - gapPx / 2 - 1)}
                             fill="none"
-                            stroke="#dee3ebff"
+                            stroke="#c2c2c2"
                             strokeWidth={gapPx}
                           />
                           {/* Inner circle (solid fill shape) */}
@@ -413,14 +413,14 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                             stroke="none"
                           />
                           {/* Outer circle (buffer boundary stroke on top) */}
-                          <circle
+                          {/* <circle
                             cx={toolWidth / 2}
                             cy={toolHeight / 2}
                             r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - 1)}
                             fill="none"
                             stroke={isOverlapping ? '#f87171' : '#266ca8'}
                             strokeWidth={2}
-                          />
+                          /> */}
                         </>
                       ) : (
                         <>
@@ -430,7 +430,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                             y={1}
                             width={Math.max(0, toolWidth - 2)}
                             height={Math.max(0, toolHeight - 2)}
-                            fill="#dee3ebff"
+                            fill="#c2c2c2"
                             stroke="none"
                           />
                           {/* Inner rectangle (solid fill shape, overlays center) */}
@@ -443,7 +443,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                             stroke="none"
                           />
                           {/* Outer rectangle stroke on top */}
-                          <rect
+                          {/* <rect
                             x={1}
                             y={1}
                             width={Math.max(0, toolWidth - 2)}
@@ -451,7 +451,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                             fill="none"
                             stroke={isOverlapping ? '#f87171' : '#266ca8'}
                             strokeWidth={2}
-                          />
+                          /> */}
                         </>
                       )}
                     </svg>
@@ -526,6 +526,8 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     toolWidth={toolWidth}
                     toolHeight={toolHeight}
                     viewportZoom={viewport.zoom}
+                    flipHorizontal={tool.flipHorizontal}
+                    flipVertical={tool.flipVertical}
                   />
                 )}
 

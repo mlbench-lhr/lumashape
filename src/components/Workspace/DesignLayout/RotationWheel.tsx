@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 
+// RotationWheel component (function)
 interface RotationWheelProps {
   toolId: string;
   currentRotation: number;
@@ -7,6 +8,8 @@ interface RotationWheelProps {
   toolWidth: number;
   toolHeight: number;
   viewportZoom: number;
+  flipHorizontal: boolean;
+  flipVertical: boolean;
 }
 
 // RotationWheel component
@@ -17,9 +20,15 @@ const RotationWheel: React.FC<RotationWheelProps> = ({
   toolWidth,
   toolHeight,
   viewportZoom,
+  flipHorizontal,
+  flipVertical,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const wheelRef = useRef<HTMLDivElement>(null);
+
+  const SNAP_DEGREES = 15;
+  const SNAP_THRESHOLD_DEGREES = 4; // snap when within 4° of a tick
+
   // Smaller wheel: scale to tool size with safe min/max
   const wheelRadius = Math.max(40, Math.min(56, Math.max(toolWidth, toolHeight) * 0.2));
   const wheelSize = wheelRadius * 2;
@@ -56,7 +65,15 @@ const RotationWheel: React.FC<RotationWheelProps> = ({
     if (!isDragging) return;
 
     const angle = calculateAngle(e.clientX, e.clientY);
-    onRotationChange(toolId, angle);
+
+    // Proximity snap: only snap when close to a 15° tick
+    const nearest = Math.round(angle / SNAP_DEGREES) * SNAP_DEGREES;
+    const rawDiff = Math.abs(nearest - angle);
+    const diff = Math.min(rawDiff, 360 - rawDiff);
+
+    const next = diff <= SNAP_THRESHOLD_DEGREES ? nearest : angle;
+    const normalized = ((next % 360) + 360) % 360;
+    onRotationChange(toolId, normalized);
   }, [isDragging, calculateAngle, onRotationChange, toolId]);
 
   const handleMouseUp = useCallback(() => {
@@ -75,8 +92,10 @@ const RotationWheel: React.FC<RotationWheelProps> = ({
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  // Calculate pin position based on current rotation
-  const pinAngle = (currentRotation * Math.PI) / 180;
+  // Calculate pin position based on current rotation.
+  // Since the wheel container counter-rotates, doubling the angle keeps the pin aligned
+  // with the tool's real rotation in screen space.
+  const pinAngle = ((currentRotation) * Math.PI) / 180;
   const pinX = Math.cos(pinAngle) * (wheelRadius - 10);
   const pinY = Math.sin(pinAngle) * (wheelRadius - 10);
 
@@ -89,8 +108,9 @@ const RotationWheel: React.FC<RotationWheelProps> = ({
         height: `${wheelSize}px`,
         left: `${-wheelRadius + toolWidth / 2}px`,
         top: `${-wheelRadius + toolHeight / 2}px`,
-        zIndex: 9999, // FIXED: High z-index to appear above all tools
-        transform: `scale(${inverseScale})`,
+        zIndex: 9999,
+        // Counter-rotate and de-flip to keep the wheel static
+        transform: `scaleY(${flipVertical ? -1 : 1}) scaleX(${flipHorizontal ? -1 : 1}) rotate(${-currentRotation}deg) scale(${inverseScale})`,
         transformOrigin: 'center',
       }}
     >
