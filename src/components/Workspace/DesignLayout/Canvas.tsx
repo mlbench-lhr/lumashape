@@ -5,7 +5,6 @@ import { DroppedTool, Tool } from './types';
 import { RefreshCw, X, Move, Maximize, AlertTriangle, Check, Hand } from 'lucide-react';
 import { useCanvas } from './useCanvas';
 import RotationWheel from './RotationWheel';
-import ResizeHandles from './ResizeHandles';
 
 // conversion helper
 const mmToInches = (mm: number) => mm / 25.4;
@@ -53,7 +52,6 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     handleToolMouseDown,
     handleMouseMove,
     handleMouseUp,
-    handleResizeStart,
     handleCanvasClick,
     handleCanvasMouseDown,
     handleDeleteTool,
@@ -67,6 +65,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     handleFingerCutEndpointDown,
     fingerCutStart,
     fingerCutPreviewEnd,
+    constrainToCanvas,
   } = useCanvas(props);
 
   // Helper function to convert pixel position to inches with bottom-left origin
@@ -107,6 +106,32 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 
     return Number(inches.toFixed(2));
   };
+
+  // Rotation guard: block rotation if the rotated bounds would exceed the canvas
+  const canRotateWithinCanvas = useCallback((tool: DroppedTool, rotation: number) => {
+    const { toolWidth, toolHeight } = getToolDimensions(tool);
+    const style = getCanvasStyle();
+    const canvasWidthPx = parseFloat(style.width);
+    const canvasHeightPx = parseFloat(style.height);
+
+    const angle = (rotation * Math.PI) / 180;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+
+    // Conservative rectangle AABB extents for safety
+    const rotW = Math.abs(toolWidth * cos) + Math.abs(toolHeight * sin);
+    const rotH = Math.abs(toolWidth * sin) + Math.abs(toolHeight * cos);
+
+    const cx = tool.x + toolWidth / 2;
+    const cy = tool.y + toolHeight / 2;
+
+    const left = cx - rotW / 2;
+    const top = cy - rotH / 2;
+    const right = cx + rotW / 2;
+    const bottom = cy + rotH / 2;
+
+    return left >= 0 && top >= 0 && right <= canvasWidthPx && bottom <= canvasHeightPx;
+  }, [getToolDimensions, getCanvasStyle]);
 
   const handleResize = useCallback((toolId: string, newWidth: number, newHeight: number) => {
     props.setDroppedTools(prevTools =>
@@ -213,7 +238,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
       {/* Canvas Container */}
       <div
         ref={canvasContainerRef}
-        className="absolute inset-0 overflow-hidden"
+        className="absolute inset-0"
         style={{
           cursor: getCanvasCursor()
         }}
@@ -221,7 +246,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
         onMouseUp={handleMouseUp}
         onMouseDown={handleCanvasMouseDown}
         onMouseLeave={handleMouseUp}
-        onContextMenu={(e) => e.preventDefault()} // Prevent context menu on right click
+        onContextMenu={(e) => e.preventDefault()}
       >
         {/* Canvas with viewport transform */}
         <div
@@ -517,10 +542,14 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     toolId={tool.id}
                     currentRotation={tool.rotation}
                     onRotationChange={(toolId, rotation) => {
+                      // Smooth rotation: apply rotation and keep the tool inside the canvas
                       props.setDroppedTools(prevTools =>
-                        prevTools.map(t =>
-                          t.id === toolId ? { ...t, rotation } : t
-                        )
+                        prevTools.map(t => {
+                          if (t.id !== toolId) return t;
+                          const rotated = { ...t, rotation };
+                          const nextPos = constrainToCanvas(rotated, t.x, t.y);
+                          return { ...rotated, x: nextPos.x, y: nextPos.y };
+                        })
                       );
                     }}
                     toolWidth={toolWidth}
@@ -531,37 +560,6 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                   />
                 )}
 
-                {/* Resize handles - only for selected shapes */}
-                {!props.readOnly && isSelected && isShape && (
-                  <ResizeHandles
-                    tool={tool}
-                    toolWidth={toolWidth}
-                    toolHeight={toolHeight}
-                    onResize={handleResize}
-                  />
-                )}
-
-                {/* Corner resize handles for shapes */}
-                {!props.readOnly && isSelected && tool.toolBrand === 'SHAPE' && (
-                  <>
-                    <div
-                      className="resize-handle absolute -top-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-nw-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onMouseDown={(e) => handleResizeStart(e, tool.id, 'nw')}
-                    />
-                    <div
-                      className="resize-handle absolute -top-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-ne-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onMouseDown={(e) => handleResizeStart(e, tool.id, 'ne')}
-                    />
-                    <div
-                      className="resize-handle absolute -bottom-1 -left-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-sw-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onMouseDown={(e) => handleResizeStart(e, tool.id, 'sw')}
-                    />
-                    <div
-                      className="resize-handle absolute -bottom-1 -right-1 w-3 h-3 bg-blue-500 border border-white rounded-sm cursor-se-resize z-40 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onMouseDown={(e) => handleResizeStart(e, tool.id, 'se')}
-                    />
-                  </>
-                )}
 
                 {/* ENHANCED: Tool info tooltip */}
                 <div
@@ -587,7 +585,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                         {`SKU or Part Number: ${tool.metadata?.SKUorPartNumber}`}
                       </div>
                     )}
-                    {isShape && isFingerCut &&(
+                    {isShape && isFingerCut && (
                       <div className="text-yellow-300">
                         {`Size: ${tool.width?.toFixed(1)} × ${tool.length?.toFixed(1)} ${tool.unit}`}
                       </div>

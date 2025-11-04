@@ -153,8 +153,8 @@ export const useCanvas = ({
   const getCanvasBounds = useCallback(() => {
     const style = getCanvasStyle();
     return {
-      width: parseInt(style.width),
-      height: parseInt(style.height)
+      width: parseFloat(style.width),   // precise width; no integer truncation
+      height: parseFloat(style.height)  // precise height; no integer truncation
     };
   }, [getCanvasStyle]);
 
@@ -290,37 +290,55 @@ export const useCanvas = ({
     const { toolWidth: w, toolHeight: h } = getToolDimensions(tool);
     const { width: canvasWidthPx, height: canvasHeightPx } = getCanvasBounds();
 
-    // Compute rotated AABB extents (depends on rotation, not position)
     const angle = ((tool.rotation || 0) * Math.PI) / 180;
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
-    const rotW = Math.abs(w * cos) + Math.abs(h * sin);
-    const rotH = Math.abs(w * sin) + Math.abs(h * cos);
+
+    // Tighter bounds for regular image tools; rectangle bounds for shapes/finger cuts
+    const useTightBounds = tool.toolBrand !== 'SHAPE' && !tool.metadata?.isFingerCut;
+
+    let rotW: number;
+    let rotH: number;
+
+    if (useTightBounds) {
+      // Ellipse-style extents avoid early stopping at arbitrary angles
+      const a = w / 2;
+      const b = h / 2;
+      const rotWHalf = Math.sqrt((a * a * cos * cos) + (b * b * sin * sin));
+      const rotHHalf = Math.sqrt((a * a * sin * sin) + (b * b * cos * cos));
+      rotW = rotWHalf * 2;
+      rotH = rotHHalf * 2;
+    } else {
+      // Rectangle AABB extents
+      rotW = Math.abs(w * cos) + Math.abs(h * sin);
+      rotH = Math.abs(w * sin) + Math.abs(h * cos);
+    }
 
     const wHalf = w / 2;
     const hHalf = h / 2;
     const rotWHalf = rotW / 2;
     const rotHHalf = rotH / 2;
 
-    // Allowed x/y ranges ensuring rotated AABB stays inside canvas
-    const minX = rotWHalf - wHalf;                                 // AABB.left >= 0
-    const maxX = canvasWidthPx - (wHalf + rotWHalf);               // AABB.right <= canvasWidth
-    const minY = rotHHalf - hHalf;                                 // AABB.top >= 0
-    const maxY = canvasHeightPx - (hHalf + rotHHalf);              // AABB.bottom <= canvasHeight
+    // Allowed ranges ensuring rotated bounds stay inside
+    const minX = rotWHalf - wHalf;                          // left edge at 0
+    const maxX = canvasWidthPx - (wHalf + rotWHalf);        // right edge at canvasWidth
+    const minY = rotHHalf - hHalf;                          // top edge at 0
+    const maxY = canvasHeightPx - (hHalf + rotHHalf);       // bottom edge at canvasHeight
 
     let constrainedX: number;
     let constrainedY: number;
 
-    // If rotated AABB is wider than canvas, center horizontally
+    // Horizontal
     if (rotW <= canvasWidthPx) {
-      constrainedX = Math.max(minX, Math.min(x, maxX));
+      constrainedX = Math.min(Math.max(x, minX), maxX);
     } else {
+      // If the rotated bounds cannot fit, keep centered so it doesn't clip unevenly
       constrainedX = canvasWidthPx / 2 - wHalf;
     }
 
-    // If rotated AABB is taller than canvas, center vertically
+    // Vertical
     if (rotH <= canvasHeightPx) {
-      constrainedY = Math.max(minY, Math.min(y, maxY));
+      constrainedY = Math.min(Math.max(y, minY), maxY);
     } else {
       constrainedY = canvasHeightPx / 2 - hHalf;
     }
@@ -1400,8 +1418,9 @@ export const useCanvas = ({
     getCanvasStyle,
     getViewportTransform,
     findNonOverlappingPosition,
-    constrainToCanvas, // Added this new function to exports
+    constrainToCanvas,
 
+    
     // Event handlers
     handleDragOver,
     handleDrop,

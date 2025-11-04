@@ -689,13 +689,13 @@ const Sidebar: React.FC<SidebarProps> = ({
     const editActions = [
         {
             icon: "/images/workspace/flip-horizontal.svg",
-            label: 'flip horizontal',
+            label: 'Mirror',
             action: () => handleFlip('horizontal'),
             disabled: !selectedTool
         },
         {
             icon: "/images/workspace/flip_vertical.svg",
-            label: 'flip vertical',
+            label: 'Invert',
             action: () => handleFlip('vertical'),
             disabled: !selectedTool
         },
@@ -715,19 +715,19 @@ const Sidebar: React.FC<SidebarProps> = ({
         // },
         {
             icon: "/images/workspace/copy.svg",
-            label: 'copy',
+            label: 'Copy',
             action: handleCopy,
             disabled: effectiveSelectedTools.length === 0
         },
         {
             icon: "/images/workspace/paste.svg",
-            label: 'paste',
+            label: 'Paste',
             action: handlePaste,
             disabled: false
         },
         {
             icon: "/images/workspace/delete.svg",
-            label: 'delete',
+            label: 'Delete',
             action: handleDelete,
             disabled: effectiveSelectedTools.length === 0
         },
@@ -899,7 +899,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 />
                             </div>
                         </button>
-                        <span className="text-xs text-gray-500 text-center leading-tight">circle</span>
+                        <span className="text-xs text-gray-500 text-center leading-tight">Circle</span>
                     </div>
                     <div className="flex flex-col items-center">
                         <button
@@ -916,25 +916,25 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 />
                             </div>
                         </button>
-                        <span className="text-xs text-gray-500 text-center leading-tight">square</span>
+                        <span className="text-xs text-gray-500 text-center leading-tight">Square</span>
                     </div>
                     <div className="flex flex-col items-center">
-                        {/* Finger cut tool toggle (activates drawing mode) */}
                         <button
-                            className="flex flex-col items-center space-y-1 p-2 rounded hover:bg-gray-100"
+                            className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center mb-1 transition-colors cursor-pointer"
                             onClick={() => setActiveTool('fingercut')}
                             disabled={readOnly}
-                            title="Finger Cut (draw between two points)"
                         >
-                            <Image
-                                src="/images/workspace/cylinder.svg"
-                                alt="cylindrical finger cut"
-                                width={24}
-                                height={24}
-                                className="w-6 h-6"
-                            />
-                            <span className="text-xs text-gray-500 text-center leading-tight">finger cut</span>
+                            <div className='w-6 h-6'>
+                                <Image
+                                    src="/images/workspace/fingercut.svg"
+                                    alt="cylindrical finger cut"
+                                    width={24}
+                                    height={24}
+                                    className="w-full h-full object-contain"
+                                />
+                            </div>
                         </button>
+                        <span className="text-xs text-gray-500 text-center leading-tight">Fingercut</span>
                     </div>
                 </div>
             </div>
