@@ -40,14 +40,14 @@ const DraggableTool: React.FC<DraggableToolProps> = ({ tool, readOnly = false, a
           <div className="flex justify-between gap-4">
             <span className="text-gray-500">SKU/Part</span>
             <span className="text-gray-900 truncate">
-              {tool.metadata?.SKUorPartNumber || (tool as any).SKUorPartNumber || '—'}
+              {tool.metadata?.SKUorPartNumber ||'—'}
             </span>
           </div>
-          {typeof (tool.metadata?.depth ?? (tool as any).depth) === 'number' && (
+          {typeof (tool.metadata?.depth) === 'number' && (
             <div className="flex justify-between gap-4">
               <span className="text-gray-500">Depth</span>
               <span className="text-gray-900 truncate">
-                {(tool.metadata?.depth ?? (tool as any).depth)}
+                {(tool.metadata?.depth)}
               </span>
             </div>
           )}
