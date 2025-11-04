@@ -84,8 +84,8 @@ export async function POST(req: Request) {
     // Save with duplicate key handling for race conditions
     try {
       await newTool.save();
-    } catch (error: any) {
-      if (error && typeof error === "object" && (error.code === 11000 || /duplicate key/i.test(error.message))) {
+    } catch (error: unknown) {
+      if (error && typeof error === "object") {
         return NextResponse.json(
           { error: "Tool already exists in tool inventory" },
           { status: 400 }
