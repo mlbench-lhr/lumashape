@@ -294,43 +294,30 @@ export const useCanvas = ({
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
 
-    // Tighter bounds for regular image tools; rectangle bounds for shapes/finger cuts
-    const useTightBounds = tool.toolBrand !== 'SHAPE' && !tool.metadata?.isFingerCut;
-
-    let rotW: number;
-    let rotH: number;
-
-    if (useTightBounds) {
-      // Ellipse-style extents avoid early stopping at arbitrary angles
-      const a = w / 2;
-      const b = h / 2;
-      const rotWHalf = Math.sqrt((a * a * cos * cos) + (b * b * sin * sin));
-      const rotHHalf = Math.sqrt((a * a * sin * sin) + (b * b * cos * cos));
-      rotW = rotWHalf * 2;
-      rotH = rotHHalf * 2;
-    } else {
-      // Rectangle AABB extents
-      rotW = Math.abs(w * cos) + Math.abs(h * sin);
-      rotH = Math.abs(w * sin) + Math.abs(h * cos);
-    }
+    // Use conservative rectangle AABB extents for all tools
+    const rotW = Math.abs(w * cos) + Math.abs(h * sin);
+    const rotH = Math.abs(w * sin) + Math.abs(h * cos);
 
     const wHalf = w / 2;
     const hHalf = h / 2;
     const rotWHalf = rotW / 2;
     const rotHHalf = rotH / 2;
 
+    // Small epsilon to avoid sub-pixel slip outside the canvas
+    const epsilon = 1; // px
+
     // Allowed ranges ensuring rotated bounds stay inside
-    const minX = rotWHalf - wHalf;                          // left edge at 0
-    const maxX = canvasWidthPx - (wHalf + rotWHalf);        // right edge at canvasWidth
-    const minY = rotHHalf - hHalf;                          // top edge at 0
-    const maxY = canvasHeightPx - (hHalf + rotHHalf);       // bottom edge at canvasHeight
+    const minX = rotWHalf - wHalf + epsilon;                   // left edge at 0
+    const maxX = canvasWidthPx - (wHalf + rotWHalf) - epsilon; // right edge at canvasWidth
+    const minY = rotHHalf - hHalf + epsilon;                   // top edge at 0
+    const maxY = canvasHeightPx - (hHalf + rotHHalf) - epsilon;// bottom edge at canvasHeight
 
     let constrainedX: number;
     let constrainedY: number;
 
     // Horizontal
     if (rotW <= canvasWidthPx) {
-      constrainedX = Math.min(Math.max(x, minX), maxX);
+      constrainedX = Math.min(Math.max(x, minX), Math.max(minX, maxX));
     } else {
       // If the rotated bounds cannot fit, keep centered so it doesn't clip unevenly
       constrainedX = canvasWidthPx / 2 - wHalf;
@@ -338,7 +325,7 @@ export const useCanvas = ({
 
     // Vertical
     if (rotH <= canvasHeightPx) {
-      constrainedY = Math.min(Math.max(y, minY), maxY);
+      constrainedY = Math.min(Math.max(y, minY), Math.max(minY, maxY));
     } else {
       constrainedY = canvasHeightPx / 2 - hHalf;
     }
@@ -1060,11 +1047,10 @@ export const useCanvas = ({
       const proj = vx * ux + vy * uy;
       const newWidthPx = Math.max(10, Math.abs(proj));
 
-      // Signed length controls which side is extended
-      const signedLen = end === 'right' ? proj : -proj;
-
-      const newCx = anchorX + (signedLen / 2) * ux;
-      const newCy = anchorY + (signedLen / 2) * uy;
+      // Use explicit direction per handle to avoid sign-flip jerks
+      const dir = end === 'right' ? 1 : -1;
+      const newCx = anchorX + dir * (newWidthPx / 2) * ux;
+      const newCy = anchorY + dir * (newWidthPx / 2) * uy;
 
       // Convert px back to physical units for storage
       const pxToUnits = (px: number) => unit === 'mm' ? (px / 96) * 25.4 : (px / 96);

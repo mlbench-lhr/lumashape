@@ -613,6 +613,23 @@ export const updateShapeDepth = (
   );
 };
 
+// Update finger cut depth (in inches)
+export const updateFingerCutDepth = (
+  toolId: string,
+  droppedTools: DroppedTool[],
+  updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
+  depthInches: number
+): void => {
+  if (isNaN(depthInches)) return;
+  updateDroppedTools(prev =>
+    prev.map(tool =>
+      tool.id === toolId && (tool.metadata?.isFingerCut || tool.toolBrand === 'FINGERCUT')
+        ? { ...tool, depth: depthInches }
+        : tool
+    )
+  );
+};
+
 // Update tool appearance - no longer saves to global history
 export const updateToolAppearance = (
   toolId: string,

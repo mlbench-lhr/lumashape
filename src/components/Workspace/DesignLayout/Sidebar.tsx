@@ -22,7 +22,8 @@ import {
     createFingerCut,
     updateFingerCutDimensions,
     updateShapeDimensions,
-    updateShapeDepth
+    updateShapeDepth,
+    updateFingerCutDepth
 } from './toolUtils';
 
 interface SidebarProps {
@@ -312,6 +313,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             }
         }
     }, [selectedTool, isFingerCutSelected, selectedToolObject, droppedTools, setDroppedTools, onHistoryChange]);
+
+    const handleFingerCutDepthChange = useCallback((depthInches: number) => {
+        if (!selectedTool || !isFingerCutSelected) return;
+        updateFingerCutDepth(selectedTool, droppedTools, setDroppedTools, depthInches);
+        onHistoryChange?.();
+    }, [selectedTool, isFingerCutSelected, droppedTools, setDroppedTools, onHistoryChange]);
 
 
     // Parse scale info from processing data
@@ -792,48 +799,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
             </div>
 
-            {/* Finger Cut Controls */}
-            {/* {isFingerCutSelected && selectedToolObject && (
-                <div className="bg-primary-50 p-4 rounded-lg">
-                    <h3 className="text-sm font-medium text-primary-800 mb-3 flex items-center gap-2">
-                        <Hand className="w-4 h-4" />
-                        Finger Cut Settings
-                    </h3>
-                    <div className="space-y-3">
-                        <div>
-                            <label className="block text-xs font-medium text-primary-700 mb-1">
-                                Width ({unit})
-                            </label>
-                            <input
-                                type="number"
-                                value={selectedToolObject.width}
-                                onChange={(e) => handleFingerCutDimensionChange('width', parseFloat(e.target.value) || 0)}
-                                className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
-                                min="10"
-                                max="200"
-                                step="1"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-medium text-primary-700 mb-1">
-                                Length ({unit})
-                            </label>
-                            <input
-                                type="number"
-                                value={selectedToolObject.length}
-                                onChange={(e) => handleFingerCutDimensionChange('length', parseFloat(e.target.value) || 0)}
-                                className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
-                                min="10"
-                                max="200"
-                                step="1"
-                            />
-                        </div>
-                        <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
-                            💡 Finger cuts create easy-access areas in foam for grabbing tools
-                        </div>
-                    </div>
-                </div>
-            )} */}
+            
 
 
 
@@ -944,6 +910,30 @@ const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* Finger Cut Controls */}
+            {isFingerCutSelected && selectedToolObject && (
+                <div className="bg-primary-100 p-1 rounded-lg">
+                    <h3 className="text-sm font-medium text-primary-800 mb-3 flex items-center gap-2">
+                        Finger Cut Settings
+                    </h3>
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-xs font-medium text-primary-700 mb-1">
+                                Depth (inches)
+                            </label>
+                            <input
+                                type="number"
+                                value={selectedToolObject.depth ?? 0}
+                                onChange={(e) => handleFingerCutDepthChange(parseFloat(e.target.value) || 0)}
+                                className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
+                                min="0"
+                                step="0.01"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Shape Settings */}
             {isShapeSelected && selectedToolObject && (
