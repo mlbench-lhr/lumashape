@@ -35,7 +35,7 @@ const Explore = () => {
               text-sm sm:text-base md:text-lg lg:text-xl 
               ${
                 activeTab === tab.toLowerCase().replace(/\s/g, "")
-                  ? "text-blue-600 border-b-2 border-blue-500"
+                  ? "text-primary border-b-2 border-primary"
                   : "text-gray-600 hover:text-gray-800"
               }`}
           >
