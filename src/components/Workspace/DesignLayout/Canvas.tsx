@@ -189,6 +189,19 @@ const Canvas: React.FC<CanvasProps> = (props) => {
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (props.readOnly) return;
+
+      // If an editable element is focused, don't run global shortcuts
+      const target = e.target as HTMLElement | null;
+      const active = document.activeElement as HTMLElement | null;
+      const isEditable =
+        (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) ||
+        (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable));
+
+      if (isEditable) {
+        // Let inputs handle all keys (typing stays continuous)
+        return;
+      }
+
       if ((e.ctrlKey || e.metaKey) && e.code === 'KeyA') {
         e.preventDefault();
         props.setSelectedTools(droppedTools.map(tool => tool.id));

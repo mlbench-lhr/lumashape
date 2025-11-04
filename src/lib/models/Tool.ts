@@ -36,6 +36,7 @@ export interface ITool extends Document {
   downloadedByUsers: string[];
   createdAt: Date;
   updatedAt: Date;
+  originalToolId?: mongoose.Types.ObjectId | null;
 }
 
 const ToolSchema: Schema<ITool> = new mongoose.Schema(
@@ -132,6 +133,12 @@ const ToolSchema: Schema<ITool> = new mongoose.Schema(
       trim: true, 
       lowercase: true 
     }],
+    originalToolId: {
+      type: Schema.Types.ObjectId,
+      ref: "Tool",
+      default: null,
+      index: true
+    },
   },
   {
     timestamps: true,
@@ -141,6 +148,7 @@ const ToolSchema: Schema<ITool> = new mongoose.Schema(
 // Add indexes for common queries
 ToolSchema.index({ published: 1, publishedDate: -1 });
 ToolSchema.index({ userEmail: 1, createdAt: -1 });
+ToolSchema.index({ userEmail: 1, originalToolId: 1 }, { unique: true, sparse: true });
 
 const Tool: Model<ITool> =
   mongoose.models.Tool || mongoose.model<ITool>("Tool", ToolSchema);
