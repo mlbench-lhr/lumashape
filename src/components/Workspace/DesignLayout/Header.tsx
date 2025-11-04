@@ -62,7 +62,7 @@ interface ShapePayload {
   name: string;
   brand: string;
   is_custom_shape: true;
-  shape_type: "rectangle" | "circle" | "polygon";
+  shape_type: "rectangle" | "circle" | "polygon" | "fingercut";
   shape_data:
   | { width_inches: number; height_inches: number }
   | { radius_inches: number }
@@ -535,7 +535,7 @@ const Header: React.FC<HeaderProps> = ({
           droppedTool.metadata?.isFingerCut;
 
         if (isShape || isFingerCut) {
-          let shapeType: "rectangle" | "circle" | "polygon" = "rectangle";
+          let shapeType: "rectangle" | "circle" | "polygon" | "fingercut" = "rectangle";
           type ShapeData =
             | { width_inches: number; height_inches: number }
             | { radius_inches: number }
@@ -548,7 +548,7 @@ const Header: React.FC<HeaderProps> = ({
             isFingerCut ||
             droppedTool.name.toLowerCase().includes("finger")
           ) {
-            // Finger Cut: rectangle using width × length
+            // Finger Cut: use width × length, tag type as 'fingercut'
             const widthInches =
               unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
             const heightInches =
@@ -559,8 +559,8 @@ const Header: React.FC<HeaderProps> = ({
               width_inches: widthInches,
               height_inches: heightInches,
             };
-            shapeType = "rectangle";
-            name = "Finger Cut Rectangle";
+            shapeType = "fingercut";
+            // name = "Finger Cut Rectangle"; // optional: keep existing name
           } else if (
             droppedTool.name.toLowerCase().includes("circle") ||
             droppedTool.image?.includes("circle.svg")
