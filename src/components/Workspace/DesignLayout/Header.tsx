@@ -90,6 +90,11 @@ type FetchedTool = {
 const mmToInches = (mm: number) => mm / 25.4;
 const inchesToMm = (inches: number) => inches * 25.4;
 
+function normalizeRotationDeg(deg?: number): number {
+  const d = typeof deg === "number" ? deg : 0;
+  return Math.round(((d % 360) + 360) % 360);
+}
+
 const Header: React.FC<HeaderProps> = ({
   droppedTools,
   canvasWidth,
@@ -348,21 +353,15 @@ const Header: React.FC<HeaderProps> = ({
     return 0.2; // final fallback
   };
 
-  // Helper function to convert pixel position to inches with bottom-left origin
   const convertPositionToInches = (
     pixelPosition: number,
     canvasDimension: number,
     isX: boolean = true
   ): number => {
-    // Choose logical canvas size in inches for axis
     const canvasInchesX = unit === "mm" ? mmToInches(canvasWidth) : canvasWidth;
-    const canvasInchesY =
-      unit === "mm" ? mmToInches(canvasHeight) : canvasHeight;
+    const canvasInchesY = unit === "mm" ? mmToInches(canvasHeight) : canvasHeight;
 
-    // Read actual rendered canvas size and remove zoom to get base CSS pixels
-    const canvasElement = document.querySelector(
-      '[data-canvas="true"]'
-    ) as HTMLDivElement;
+    const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLDivElement;
     const DPI = 96;
 
     let baseWidthPx = canvasInchesX * DPI;
@@ -370,23 +369,17 @@ const Header: React.FC<HeaderProps> = ({
 
     if (canvasElement) {
       const rect = canvasElement.getBoundingClientRect();
-      // Get viewport zoom from the canvas transform
       const transform = canvasElement.style.transform;
       const scaleMatch = transform.match(/scale\(([^)]+)\)/);
       const zoom = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
-
       baseWidthPx = rect.width / zoom;
       baseHeightPx = rect.height / zoom;
     }
 
-    // Pixels per inch for each axis
     const ppiX = baseWidthPx / canvasInchesX;
     const ppiY = baseHeightPx / canvasInchesY;
 
-    // Convert position
     let inches = isX ? pixelPosition / ppiX : pixelPosition / ppiY;
-
-    // Bottom-left origin for Y
     if (!isX) inches = canvasInchesY - inches;
 
     return Number(inches.toFixed(2));
@@ -619,7 +612,7 @@ const Header: React.FC<HeaderProps> = ({
             shape_type: shapeType,
             shape_data: shapeData,
             position_inches: { x: xInches, y: yInches, z: 0 },
-            rotation_degrees: droppedTool.rotation || 0,
+            rotation_degrees: normalizeRotationDeg(droppedTool.rotation),
             cut_depth_inches: droppedTool.depth ?? 0.2,
           });
 
@@ -650,7 +643,7 @@ const Header: React.FC<HeaderProps> = ({
           brand: tool.toolBrand || "Brand",
           dxf_link: (tool.cvResponse.dxf_url || "").trim(),
           position_inches: { x: xInches, y: yInches, z: 0 },
-          rotation_degrees: droppedTool.rotation || 0,
+          rotation_degrees: normalizeRotationDeg(droppedTool.rotation),
           height_diagonal_inches: computeLengthInches(droppedTool, tool),
           depth_inches: await computeDepthInches(droppedTool, tool),
           cut_depth_inches: await computeDepthInches(droppedTool, tool),
