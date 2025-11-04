@@ -289,6 +289,10 @@ const TrendingTab = () => {
     // Handle add tool to inventory
     const handleAddToInventory = async (tool: TrendingTool) => {
         try {
+            if (tool.userInteraction?.hasDownloaded) {
+                alert("Tool already exists in your inventory.");
+                return;
+            }
             setActionLoading(`add-${tool._id}`);
             const token = getAuthToken();
 

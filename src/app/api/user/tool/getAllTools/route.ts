@@ -69,6 +69,7 @@ export async function GET(req: Request) {
       likedByUsers: tool.likedByUsers || [],
       dislikedByUsers: tool.dislikedByUsers || [],
       downloadedByUsers: tool.downloadedByUsers || [],
+      originalToolId: tool.originalToolId || null,
       createdAt: tool.createdAt,
       updatedAt: tool.updatedAt,
     }));

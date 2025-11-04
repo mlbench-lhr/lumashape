@@ -63,6 +63,7 @@ interface DatabaseTool {
     createdAt: string;
     updatedAt: string;
     __v: number;
+    originalToolId?: string;
     cvResponse?: {
         contour_image_url?: string;
     };
@@ -109,25 +110,27 @@ const Sidebar: React.FC<SidebarProps> = ({
         depth: '',
     });
 
+    const [isEditingShapeInputs, setIsEditingShapeInputs] = useState(false);
+
     useEffect(() => {
-        if (isShapeSelected && selectedToolObject) {
-            if (selectedToolObject.toolType === 'circle') {
-                setShapeSettingsDraft({
-                    diameter: String(selectedToolObject.width ?? ''),
-                    width: '',
-                    length: '',
-                    depth: String(selectedToolObject.depth ?? ''),
-                });
-            } else {
-                setShapeSettingsDraft({
-                    diameter: '',
-                    width: String(selectedToolObject.width ?? ''),
-                    length: String(selectedToolObject.length ?? ''),
-                    depth: String(selectedToolObject.depth ?? ''),
-                });
-            }
+        if (!isShapeSelected || !selectedToolObject || isEditingShapeInputs) return;
+
+        if (selectedToolObject.toolType === 'circle') {
+            setShapeSettingsDraft({
+                diameter: String(selectedToolObject.width ?? ''),
+                width: '',
+                length: '',
+                depth: String(selectedToolObject.depth ?? ''),
+            });
+        } else {
+            setShapeSettingsDraft({
+                diameter: '',
+                width: String(selectedToolObject.width ?? ''),
+                length: String(selectedToolObject.length ?? ''),
+                depth: String(selectedToolObject.depth ?? ''),
+            });
         }
-    }, [isShapeSelected, selectedToolObject]);
+    }, [isShapeSelected, selectedToolObject, isEditingShapeInputs]);
 
     const applyShapeSettings = useCallback(() => {
         if (!selectedTool || !isShapeSelected || !selectedToolObject) return;
@@ -198,7 +201,10 @@ const Sidebar: React.FC<SidebarProps> = ({
             scaleFactor,
             createdAt,
             updatedAt,
-            version: __v
+            version: __v,
+            metadata: {
+                originalId: dbTool.originalToolId
+            }
         };
     };
 
@@ -214,7 +220,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         if (!confirmed) return;
 
         // Duplicate checks: existing inventory or already added in this session
-        const alreadyInInventory = tools.some(t => t.id === originalId);
+        const alreadyInInventory = tools.some(t => t.metadata?.originalId === originalId);
         const alreadyAddedThisSession = addedToolIds.has(originalId);
         if (alreadyInInventory || alreadyAddedThisSession) {
             alert("Tool already exists in your inventory.");
@@ -638,7 +644,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div className="space-y-2">
                     {filteredLayoutTools.map((tool) => {
                         const originalId = tool.metadata?.originalId;
-                        const inInventory = originalId ? tools.some(t => t.id === originalId) : false;
+                        const inInventory = originalId ? tools.some(t => t.metadata?.originalId === originalId) : false;
                         const addedSession = originalId ? addedToolIds.has(originalId) : false;
                         const isLoading = actionLoading === `add-${tool.id}`;
                         const canAdd = !!originalId && !isLoading && !inInventory && !addedSession;
@@ -954,6 +960,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     type="number"
                                     value={shapeSettingsDraft.diameter}
                                     onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, diameter: e.target.value }))}
+                                    onFocus={() => setIsEditingShapeInputs(true)}
+                                    onBlur={() => setIsEditingShapeInputs(false)}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                     min="1"
                                     step="0.01"
@@ -967,6 +975,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     type="number"
                                     value={shapeSettingsDraft.depth}
                                     onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, depth: e.target.value }))}
+                                    onFocus={() => setIsEditingShapeInputs(true)}
+                                    onBlur={() => setIsEditingShapeInputs(false)}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                     min="0"
                                     step="0.01"
@@ -991,6 +1001,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     type="number"
                                     value={shapeSettingsDraft.width}
                                     onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, width: e.target.value }))}
+                                    onFocus={() => setIsEditingShapeInputs(true)}
+                                    onBlur={() => setIsEditingShapeInputs(false)}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                     min="1"
                                     step="0.01"
@@ -1004,6 +1016,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     type="number"
                                     value={shapeSettingsDraft.length}
                                     onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, length: e.target.value }))}
+                                    onFocus={() => setIsEditingShapeInputs(true)}
+                                    onBlur={() => setIsEditingShapeInputs(false)}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                     min="1"
                                     step="0.01"
@@ -1017,6 +1031,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     type="number"
                                     value={shapeSettingsDraft.depth}
                                     onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, depth: e.target.value }))}
+                                    onFocus={() => setIsEditingShapeInputs(true)}
+                                    onBlur={() => setIsEditingShapeInputs(false)}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                     min="0"
                                     step="0.01"
