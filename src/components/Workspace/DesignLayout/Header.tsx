@@ -542,7 +542,6 @@ const Header: React.FC<HeaderProps> = ({
             | { points: { x: number; y: number }[] };
 
           let shapeData: ShapeData;
-          let name = droppedTool.name;
 
           if (
             isFingerCut ||
@@ -606,7 +605,7 @@ const Header: React.FC<HeaderProps> = ({
           // Push shape entry in the payload
           shapes.push({
             tool_id: droppedTool.id,
-            name,
+            name: droppedTool.name,
             brand: "Custom",
             is_custom_shape: true,
             shape_type: shapeType,
