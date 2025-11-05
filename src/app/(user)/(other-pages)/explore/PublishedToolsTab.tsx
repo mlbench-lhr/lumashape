@@ -232,7 +232,6 @@ const PublishedToolsTab = () => {
                             className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none"
                         >
                             <option value="">Tool Type</option>
-                            <option value="Custom">Custom</option>
                             <option value="Wrench">Wrench</option>
                             <option value="Pliers">Pliers</option>
                             <option value="Hammer">Hammer</option>
