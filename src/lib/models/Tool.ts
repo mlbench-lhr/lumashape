@@ -39,6 +39,7 @@ export interface ITool extends Document {
   originalToolId?: mongoose.Types.ObjectId | null;
 }
 
+// In Tool schema definition
 const ToolSchema: Schema<ITool> = new mongoose.Schema(
   {
     userEmail: { 
@@ -136,8 +137,8 @@ const ToolSchema: Schema<ITool> = new mongoose.Schema(
     originalToolId: {
       type: Schema.Types.ObjectId,
       ref: "Tool",
-      default: null,
-      index: true
+      // removed default: null so field is omitted when not set
+      // removed standalone index to rely on the compound partial index below
     },
   },
   {
@@ -148,7 +149,11 @@ const ToolSchema: Schema<ITool> = new mongoose.Schema(
 // Add indexes for common queries
 ToolSchema.index({ published: 1, publishedDate: -1 });
 ToolSchema.index({ userEmail: 1, createdAt: -1 });
-ToolSchema.index({ userEmail: 1, originalToolId: 1 }, { unique: true, sparse: true });
+// Replace sparse unique index with a partial unique index that ignores null/missing
+ToolSchema.index(
+  { userEmail: 1, originalToolId: 1 },
+  { unique: true, partialFilterExpression: { originalToolId: { $exists: true, $ne: null } } }
+);
 
 const Tool: Model<ITool> =
   mongoose.models.Tool || mongoose.model<ITool>("Tool", ToolSchema);
