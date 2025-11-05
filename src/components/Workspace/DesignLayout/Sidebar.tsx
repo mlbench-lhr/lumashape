@@ -815,11 +815,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                         : `${effectiveSelectedTools.length} tool${effectiveSelectedTools.length > 1 ? 's' : ''} selected`
                     }
                 </p>
-                {selectedToolObject && (
-                    <p className="text-xs text-gray-500 mt-1">
-                        Real-size tools based on scale data
-                    </p>
-                )}
             </div>
 
             {/* Edit Section */}
@@ -959,7 +954,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 />
                             </div>
                         </button>
-                        <span className="text-xs text-gray-500 text-center leading-tight">Fingercut</span>
+                        <span className="text-xs text-gray-500 text-center leading-tight">Finger Grip</span>
                     </div>
                 </div>
             </div>
@@ -989,7 +984,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             )}
 
             {/* Shape Settings */}
-            {isShapeSelected && selectedToolObject && (
+            {isShapeSelected && selectedToolObject && !isFingerCutSelected && (
                 <div className="bg-blue-50 p-4 rounded-lg">
                     <h3 className="text-sm font-medium text-primary mb-3">Shape Settings</h3>
 

@@ -217,7 +217,7 @@ export default function ProfitSharing() {
                     <div>
                         <h2 className="text-2xl font-semibold text-gray-900">Profit Sharing</h2>
                         <p className="text-gray-600 text-sm mt-1">
-                            Connect Stripe to receive payouts for your sales
+                            Connect your Stripe account to receive payouts when other users import your published layouts
                         </p>
                     </div>
                 </div>
@@ -334,7 +334,7 @@ export default function ProfitSharing() {
             {/* Payments Table */}
             <div className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-medium">Your Payments</h3>
+                    <h3 className="font-medium">Your Spending</h3>
                     <span className="text-sm text-gray-600">Count: {filteredPayments.length}</span>
                 </div>
                 <div className="overflow-x-auto">
@@ -349,7 +349,7 @@ export default function ProfitSharing() {
                         </thead>
                         <tbody>
                             {filteredPayments.length === 0 ? (
-                                <tr><td className="py-3 text-gray-500" colSpan={5}>No payments yet.</td></tr>
+                                <tr><td className="py-3 text-gray-500" colSpan={5}>No spending yet</td></tr>
                             ) : (
                                 filteredPayments.map((tx) => (
                                     <tr key={tx._id} className="border-t">

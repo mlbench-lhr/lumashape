@@ -44,6 +44,10 @@ interface LayoutWithInteraction {
         id: string;
         name: string;
         thickness?: number;
+        toolBrand?: string;
+        metadata?: {
+            toolBrand?: string;
+        };
     }>;
 }
 
@@ -137,12 +141,20 @@ const PublishedLayoutsTab = () => {
     const extractDynamicOptions = () => {
         const toolTypes = new Set<string>();
         const toolBrands = new Set<string>();
+        const excludedTypes = new Set(["Circle", "Finger Cut", "Square"].map(t => t.toLowerCase()));
 
         publishedLayouts.forEach(layout => {
             layout.tools?.forEach(tool => {
-                if (tool.name) toolTypes.add(tool.name);
+                const typeName = tool.name?.trim();
+                if (typeName && !excludedTypes.has(typeName.toLowerCase())) {
+                    toolTypes.add(typeName);
+                }
+
+                const brandName = (tool.toolBrand ?? tool.metadata?.toolBrand)?.trim();
+                if (brandName) {
+                    toolBrands.add(brandName);
+                }
             });
-            if (layout.brand) toolBrands.add(layout.brand);
         });
 
         setAvailableToolTypes(Array.from(toolTypes).sort());
@@ -275,10 +287,13 @@ const PublishedLayoutsTab = () => {
             );
         }
 
-        // Tool Brand filter
+        // Tool Brand filter — match brands attached to tools in the layout (supports metadata fallback)
         if (selectedToolBrand) {
             filtered = filtered.filter(layout =>
-                layout.brand === selectedToolBrand
+                layout.tools?.some(tool =>
+                    tool.toolBrand === selectedToolBrand ||
+                    tool.metadata?.toolBrand === selectedToolBrand
+                )
             );
         }
 

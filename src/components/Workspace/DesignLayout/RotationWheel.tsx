@@ -13,6 +13,7 @@ interface RotationWheelProps {
 }
 
 // RotationWheel component
+// RotationWheel component (function)
 const RotationWheel: React.FC<RotationWheelProps> = ({
   toolId,
   currentRotation,
@@ -25,6 +26,7 @@ const RotationWheel: React.FC<RotationWheelProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const wheelRef = useRef<HTMLDivElement>(null);
+  const pointerIdRef = useRef<number | null>(null);
 
   const SNAP_DEGREES = 15;
   const SNAP_THRESHOLD_DEGREES = 4; // snap when within 4° of a tick
@@ -53,44 +55,58 @@ const RotationWheel: React.FC<RotationWheelProps> = ({
     return angle;
   }, []);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     e.stopPropagation();
     e.preventDefault();
+    // Only start drag on primary pointer (left mouse or single touch)
+    if (e.button !== 0 || !e.isPrimary) return;
+
     setIsDragging(true);
-    // Keep rotation active outside canvas and show proper cursor
+    pointerIdRef.current = e.pointerId;
+
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // no-op if capture isn’t supported
+    }
+
     document.body.style.cursor = 'grabbing';
   }, []);
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
+  const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!isDragging) return;
 
     const angle = calculateAngle(e.clientX, e.clientY);
 
-    // Proximity snap: only snap when close to a 15° tick
+    const SNAP_DEGREES = 15;
+    const SNAP_THRESHOLD_DEGREES = 4;
+
     const nearest = Math.round(angle / SNAP_DEGREES) * SNAP_DEGREES;
     const rawDiff = Math.abs(nearest - angle);
     const diff = Math.min(rawDiff, 360 - rawDiff);
 
     const next = diff <= SNAP_THRESHOLD_DEGREES ? nearest : angle;
     const normalized = ((next % 360) + 360) % 360;
+
     onRotationChange(toolId, normalized);
   }, [isDragging, calculateAngle, onRotationChange, toolId]);
 
-  const handleMouseUp = useCallback(() => {
+  const handlePointerUp = useCallback(() => {
     setIsDragging(false);
     document.body.style.cursor = '';
+    pointerIdRef.current = null;
   }, []);
 
   useEffect(() => {
     if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('pointermove', handlePointerMove, { passive: true });
+      window.addEventListener('pointerup', handlePointerUp);
       return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
       };
     }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
+  }, [isDragging, handlePointerMove, handlePointerUp]);
 
   // Calculate pin position based on current rotation.
   // Since the wheel container counter-rotates, doubling the angle keeps the pin aligned
@@ -187,8 +203,9 @@ const RotationWheel: React.FC<RotationWheelProps> = ({
           top: `${wheelRadius + pinY - 6}px`,
           transform: isDragging ? 'scale(1.15)' : 'scale(1)',
           transition: isDragging ? 'none' : 'transform 0.1s ease',
+          touchAction: 'none' // prevent scrolling on touch drag
         }}
-        onMouseDown={handleMouseDown}
+        onPointerDown={handlePointerDown}
       />
     </div>
   );
