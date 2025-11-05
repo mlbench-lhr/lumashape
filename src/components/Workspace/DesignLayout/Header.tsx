@@ -70,6 +70,8 @@ interface ShapePayload {
   position_inches: { x: number; y: number; z: number };
   rotation_degrees: number;
   cut_depth_inches: number;
+  flip_horizontal?: boolean;
+  flip_vertical?: boolean;
 }
 
 type CVResponse = {
@@ -613,6 +615,8 @@ const Header: React.FC<HeaderProps> = ({
             position_inches: { x: xInches, y: yInches, z: 0 },
             rotation_degrees: normalizeRotationDeg(droppedTool.rotation),
             cut_depth_inches: droppedTool.depth ?? 0.2,
+            flip_horizontal: droppedTool.flipHorizontal || false,
+            flip_vertical: droppedTool.flipVertical || false,
           });
 
           continue; // Skip the regular tool branch for shapes
