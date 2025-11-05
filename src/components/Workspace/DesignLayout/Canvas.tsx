@@ -575,7 +575,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 
 
                 {/* ENHANCED: Tool info tooltip */}
-                <div
+                {/* <div
                   className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-900 bg-opacity-95 text-white text-xs px-3 py-2 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap backdrop-blur-sm shadow-lg"
                   style={{ zIndex: 9999 }}
                 >
@@ -619,7 +619,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                       </div>
                     )}
                   </div>
-                </div>
+                </div> */}
               </div>
             );
           })}

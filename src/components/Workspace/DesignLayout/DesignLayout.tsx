@@ -176,7 +176,7 @@ function DesignLayout({
   }, []);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-48px)]">
+    <div className="flex flex-col h-[calc(100vh)]">
       <Header
         droppedTools={droppedTools}
         canvasWidth={canvasWidth}
@@ -221,7 +221,7 @@ function DesignLayout({
           onOverlapChange={setHasOverlaps}
           readOnly={readOnly}
         />
-        <div className="w-80 flex-shrink-0">
+        <div className="w-80 m">
           <Sidebar
             droppedTools={droppedTools}
             selectedTool={selectedTool}
