@@ -29,26 +29,23 @@ const DraggableTool: React.FC<DraggableToolProps> = ({ tool, readOnly = false, a
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-900 truncate">{tool.name}</span>
-          <div className="bg-red-600 text-white text-xs px-2 py-0.5 rounded font-medium shrink-0">
-            {tool.toolBrand}
-          </div>
-        </div>
-        {/* Details: brand, type, SKU/Part, depth */}
-        <div className="mt-1 space-y-0.5 text-xs leading-tight">
+        <div className="mt-2 space-y-1 text-xs text-gray-600">
           <div className="flex justify-between gap-4">
-            <span className="text-gray-500">SKU/Part</span>
-            <span className="text-gray-900 truncate">
-              {tool.metadata?.SKUorPartNumber ||'—'}
-            </span>
+            <span>Tool Brand:</span>
+            <span className="text-gray-900">{tool.toolBrand || '—'}</span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span>Tool Type:</span>
+            <span className="text-gray-900">{tool.metadata?.toolType || '—'}</span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span>SKU/PN:</span>
+            <span className="text-gray-900 truncate">{tool.metadata?.SKUorPartNumber || '—'}</span>
           </div>
           {typeof (tool.metadata?.depth) === 'number' && (
             <div className="flex justify-between gap-4">
-              <span className="text-gray-500">Depth</span>
-              <span className="text-gray-900 truncate">
-                {(tool.metadata?.depth)}
-              </span>
+              <span>Depth:</span>
+              <span className="text-gray-900">{tool.metadata?.depth}</span>
             </div>
           )}
         </div>

@@ -580,10 +580,15 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                   style={{ zIndex: 9999 }}
                 >
                   <div className="text-center space-y-1">
+                    {isFingerCut && (
+                      <div className="text-gray-400">
+                        {`Finger Grip`}
+                      </div>
+                    )}
                     <div className="text-gray-400">
                       {`Depth: ${Number(tool.depth).toFixed(2)} inches`}
                     </div>
-                    {!isShape && (
+                    {!isShape && tool.toolBrand !== "FINGERCUT" && (
                       <div className="text-gray-400">
                         {`Tool Brand: ${tool.toolBrand}`}
                       </div>
@@ -598,7 +603,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                         {`SKU or Part Number: ${tool.metadata?.SKUorPartNumber}`}
                       </div>
                     )}
-                    {isShape && isFingerCut && (
+                    {isShape && !isFingerCut && (
                       <div className="text-yellow-300">
                         {`Size: ${tool.width?.toFixed(1)} × ${tool.length?.toFixed(1)} ${tool.unit}`}
                       </div>
@@ -636,9 +641,6 @@ const Canvas: React.FC<CanvasProps> = (props) => {
               </p>
               {!props.readOnly && (
                 <>
-                  <p className="text-gray-400 text-xs mt-1">
-                    {`Tools display at real-world scale based on diagonal measurements`}
-                  </p>
                   <p className="text-gray-400 text-xs mt-1">
                     Use <span className="font-semibold">Cursor</span> to select • <span className="font-semibold">Hand</span> to pan • <span className="font-semibold">Middle Mouse</span> to pan
                   </p>
@@ -679,11 +681,6 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           {hasOverlaps && (
             <div className="text-xs text-gray-600 mt-1">
               {overlappingTools.length} overlapping tool{overlappingTools.length > 1 ? 's' : ''}
-            </div>
-          )}
-          {droppedTools.length > 0 && (
-            <div className="text-xs text-gray-500 mt-1">
-              {droppedTools.length} tool{droppedTools.length > 1 ? 's' : ''} • Real-world scale
             </div>
           )}
         </div>
