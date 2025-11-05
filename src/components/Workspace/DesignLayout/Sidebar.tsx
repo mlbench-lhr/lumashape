@@ -472,8 +472,18 @@ const Sidebar: React.FC<SidebarProps> = ({
     const [brandFilter, setBrandFilter] = useState<'all' | 'Milwaukee' | 'Husky' | 'DEWALT'>('all');
     const [isBrandMenuOpen, setIsBrandMenuOpen] = useState(false);
     const brandOptions = ['Milwaukee', 'Husky', 'DEWALT'];
+    // NEW: tool type filter state and dropdown control
+    const [typeFilter, setTypeFilter] = useState<'all' | string>('all');
+    const [isTypeMenuOpen, setIsTypeMenuOpen] = useState(false);
+    const typeOptions = Array.from(new Set(
+        tools
+            .map(t => (t.toolType || '').trim())
+            .filter(Boolean)
+    )).sort();
+
     const filteredTools = tools
         .filter(tool => brandFilter === 'all' || (tool.toolBrand || '').toLowerCase() === brandFilter.toLowerCase())
+        .filter(tool => typeFilter === 'all' || (tool.toolType || '').toLowerCase() === typeFilter.toLowerCase())
         .filter(tool =>
             tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (tool.metadata?.toolBrand || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -549,39 +559,82 @@ const Sidebar: React.FC<SidebarProps> = ({
                 />
             </div>
 
-            {/* Sort by brand */}
-            <div className="relative flex items-center justify-between mb-4">
+            {/* Sort by brand and type - Fixed height to prevent collapse */}
+            <div className="flex items-center justify-between mb-4 h-10">
                 <span className="text-sm text-gray-600">Sort by:</span>
-                <div
-                    className="flex items-center space-x-1 text-sm text-primary cursor-pointer select-none"
-                    onClick={() => setIsBrandMenuOpen(!isBrandMenuOpen)}
-                >
-                    <span>{brandFilter === 'all' ? 'All Tool Brands' : brandFilter}</span>
-                    <ChevronDown className="w-4 h-4" />
-                </div>
 
-                {isBrandMenuOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-gray-200 rounded-md shadow-md z-10">
+                <div className="flex items-center gap-7">
+                    {/* Brand filter (anchored to its own wrapper) */}
+                    <div className="relative">
                         <button
-                            className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${brandFilter === 'all' ? 'text-primary' : 'text-gray-700'}`}
-                            onClick={() => { setBrandFilter('all'); setIsBrandMenuOpen(false); }}
+                            className="flex items-center space-x-1 text-sm text-primary cursor-pointer select-none"
+                            onClick={() => {
+                                setIsBrandMenuOpen(!isBrandMenuOpen);
+                                setIsTypeMenuOpen(false);
+                            }}
                         >
-                            All Tool Brands
+                            <span>{brandFilter === 'all' ? 'Tool Brand' : brandFilter}</span>
+                            <ChevronDown className="w-4 h-4" />
                         </button>
-                        {brandOptions.map((brand) => (
-                            <button
-                                key={brand}
-                                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${brandFilter === brand ? 'text-primary' : 'text-gray-700'}`}
-                                onClick={() => { setBrandFilter(brand as 'Milwaukee' | 'Husky' | 'DEWALT'); setIsBrandMenuOpen(false); }}
-                            >
-                                {brand}
-                            </button>
-                        ))}
+
+                        {isBrandMenuOpen && (
+                            <div className="absolute left-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50 origin-top-left">
+                                <button
+                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${brandFilter === 'all' ? 'text-primary' : 'text-gray-700'}`}
+                                    onClick={() => { setBrandFilter('all'); setIsBrandMenuOpen(false); }}
+                                >
+                                    Custom
+                                </button>
+                                {brandOptions.map((brand) => (
+                                    <button
+                                        key={brand}
+                                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${brandFilter === brand ? 'text-primary' : 'text-gray-700'}`}
+                                        onClick={() => { setBrandFilter(brand as 'Milwaukee' | 'Husky' | 'DEWALT'); setIsBrandMenuOpen(false); }}
+                                    >
+                                        {brand}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
-                )}
+
+                    {/* Type filter (anchored to its own wrapper) */}
+                    <div className="relative">
+                        <button
+                            className="flex items-center space-x-1 text-sm text-primary cursor-pointer select-none"
+                            onClick={() => {
+                                setIsTypeMenuOpen(!isTypeMenuOpen);
+                                setIsBrandMenuOpen(false);
+                            }}
+                        >
+                            <span>{typeFilter === 'all' ? 'Tool Type' : typeFilter}</span>
+                            <ChevronDown className="w-4 h-4" />
+                        </button>
+
+                        {isTypeMenuOpen && (
+                            <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50 origin-top-right">
+                                <button
+                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${typeFilter === 'all' ? 'text-primary' : 'text-gray-700'}`}
+                                    onClick={() => { setTypeFilter('all'); setIsTypeMenuOpen(false); }}
+                                >
+                                    All Types
+                                </button>
+                                {typeOptions.map((type) => (
+                                    <button
+                                        key={type}
+                                        className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${typeFilter.toLowerCase() === type.toLowerCase() ? 'text-primary' : 'text-gray-700'}`}
+                                        onClick={() => { setTypeFilter(type); setIsTypeMenuOpen(false); }}
+                                    >
+                                        {type}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
-            {/* Existing inventory rendering */}
+            {/* Existing inventory rendering - Min height to prevent container collapse */}
             {loading && (
                 <div className="text-center text-gray-500 py-8">
                     <p>Loading tools...</p>
@@ -602,7 +655,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             {!loading && !error && (
                 <>
-                    <div className="space-y-2">
+                    <div className="space-y-2 min-h-96">
                         {filteredTools.map((tool) => (
                             <DraggableTool key={tool.id} tool={tool} readOnly={readOnly} />
                         ))}
@@ -648,7 +701,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-2 min-h-96">
                     {filteredLayoutTools.map((tool) => {
                         const originalId = tool.metadata?.originalId;
                         const inInventory = originalId ? tools.some(t => t.metadata?.originalId === originalId) : false;
@@ -799,7 +852,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
             </div>
 
-            
+
 
 
 
