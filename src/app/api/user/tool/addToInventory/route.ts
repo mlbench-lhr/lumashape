@@ -11,6 +11,8 @@ export async function POST(req: Request) {
     await dbConnect();
     // Ensure unique indexes are created before operating, even for API-only traffic
     await Tool.init();
+    // Ensure indexes are synced to the latest definition
+    await Tool.syncIndexes();
 
     const token = req.headers.get("Authorization")?.split(" ")[1];
     if (!token) {
