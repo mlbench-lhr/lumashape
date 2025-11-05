@@ -281,14 +281,14 @@ const MyLayouts = () => {
                   />
                   Create New Layout
                 </Button>
-                <div className="flex text-[#bababa] rounded-[14px] border justify-center px-2 mx-2">
+                {/* <div className="flex text-[#bababa] rounded-[14px] border justify-center px-2 mx-2">
                   <Image
                     src="/images/icons/bell.svg"
                     width={36}
                     height={36}
                     alt="notifications"
                   />
-                </div>
+                </div> */}
               </div>
               <div className="relative w-[30px] h-[30px] rounded-[10px] border-[#c7c7c7] border flex items-center justify-center sm:hidden">
                 <Image src="/images/icons/bell.svg" fill alt="notifications" />

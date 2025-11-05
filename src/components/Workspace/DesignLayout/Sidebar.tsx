@@ -95,7 +95,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     const [tools, setTools] = useState<Tool[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isContourMode, setIsContourMode] = useState(false);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [addedToolIds, setAddedToolIds] = useState<Set<string>>(new Set());
 
@@ -807,15 +806,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     const EditLayoutView = () => (
         <div className="space-y-6">
-            {/* Selection Info */}
-            <div className="bg-gray-50 p-3 rounded-md">
-                <p className="text-sm text-gray-600">
-                    {effectiveSelectedTools.length === 0
-                        ? 'No tools selected'
-                        : `${effectiveSelectedTools.length} tool${effectiveSelectedTools.length > 1 ? 's' : ''} selected`
-                    }
-                </p>
-            </div>
 
             {/* Edit Section */}
             <div>
@@ -986,7 +976,15 @@ const Sidebar: React.FC<SidebarProps> = ({
             {/* Shape Settings */}
             {isShapeSelected && selectedToolObject && !isFingerCutSelected && (
                 <div className="bg-blue-50 p-4 rounded-lg">
-                    <h3 className="text-sm font-medium text-primary mb-3">Shape Settings</h3>
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-sm font-medium text-primary">Shape Settings</h3>
+                        <button
+                            onClick={applyShapeSettings}
+                            className="px-3 py-1 text-sm rounded bg-primary text-white"
+                        >
+                            Apply
+                        </button>
+                    </div>
 
                     {selectedToolObject.toolType === 'circle' ? (
                         <div className="space-y-3">
@@ -1019,14 +1017,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     min="0"
                                     step="0.01"
                                 />
-                            </div>
-                            <div className="flex justify-end">
-                                <button
-                                    onClick={applyShapeSettings}
-                                    className="px-3 py-1 text-sm rounded bg-primary text-white"
-                                >
-                                    Apply
-                                </button>
                             </div>
                         </div>
                     ) : (
@@ -1076,69 +1066,45 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     step="0.01"
                                 />
                             </div>
-                            <div className="flex justify-end">
-                                <button
-                                    onClick={applyShapeSettings}
-                                    className="px-3 py-1 text-sm rounded bg-primary text-white hover:bg-blue-700"
-                                >
-                                    Apply
-                                </button>
-                            </div>
                         </div>
                     )}
                 </div>
             )}
 
             {/* Tool Properties Section (if tool is selected) */}
-            {/* {selectedToolObject && (
+            {selectedToolObject && (
                 <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Tool Properties</h3>
                     <div className="space-y-3 text-sm">
+                        {isFingerCutSelected && (
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-600">Type:</span>
+                                <span className="text-gray-900">Finger Grip</span>
+                            </div>
+                        )}
                         <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Name:</span>
-                            <span className="text-gray-900">{selectedToolObject.name}</span>
+                            <span className="text-gray-600">Depth:</span>
+                            <span className="text-gray-900">{Number(selectedToolObject.depth ?? 0).toFixed(2)} inches</span>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Thickness:</span>
-                            <span className="text-gray-900">{selectedToolObject.thickness} {selectedToolObject.unit}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Rotation:</span>
-                            <span className="text-gray-900">{selectedToolObject.rotation}°</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-600">Position:</span>
-                            <span className="text-gray-900">({Math.round(selectedToolObject.x)}, {Math.round(selectedToolObject.y)})</span>
-                        </div>
-                        {(() => {
-                            const realDims = getToolRealDimensions(selectedToolObject);
-                            return (
+                        {!isShapeSelected && selectedToolObject.toolBrand !== 'FINGERCUT' && (
+                            <>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-gray-600">Size:</span>
-                                    <span className="text-gray-900">{realDims.width} × {realDims.height}</span>
+                                    <span className="text-gray-600">Tool Brand:</span>
+                                    <span className="text-gray-900">{selectedToolObject.toolBrand}</span>
                                 </div>
-                            );
-                        })()}
-                        {selectedToolObject?.metadata?.scaleFactor && (
-                            <div className="flex justify-between items-center">
-                                <span className="text-gray-600">Scale:</span>
-                                <span className="text-gray-900 text-xs">
-                                    {selectedToolObject.metadata.scaleFactor.toFixed(3)} mm/px
-                                </span>
-                            </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-600">Tool Type:</span>
+                                    <span className="text-gray-900">{selectedToolObject.metadata?.toolType ?? selectedToolObject.name}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-gray-600">SKU or Part Number:</span>
+                                    <span className="text-gray-900">{selectedToolObject.metadata?.SKUorPartNumber ?? selectedToolObject.SKUorPartNumber}</span>
+                                </div>
+                            </>
                         )}
-                        {selectedToolObject?.metadata?.length && (
-                            <div className="flex justify-between items-center">
-                                <span className="text-gray-600">Diagonal:</span>
-                                <span className="text-gray-900 text-xs">
-                                    {selectedToolObject.metadata.length.toFixed(2)} in
-                                </span>
-                            </div>
-                        )}
-
                     </div>
                 </div>
-            )} */}
+            )}
 
             {/* Scale Info Section */}
             {/* <div>

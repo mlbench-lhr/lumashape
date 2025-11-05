@@ -6,7 +6,6 @@ import Button from "@/components/ui/Button";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Text from "@/components/ui/Text";
-import { Listbox } from "@headlessui/react";
 import InputField from "@/components/ui/InputField";
 
 type Brand = {
@@ -41,12 +40,13 @@ const BRANDS_MOBILE: Brand[] = [
 ];
 
 const MobileToolsInventory = () => {
-  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<string>("");
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
   const [tools, setTools] = useState<Tool[]>([]);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedToolType, setSelectedToolType] = useState("");
 
   // Function to check if the device is mobile or desktop
   const checkDeviceType = () => {
@@ -236,21 +236,11 @@ const MobileToolsInventory = () => {
       tool.toolBrand.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tool.SKUorPartNumber.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesBrand =
-      !selectedBrand ||
-      selectedBrand.brand_logo === "Custom" ||
-      tool.toolBrand
-        .toLowerCase()
-        .includes(
-          selectedBrand.brand_logo
-            .replace("_mobile", "")
-            .split("/")
-            .pop()
-            ?.split(".")[0]
-            ?.toLowerCase() || ""
-        );
+    const matchesBrand = selectedBrand ? tool.toolBrand === selectedBrand : true;
 
-    return matchesSearch && matchesBrand;
+    const matchesType = selectedToolType ? tool.toolType === selectedToolType : true; // NEW
+
+    return matchesSearch && matchesBrand && matchesType; // UPDATED
   });
 
   return (
@@ -275,14 +265,14 @@ const MobileToolsInventory = () => {
                 />
                 Upload New Tool
               </Button> */}
-              <div className="flex text-[#bababa] rounded-[14px] border justify-center px-2 mx-2">
+              {/* <div className="flex text-[#bababa] rounded-[14px] border justify-center px-2 mx-2">
                 <Image
                   src="/images/icons/bell.svg"
                   width={36}
                   height={36}
                   alt="notifications"
                 />
-              </div>
+              </div> */}
             </div>
             <div className="relative w-[30px] h-[30px] rounded-[10px] border-[#c7c7c7] border flex items-center justify-center sm:hidden">
               <Image src="/images/icons/bell.svg" fill alt="notifications" />
@@ -306,104 +296,42 @@ const MobileToolsInventory = () => {
               />
             </div>
 
-            {/* Sort By (Brand Filter) */}
-            <div className="flex items-center gap-[6px] sm:gap-[18px] w-full sm:w-[288px] sm:h-[50px]">
-              <Text
-                as="p1"
-                className="font-medium text-[12px] sm:text-[22px] w-[78px] h-[26px] whitespace-nowrap"
-              >
-                Sort by:
-              </Text>
-              <Listbox value={selectedBrand} onChange={setSelectedBrand}>
-                <div className="relative w-full">
-                  {/* Selected Option (Button) */}
-                  <Listbox.Button className="relative w-full h-[45px] px-3 border rounded-lg border-[#e6e6e6] text-left focus:outline-none">
-                    <span className="flex items-center gap-2">
-                      {selectedBrand ? (
-                        selectedBrand.brand_logo.endsWith(".svg") ? (
-                          <Image
-                            src={selectedBrand.brand_logo}
-                            width={32}
-                            height={32}
-                            alt="Selected brand"
-                            className="object-contain"
-                          />
-                        ) : (
-                          <span className="text-[14px] sm:text-[16px] font-medium">
-                            {selectedBrand.brand_logo}
-                          </span>
-                        )
-                      ) : (
-                        <span className="text-gray-400 text-[12px] sm:text-[16px]">
-                          All Brands
-                        </span>
-                      )}
-                    </span>
-                    <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-                      <Image
-                        src="/images/icons/arrow_down.svg"
-                        width={20}
-                        height={20}
-                        alt="chevron down"
-                      />
-                    </span>
-                  </Listbox.Button>
+            {/* Sort By (Static Brand + Type) */}
+            <div className="flex items-center gap-[6px] sm:gap-[18px] w-full sm:w-auto sm:h-[50px]">
 
-                  {/* Dropdown Options */}
-                  <Listbox.Options className="absolute left-[-50px] mt-4 max-h-60 sm:w-[245px] z-10 overflow-auto rounded-[10px] bg-white p-2 text-base shadow-lg focus:outline-none sm:text-sm">
-                    {(!isMobile ? BRANDS_DESKTOP : BRANDS_MOBILE).map((brand: Brand) => (
-                      <Listbox.Option
-                        key={brand.id}
-                        value={brand}
-                        className={({ active }) =>
-                          `relative cursor-pointer select-none py-2 pl-3 pr-9 ${active ? "text-blue-900" : "text-gray-900"
-                          }`
-                        }
-                      >
-                        {({ selected }) => (
-                          <div className="flex items-center gap-3">
-                            {/* Custom Radio Button */}
-                            <div className="relative">
-                              <div
-                                className={`
-                      w-[18px] h-[18px] sm:w-[20px] sm:h-[20px] 
-                      rounded-full border-2 transition-colors duration-200
-                      ${selected
-                                    ? "border-blue-600 bg-white"
-                                    : "border-blue-400 bg-white hover:border-blue-500"
-                                  }
-                    `}
-                              >
-                                {selected && (
-                                  <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="w-[8px] h-[8px] sm:w-[10px] sm:h-[10px] rounded-full bg-blue-500"></div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
+              {/* Tool Type — same as Published Tools tab */}
+              <div className="relative w-full sm:w-[200px]">
+                <select
+                  value={selectedToolType}
+                  onChange={(e) => setSelectedToolType(e.target.value)}
+                  className="appearance-none w-full h-[45px] py-2 pl-3 pr-8 border rounded-lg text-gray-700 focus:outline-none"
+                >
+                  <option value="">Tool Type</option>
+                  <option value="Wrench">Wrench</option>
+                  <option value="Pliers">Pliers</option>
+                  <option value="Hammer">Hammer</option>
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                  <Image src="/images/icons/arrow_down.svg" width={20} height={20} alt="chevron down" />
+                </span>
+              </div>
 
-                            {/* Brand Logo or Text */}
-                            {brand.brand_logo.endsWith(".svg") ? (
-                              <div className="relative w-[70px] h-[32px] flex items-center justify-start">
-                                <Image
-                                  src={brand.brand_logo}
-                                  fill
-                                  style={{ objectFit: "contain", objectPosition: "left" }}
-                                  alt="Brand logo"
-                                />
-                              </div>
-                            ) : (
-                              <span className="text-[14px] sm:text-[16px] font-medium">
-                                {brand.brand_logo}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </Listbox.Option>
-                    ))}
-                  </Listbox.Options>
-                </div>
-              </Listbox>
+              {/* Tool Brand — same as Published Tools tab */}
+              <div className="relative w-full sm:w-[200px]">
+                <select
+                  value={selectedBrand}
+                  onChange={(e) => setSelectedBrand(e.target.value)}
+                  className="appearance-none w-full h-[45px] py-2 pl-3 pr-8 border rounded-lg text-gray-700 focus:outline-none"
+                >
+                  <option value="">Tool Brand</option>
+                  <option value="Bosch">Bosch</option>
+                  <option value="Milwaukee">Milwaukee</option>
+                  <option value="Makita">Makita</option>
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                  <Image src="/images/icons/arrow_down.svg" width={20} height={20} alt="chevron down" />
+                </span>
+              </div>
             </div>
 
           </div>

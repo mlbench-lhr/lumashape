@@ -77,6 +77,8 @@ const PublishedLayoutsTab = () => {
     const [availableToolTypes, setAvailableToolTypes] = useState<string[]>([]);
     const [availableToolBrands, setAvailableToolBrands] = useState<string[]>([]);
 
+    const STATIC_TOOL_BRANDS = ['Bosch', 'Milwaukee', 'Makita'];
+
 
     const { user } = useUser();
 
@@ -586,7 +588,7 @@ const PublishedLayoutsTab = () => {
                             onChange={(e) => setSelectedToolBrand(e.target.value)}
                         >
                             <option value="">Contains Tool Brand</option>
-                            {availableToolBrands.map(brand => (
+                            {STATIC_TOOL_BRANDS.map(brand => (
                                 <option key={brand} value={brand}>{brand}</option>
                             ))}
                         </select>
@@ -839,3 +841,5 @@ const PublishedLayoutsTab = () => {
 };
 
 export default PublishedLayoutsTab;
+
+const STATIC_TOOL_BRANDS = ['Bosch', 'Milwaukee', 'Makita'];
