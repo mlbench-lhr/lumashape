@@ -373,17 +373,16 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                   width: `${toolWidth}px`,
                   height: `${toolHeight}px`,
                   cursor: getToolCursor(tool.id),
-                  // Keep finger cuts behind, no z-index bump
                   zIndex: hoveredToolId === tool.id ? 9999 : (isFingerCut ? 0 : (isSelected ? 20 : 10)),
                 }}
-                // NOTE: removed onMouseDown from wrapper so it doesn't capture empty area clicks
+                // REMOVED: onMouseDown on wrapper so empty rectangle doesn't grab clicks
                 onMouseEnter={() => setHoveredToolId(tool.id)}
                 onMouseLeave={() => setHoveredToolId(prev => (prev === tool.id ? null : prev))}
               >
                 {/* Finger Cut Rendering */}
                 {isFingerCut ? (
                   <div className="relative w-full h-full">
-                    {/* Filled pill: now the only clickable area for finger cut */}
+                    {/* Only the pill is clickable */}
                     <div
                       className="absolute inset-0"
                       style={{
@@ -437,7 +436,6 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                       viewBox={`0 0 ${toolWidth} ${toolHeight}`}
                       className="absolute inset-0"
                       style={{ opacity, filter: `blur(${blurAmount}px)` }}
-                      // Click only when the painted vector area is hit
                       onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
                     >
                       {tool.toolType === 'circle' ? (
@@ -529,7 +527,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                           className={`relative w-full h-full object-contain transition-all duration-200 ${isOverlapping ? 'brightness-75 saturate-150' : ''}`}
                           style={{ opacity, filter: `blur(${blurAmount}px)` }}
                           draggable={false}
-                          // Click only when the actual image (object-contain area) is hit
+                          // Click only when an opaque pixel is hit
                           onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
                         />
                       </div>
