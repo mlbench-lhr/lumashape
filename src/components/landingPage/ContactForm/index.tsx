@@ -113,7 +113,7 @@ const ContactForm: React.FC = () => {
             name="message"
             rows={6}
             className="px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary w-full"
-            placeholder="Write your query.."
+            placeholder="Enter your message here..."
             required
             value={form.message}
             onChange={handleChange}

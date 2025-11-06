@@ -29,6 +29,7 @@ interface HeaderProps {
   hasOverlaps: boolean;
   onSaveLayout?: () => void;
   readOnly?: boolean;
+  setSuppressSelectionUI?: (value: boolean) => void;
 }
 
 interface LayoutFormData {
@@ -106,6 +107,7 @@ const Header: React.FC<HeaderProps> = ({
   hasOverlaps,
   onSaveLayout,
   readOnly,
+  setSuppressSelectionUI,
 }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -174,7 +176,7 @@ const Header: React.FC<HeaderProps> = ({
             unit: tool.unit,
             opacity: tool.opacity ?? 100,
             smooth: tool.smooth ?? 0,
-            image: tool.image ?? "",
+            image: tool.image || '/images/workspace/layout.svg',
             groupId: tool.groupId ?? null,
           };
         })
@@ -969,14 +971,24 @@ const Header: React.FC<HeaderProps> = ({
 
       // Step 1: Capture and upload image
       try {
+        // NEW: temporarily hide selection UI (rotation wheel) before screenshot
+        setSuppressSelectionUI?.(true);
+        // Wait a moment for the UI to update
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
         console.log("Capturing canvas image...");
         const canvasBlob = await captureCanvasImage();
+
+        // After capture, restore selection UI
+        setSuppressSelectionUI?.(false);
 
         console.log("Uploading image to DigitalOcean...");
         imageUrl = await uploadToDigitalOcean(canvasBlob);
 
         console.log("Image uploaded successfully:", imageUrl);
       } catch (imageError) {
+        // Ensure UI is restored if capture fails
+        setSuppressSelectionUI?.(false);
         console.warn("Failed to capture/upload image:", imageError);
         // Continue saving without image - don't fail the entire operation
         setSaveError(

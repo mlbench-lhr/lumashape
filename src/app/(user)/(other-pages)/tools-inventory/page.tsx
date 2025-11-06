@@ -39,7 +39,7 @@ const BRANDS_MOBILE: Brand[] = [
   { id: 3, brand_logo: "/images/icons/husky_mobile.svg" },
 ];
 
-const MobileToolsInventory = () => {
+function MobileToolsInventory() {
   const [selectedBrand, setSelectedBrand] = useState<string>("");
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
@@ -243,6 +243,23 @@ const MobileToolsInventory = () => {
     return matchesSearch && matchesBrand && matchesType; // UPDATED
   });
 
+  // Derive dynamic filter options from tools
+  const brandOptions = Array.from(
+    new Set(
+      tools
+        .map((t) => (t.toolBrand || "").trim())
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
+  const typeOptions = Array.from(
+    new Set(
+      tools
+        .map((t) => (t.toolType || "").trim())
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Main Content */}
@@ -286,8 +303,8 @@ const MobileToolsInventory = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <InputField
                 label=""
-                name="Search Files"
-                placeholder="Search Files"
+                name="Search Keyword"
+                placeholder="Search Keyword"
                 value={searchQuery}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setSearchQuery(e.target.value)
@@ -299,40 +316,58 @@ const MobileToolsInventory = () => {
             {/* Sort By (Static Brand + Type) */}
             <div className="flex items-center gap-[6px] sm:gap-[18px] w-full sm:w-auto sm:h-[50px]">
 
-              {/* Tool Type — same as Published Tools tab */}
-              <div className="relative w-full sm:w-[200px]">
+              {/* Tool Type */}
+              <div className="relative w-full sm:w-[130px]">
                 <select
                   value={selectedToolType}
                   onChange={(e) => setSelectedToolType(e.target.value)}
                   className="appearance-none w-full h-[45px] py-2 pl-3 pr-8 border rounded-lg text-gray-700 focus:outline-none"
                 >
                   <option value="">Tool Type</option>
-                  <option value="Wrench">Wrench</option>
-                  <option value="Pliers">Pliers</option>
-                  <option value="Hammer">Hammer</option>
+                  {typeOptions.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
                 </select>
                 <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
                   <Image src="/images/icons/arrow_down.svg" width={20} height={20} alt="chevron down" />
                 </span>
               </div>
 
-              {/* Tool Brand — same as Published Tools tab */}
-              <div className="relative w-full sm:w-[200px]">
+              {/* Tool Brand */}
+              <div className="relative w-full sm:w-[130px]">
                 <select
                   value={selectedBrand}
                   onChange={(e) => setSelectedBrand(e.target.value)}
                   className="appearance-none w-full h-[45px] py-2 pl-3 pr-8 border rounded-lg text-gray-700 focus:outline-none"
                 >
                   <option value="">Tool Brand</option>
-                  <option value="Bosch">Bosch</option>
-                  <option value="Milwaukee">Milwaukee</option>
-                  <option value="Makita">Makita</option>
+                  {brandOptions.map((brand) => (
+                    <option key={brand} value={brand}>
+                      {brand}
+                    </option>
+                  ))}
                 </select>
                 <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
                   <Image src="/images/icons/arrow_down.svg" width={20} height={20} alt="chevron down" />
                 </span>
               </div>
+
+              {/* ✅ Clear Button — only visible when any filter is active */}
+              {(selectedToolType !== '' || selectedBrand !== '') && (
+                <button
+                  className="px-3 py-3 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50 focus:outline-none"
+                  onClick={() => {
+                    setSelectedToolType('');
+                    setSelectedBrand('');
+                  }}
+                >
+                  Clear Filter
+                </button>
+              )}
             </div>
+
 
           </div>
         </div>
