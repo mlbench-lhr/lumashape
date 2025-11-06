@@ -91,6 +91,8 @@ export const useCanvas = ({
   // Caches for loaded images
   const imageCacheRef = useRef<Map<string, HTMLImageElement>>(new Map());
   const imageLoadPromisesRef = useRef<Map<string, Promise<HTMLImageElement>>>(new Map());
+  // Offscreen canvases per image src for pixel hit-tests
+  const imageCanvasCacheRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
 
   const getImageUrl = useCallback((tool: DroppedTool): string | null => {
     const rawUrl = (tool as Tool).image || tool.metadata?.imageUrl || null;
@@ -590,6 +592,73 @@ export const useCanvas = ({
     return { x: screenX, y: screenY };
   }, [viewport]);
 
+  // Pixel-accurate hit test for images (only count opaque pixels)
+  const isHitOnImagePixel = useCallback((e: React.MouseEvent, tool: DroppedTool) => {
+    const targetEl = e.target as HTMLElement;
+    if (!targetEl || targetEl.tagName !== 'IMG') return true;
+    const imgEl = targetEl as HTMLImageElement;
+
+    const { toolWidth, toolHeight } = getToolDimensions(tool);
+    const pos = screenToCanvas(e.clientX, e.clientY);
+
+    const angleRad = (((tool.rotation || 0)) * Math.PI) / 180;
+    const cx = tool.x + toolWidth / 2;
+    const cy = tool.y + toolHeight / 2;
+
+    // Undo rotation to get local coords inside the unrotated box
+    const vx = pos.x - cx;
+    const vy = pos.y - cy;
+    const ux = Math.cos(-angleRad) * vx - Math.sin(-angleRad) * vy;
+    const uy = Math.sin(-angleRad) * vx + Math.cos(-angleRad) * vy;
+    const localX = ux + toolWidth / 2;
+    const localY = uy + toolHeight / 2;
+
+    const natW = imgEl.naturalWidth || tool.metadata?.naturalWidth || 0;
+    const natH = imgEl.naturalHeight || tool.metadata?.naturalHeight || 0;
+    if (!natW || !natH) return true;
+
+    // object-fit: contain math
+    const scale = Math.min(toolWidth / natW, toolHeight / natH);
+    const contentW = natW * scale;
+    const contentH = natH * scale;
+    const offsetX = (toolWidth - contentW) / 2;
+    const offsetY = (toolHeight - contentH) / 2;
+
+    // Click landed in letterbox area → not a hit
+    if (localX < offsetX || localX > offsetX + contentW || localY < offsetY || localY > offsetY + contentH) {
+      return false;
+    }
+
+    const px = Math.floor((localX - offsetX) / scale);
+    const py = Math.floor((localY - offsetY) / scale);
+
+    // Offscreen canvas per image
+    let offscreen = imageCanvasCacheRef.current.get(imgEl.src);
+    if (!offscreen) {
+      offscreen = document.createElement('canvas');
+      offscreen.width = natW;
+      offscreen.height = natH;
+      const ctx = offscreen.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return true;
+      try {
+        ctx.drawImage(imgEl, 0, 0);
+        imageCanvasCacheRef.current.set(imgEl.src, offscreen);
+      } catch {
+        // Cross-origin taint fallback: treat as hit to avoid blocking
+        return true;
+      }
+    }
+
+    const ctx = offscreen.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return true;
+    try {
+      const alpha = ctx.getImageData(px, py, 1, 1).data[3];
+      return alpha > 10; // threshold; ignore almost-transparent pixels
+    } catch {
+      return true;
+    }
+  }, [getToolDimensions, screenToCanvas]);
+
   // Check if a tool is within the selection rectangle
   const isToolInSelectionBox = useCallback((tool: DroppedTool, selBox: typeof selectionBox) => {
     if (!selBox) return false;
@@ -891,6 +960,22 @@ export const useCanvas = ({
   }, [isResizing, handleResizeEnd]);
 
   const handleToolMouseDown = useCallback((e: React.MouseEvent, toolId: string) => {
+    // Allow finger cut placement to bubble up to canvas
+    if (activeTool === 'fingercut') {
+      return;
+    }
+
+    // If clicking an image, only accept if an opaque pixel was hit
+    const clickedTool = droppedTools.find(t => t.id === toolId);
+    const target = e.target as HTMLElement;
+    if (clickedTool && target && target.tagName === 'IMG') {
+      const isOpaqueHit = isHitOnImagePixel(e, clickedTool);
+      if (!isOpaqueHit) {
+        // Do not block the event; let it bubble to the canvas for selection/finger-cut
+        return;
+      }
+    }
+
     e.preventDefault();
     e.stopPropagation();
 
@@ -928,7 +1013,6 @@ export const useCanvas = ({
 
       // Setup drag for the tool(s)
       const canvasPos = screenToCanvas(e.clientX, e.clientY);
-      const clickedTool = droppedTools.find(tool => tool.id === toolId);
 
       if (clickedTool) {
         // Set drag offset relative to the tool's position
@@ -955,7 +1039,7 @@ export const useCanvas = ({
       // In hand mode, start panning the viewport
       startPan(e);
     }
-  }, [activeTool, selectedTool, selectedTools, setSelectedTool, setSelectedTools, startPan, screenToCanvas, droppedTools, readOnly, beginInteraction]);
+  }, [activeTool, selectedTool, selectedTools, setSelectedTool, setSelectedTools, startPan, screenToCanvas, droppedTools, readOnly, beginInteraction, isHitOnImagePixel]);
 
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
     // Check for middle mouse button - enable panning regardless of active tool

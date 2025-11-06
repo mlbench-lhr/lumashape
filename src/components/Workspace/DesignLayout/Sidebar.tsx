@@ -757,7 +757,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     <button
                                         onClick={() => handleAddToInventoryFromLayout(tool)}
                                         disabled={!canAdd}
-                                        className={`px-2 py-1 text-xs rounded border ${canAdd
+                                        className={`mb-2 mt-1 px-2 py-1 text-xs rounded border ${canAdd
                                             ? 'text-primary border-primary hover:bg-primary/10'
                                             : 'text-gray-400 border-gray-200 cursor-not-allowed'
                                             }`}

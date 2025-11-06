@@ -17,10 +17,12 @@ const DraggableTool: React.FC<DraggableToolProps> = ({ tool, readOnly = false, a
     <div
       draggable={!readOnly}
       onDragStart={readOnly ? undefined : handleDragStart}
-      className={`flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors ${
+      className={`relative flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors ${
         readOnly ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
       }`}
     >
+      {actions && <div className="absolute top-2 left-2 z-10">{actions}</div>}
+
       <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center">
         {tool.image ? (
           <img src={tool.image} alt={tool.name} className="w-6 h-6 object-contain" />
@@ -28,7 +30,7 @@ const DraggableTool: React.FC<DraggableToolProps> = ({ tool, readOnly = false, a
           <span className="text-lg">{tool.icon}</span>
         )}
       </div>
-      <div className="flex-1 min-w-0">
+      <div className={`flex-1 min-w-0 ${actions ? 'pt-5' : ''}`}>
         <div className="mt-2 space-y-1 text-xs text-gray-600">
           <div className="flex justify-between gap-4">
             <span>Tool Brand:</span>
@@ -50,7 +52,6 @@ const DraggableTool: React.FC<DraggableToolProps> = ({ tool, readOnly = false, a
           )}
         </div>
       </div>
-      {actions && <div className="shrink-0">{actions}</div>}
     </div>
   );
 };
