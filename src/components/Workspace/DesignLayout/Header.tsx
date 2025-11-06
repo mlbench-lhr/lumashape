@@ -319,17 +319,20 @@ const Header: React.FC<HeaderProps> = ({
       const authToken = getAuthToken();
       if (authToken) {
         const toolId =
-          droppedTool.metadata?.originalId ||
-          droppedTool.id.split("-").slice(0, -1).join("-");
+          droppedTool.id.split("-").slice(0, -1).join("-") ||
+          droppedTool.id ||
+          droppedTool.metadata?.originalId;
         try {
-          const res = await fetch(`/api/user/tool/getTool?toolId=${toolId}`, {
-            headers: { Authorization: `Bearer ${authToken}` },
-          });
-          if (res.ok) {
-            const json = await res.json();
-            toolData = json.tool;
+          if (toolId) {
+            const res = await fetch(`/api/user/tool/getTool?toolId=${toolId}`, {
+              headers: { Authorization: `Bearer ${authToken}` },
+            });
+            if (res.ok) {
+              const json = await res.json();
+              toolData = json.tool;
+            }
           }
-        } catch { }
+        } catch {}
       }
     }
 
