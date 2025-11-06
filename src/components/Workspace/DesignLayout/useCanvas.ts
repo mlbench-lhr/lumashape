@@ -15,6 +15,8 @@ interface UseCanvasProps {
   activeTool: 'cursor' | 'hand' | 'box' | 'fingercut';
   setActiveTool: (tool: 'cursor' | 'hand' | 'box' | 'fingercut') => void;
   readOnly?: boolean;
+  beginInteraction?: () => void;
+  endInteraction?: () => void;
 }
 
 export const useCanvas = ({
@@ -31,6 +33,8 @@ export const useCanvas = ({
   activeTool,
   setActiveTool,
   readOnly,
+  beginInteraction,
+  endInteraction,
 }: UseCanvasProps) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -754,7 +758,8 @@ export const useCanvas = ({
       mouseX: e.clientX,
       mouseY: e.clientY,
     });
-  }, [droppedTools, getToolDimensions, readOnly]);
+    beginInteraction?.();
+  }, [droppedTools, getToolDimensions, readOnly, beginInteraction]);
 
   // Handle resize during mouse move
   const handleResize = useCallback((e: React.MouseEvent) => {
@@ -857,7 +862,8 @@ export const useCanvas = ({
     setResizeHandle(null);
     setResizingToolId(null);
     setInitialResizeData(null);
-  }, []);
+    endInteraction?.();
+  }, [endInteraction]);
 
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
@@ -943,12 +949,13 @@ export const useCanvas = ({
 
         setInitialPositions(positions);
         setIsDraggingSelection(true);
+        beginInteraction?.();
       }
     } else if (activeTool === 'hand') {
       // In hand mode, start panning the viewport
       startPan(e);
     }
-  }, [activeTool, selectedTool, selectedTools, setSelectedTool, setSelectedTools, startPan, screenToCanvas, droppedTools, readOnly]);
+  }, [activeTool, selectedTool, selectedTools, setSelectedTool, setSelectedTools, startPan, screenToCanvas, droppedTools, readOnly, beginInteraction]);
 
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
     // Check for middle mouse button - enable panning regardless of active tool
@@ -1012,7 +1019,8 @@ export const useCanvas = ({
       heightPx: toolHeight,
       angleRad,
     });
-  }, [droppedTools, getToolDimensions, readOnly]);
+    beginInteraction?.();
+  }, [droppedTools, getToolDimensions, readOnly, beginInteraction]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     // Handle resizing first
@@ -1175,7 +1183,8 @@ export const useCanvas = ({
     setIsDraggingSelection(false);
     setInitialPositions({});
     setSelectionBox(null);
-  }, [isResizing, handleResizeEnd, endPan, fingerCutDrag]);
+    endInteraction?.();
+  }, [isResizing, handleResizeEnd, endPan, fingerCutDrag, endInteraction]);
 
   // Handle finger cut tool click
   const handleFingerCutClick = useCallback((e: React.MouseEvent) => {

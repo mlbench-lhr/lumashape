@@ -10,6 +10,8 @@ interface RotationWheelProps {
   viewportZoom: number;
   flipHorizontal: boolean;
   flipVertical: boolean;
+  onRotateStart?: () => void;
+  onRotateEnd?: () => void;
 }
 
 // RotationWheel component
@@ -23,6 +25,8 @@ const RotationWheel: React.FC<RotationWheelProps> = ({
   viewportZoom,
   flipHorizontal,
   flipVertical,
+  onRotateStart,
+  onRotateEnd,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const wheelRef = useRef<HTMLDivElement>(null);
@@ -71,7 +75,8 @@ const RotationWheel: React.FC<RotationWheelProps> = ({
     }
 
     document.body.style.cursor = 'grabbing';
-  }, []);
+    onRotateStart?.();
+  }, [onRotateStart]);
 
   const handlePointerMove = useCallback((e: PointerEvent) => {
     if (!isDragging) return;
@@ -95,7 +100,8 @@ const RotationWheel: React.FC<RotationWheelProps> = ({
     setIsDragging(false);
     document.body.style.cursor = '';
     pointerIdRef.current = null;
-  }, []);
+    onRotateEnd?.();
+  }, [onRotateEnd]);
 
   useEffect(() => {
     if (isDragging) {

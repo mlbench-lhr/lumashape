@@ -52,6 +52,9 @@ function DesignLayout({
   // State for overlap detection (passed from Canvas)
   const [hasOverlaps, setHasOverlaps] = useState<boolean>(false);
 
+  // NEW: suppress selection UI when taking a snapshot
+  const [suppressSelectionUI, setSuppressSelectionUI] = useState(false);
+
   // Unit conversion helper
   const convertValue = (
     value: number,
@@ -119,14 +122,30 @@ function DesignLayout({
     setDroppedTools(convertedTools);
   }, [unit, canvasWidth, canvasHeight, thickness, droppedTools]);
 
-  // Update dropped tools with history tracking
+  // Batch history while an interaction is in progress
+  const [isHistoryBatching, setIsHistoryBatching] = useState(false);
+
+  // Update dropped tools with history tracking (skip pushes while batching)
   const updateDroppedTools = useCallback((updater: React.SetStateAction<DroppedTool[]>) => {
     setDroppedTools(prev => {
       const newState = typeof updater === 'function' ? updater(prev) : updater;
-      pushState(newState); // Add to history immediately
+      if (!isHistoryBatching) {
+        pushState(newState);
+      }
       return newState;
     });
-  }, [pushState]);
+  }, [pushState, isHistoryBatching]);
+
+  // Begin/end gesture batching
+  const beginHistoryBatch = useCallback(() => {
+    setIsHistoryBatching(true);
+  }, []);
+
+  const endHistoryBatch = useCallback(() => {
+    setIsHistoryBatching(false);
+    // Commit final state at gesture end
+    pushState(droppedTools);
+  }, [pushState, droppedTools]);
 
   // Clear selection when selectedTool is cleared
   useEffect(() => {
@@ -186,6 +205,8 @@ function DesignLayout({
         hasOverlaps={hasOverlaps}
         onSaveLayout={handleSaveLayout}
         readOnly={readOnly}
+        // NEW: allow header to toggle selection UI suppression
+        setSuppressSelectionUI={setSuppressSelectionUI}
       />
       <ControlBar
         canvasWidth={canvasWidth}
@@ -220,8 +241,12 @@ function DesignLayout({
           setActiveTool={setActiveTool}
           onOverlapChange={setHasOverlaps}
           readOnly={readOnly}
+          // NEW: pass suppression flag to Canvas
+          suppressSelectionUI={suppressSelectionUI}
+          beginInteraction={beginHistoryBatch}
+          endInteraction={endHistoryBatch}
         />
-        <div className="w-80 h-100">
+        <div className="w-80 flex-shrink-0 min-h-0">
           <Sidebar
             droppedTools={droppedTools}
             selectedTool={selectedTool}

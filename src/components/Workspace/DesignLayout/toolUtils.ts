@@ -505,6 +505,7 @@ export const createShape = (
 };
 
 // Create finger cut functionality
+// Function: createFingerCut
 export const createFingerCut = (
   droppedTools: DroppedTool[],
   updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
@@ -516,9 +517,10 @@ export const createFingerCut = (
   const fingerCutTool: DroppedTool = {
     id: `fingercut-${Date.now()}`,
     name: 'Finger Cut',
-    icon: '⭕', // Changed from 'hand' to cylinder icon
+    icon: '⭕',
     toolBrand: 'FINGERCUT',
     toolType: 'fingerCut',
+    image: '/images/workspace/fingercut.svg',
     SKUorPartNumber: '',
     x: position.x - 25,
     y: position.y - 15,

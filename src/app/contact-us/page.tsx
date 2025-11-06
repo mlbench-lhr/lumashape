@@ -19,7 +19,7 @@ const page = () => {
 
                         {/* Description */}
                         <Text as="p1" className="text-md sm:text-lg text-paragraph max-w-3xl mx-auto mb-8 text-secondary-light leading-relaxed">
-                            We are here to help you, Our  team would love to hear from you and will get back to you in 24 hours.
+                            We’re here to help. Our team would love to hear from you and will get back to you as soon as possible.
                         </Text>
 
                     </div>

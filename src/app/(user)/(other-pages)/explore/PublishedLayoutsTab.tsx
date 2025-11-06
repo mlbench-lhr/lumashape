@@ -78,7 +78,7 @@ const PublishedLayoutsTab = () => {
     const [availableToolBrands, setAvailableToolBrands] = useState<string[]>([]);
 
     const STATIC_TOOL_BRANDS = ['Bosch', 'Milwaukee', 'Makita'];
-
+    const STATIC_TOOL_TYPES = ['Wrench', 'Pliers', 'Hammer'];
 
     const { user } = useUser();
 
@@ -210,7 +210,12 @@ const PublishedLayoutsTab = () => {
                 (layout.metadata?.layoutName || layout.name).toLowerCase().includes(term) ||
                 (layout.metadata?.selectedBrand || layout.brand || '').toLowerCase().includes(term) ||
                 (layout.metadata?.containerType || '').toLowerCase().includes(term) ||
-                (layout.createdBy?.username || '').toLowerCase().includes(term)
+                (layout.createdBy?.username || '').toLowerCase().includes(term) ||
+                // Search within tools for dynamic brand/type
+                (layout.tools?.some(tool =>
+                    (tool.name || '').toLowerCase().includes(term) ||
+                    ((tool.toolBrand || tool.metadata?.toolBrand || '')).toLowerCase().includes(term)
+                ) ?? false)
             );
         }
 
@@ -573,7 +578,7 @@ const PublishedLayoutsTab = () => {
                             onChange={(e) => setSelectedToolType(e.target.value)}
                         >
                             <option value="">Contains Tool Type</option>
-                            {availableToolTypes.map(type => (
+                            {STATIC_TOOL_TYPES.map(type => (
                                 <option key={type} value={type}>{type}</option>
                             ))}
                         </select>
@@ -599,7 +604,7 @@ const PublishedLayoutsTab = () => {
                     {(searchTerm || selectedToolType || selectedToolBrand || selectedLength || selectedWidth || selectedUnit || selectedThickness) && (
                         <button
                             onClick={clearFilters}
-                            className="px-3 py-2 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50 focus:outline-none"
+                            className="px-3 py-3 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50 focus:outline-none"
                         >
                             Clear Filters
                         </button>
@@ -841,5 +846,3 @@ const PublishedLayoutsTab = () => {
 };
 
 export default PublishedLayoutsTab;
-
-const STATIC_TOOL_BRANDS = ['Bosch', 'Milwaukee', 'Makita'];

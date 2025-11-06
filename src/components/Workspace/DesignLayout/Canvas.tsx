@@ -24,6 +24,11 @@ interface CanvasProps {
   setActiveTool: (tool: 'cursor' | 'hand' | 'box' | 'fingercut') => void;
   onOverlapChange?: (hasOverlaps: boolean) => void;
   readOnly?: boolean;
+  // NEW: mark gesture boundaries to batch history
+  beginInteraction: () => void;
+  endInteraction: () => void;
+  // NEW: suppress selection overlays (e.g., rotation wheel) during snapshot
+  suppressSelectionUI?: boolean;
 }
 
 const Canvas: React.FC<CanvasProps> = (props) => {
@@ -357,6 +362,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 
 
             return (
+              // Inside the Canvas component, in the map over tools
               <div
                 key={tool.id}
                 className="absolute select-none group"
@@ -367,25 +373,26 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                   width: `${toolWidth}px`,
                   height: `${toolHeight}px`,
                   cursor: getToolCursor(tool.id),
-                  // Raise hovered tool above everything else
+                  // Keep finger cuts behind, no z-index bump
                   zIndex: hoveredToolId === tool.id ? 9999 : (isFingerCut ? 0 : (isSelected ? 20 : 10)),
                 }}
-                onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
+                // NOTE: removed onMouseDown from wrapper so it doesn't capture empty area clicks
                 onMouseEnter={() => setHoveredToolId(tool.id)}
                 onMouseLeave={() => setHoveredToolId(prev => (prev === tool.id ? null : prev))}
               >
                 {/* Finger Cut Rendering */}
                 {isFingerCut ? (
                   <div className="relative w-full h-full">
-                    {/* Filled pill: fixed thickness, primary color */}
+                    {/* Filled pill: now the only clickable area for finger cut */}
                     <div
                       className="absolute inset-0"
                       style={{
-                        backgroundColor: 'var(--primary)', // #266CA8
+                        backgroundColor: 'var(--primary)',
                         borderRadius: `${toolHeight / 2}px`,
                         opacity: (tool.opacity || 100) / 100,
                         filter: `blur(${(tool.smooth || 0) / 10}px)`,
                       }}
+                      onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
                     />
                     {/* Endpoint handles (visible when selected, not read-only) */}
                     {isSelected && !props.readOnly && (
@@ -430,6 +437,8 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                       viewBox={`0 0 ${toolWidth} ${toolHeight}`}
                       className="absolute inset-0"
                       style={{ opacity, filter: `blur(${blurAmount}px)` }}
+                      // Click only when the painted vector area is hit
+                      onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
                     >
                       {tool.toolType === 'circle' ? (
                         <>
@@ -494,7 +503,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                       )}
                     </svg>
                   ) : (
-                    // Regular tool rendering
+                    // Regular tool rendering (image)
                     tool.image && (
                       <div className="relative w-full h-full">
                         <img
@@ -520,6 +529,8 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                           className={`relative w-full h-full object-contain transition-all duration-200 ${isOverlapping ? 'brightness-75 saturate-150' : ''}`}
                           style={{ opacity, filter: `blur(${blurAmount}px)` }}
                           draggable={false}
+                          // Click only when the actual image (object-contain area) is hit
+                          onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
                         />
                       </div>
                     )
@@ -550,7 +561,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 )} */}
 
                 {/* Rotation Wheel - show only for primary selected tool */}
-                {!props.readOnly && isPrimarySelection && tool.toolType !== 'circle' && (
+                {!props.readOnly && !props.suppressSelectionUI && isPrimarySelection && tool.toolType !== 'circle' && (
                   <RotationWheel
                     toolId={tool.id}
                     currentRotation={tool.rotation}
@@ -570,6 +581,9 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     viewportZoom={viewport.zoom}
                     flipHorizontal={tool.flipHorizontal}
                     flipVertical={tool.flipVertical}
+                    // NEW: batch rotation updates into single history entry
+                    onRotateStart={props.beginInteraction}
+                    onRotateEnd={props.endInteraction}
                   />
                 )}
 

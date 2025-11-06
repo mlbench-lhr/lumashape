@@ -132,6 +132,15 @@ const Sidebar: React.FC<SidebarProps> = ({
         }
     }, [isShapeSelected, selectedToolObject, isEditingShapeInputs]);
 
+    // Draft state for Finger Cut depth (to mirror Shape settings apply flow)
+    const [fingerCutDraftDepth, setFingerCutDraftDepth] = useState('');
+
+    useEffect(() => {
+        if (isFingerCutSelected && selectedToolObject) {
+            setFingerCutDraftDepth(String(selectedToolObject.depth ?? ''));
+        }
+    }, [isFingerCutSelected, selectedToolObject]);
+
     const applyShapeSettings = useCallback(() => {
         if (!selectedTool || !isShapeSelected || !selectedToolObject) return;
 
@@ -165,6 +174,16 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         onHistoryChange?.();
     }, [selectedTool, isShapeSelected, selectedToolObject, shapeSettingsDraft, droppedTools, setDroppedTools, onHistoryChange]);
+
+    // Apply handler for Finger Cut depth
+    const applyFingerCutSettings = useCallback(() => {
+        if (!selectedTool || !isFingerCutSelected) return;
+        const depth = parseFloat(fingerCutDraftDepth);
+        if (!isNaN(depth) && depth >= 0) {
+            updateFingerCutDepth(selectedTool, droppedTools, setDroppedTools, depth);
+            onHistoryChange?.();
+        }
+    }, [selectedTool, isFingerCutSelected, fingerCutDraftDepth, droppedTools, setDroppedTools, onHistoryChange]);
 
     // Extract database tool data into separate variables
     const extractToolData = (dbTool: DatabaseTool) => {
@@ -468,9 +487,15 @@ const Sidebar: React.FC<SidebarProps> = ({
     }, []);
 
     // NEW: brand filter state and dropdown control
-    const [brandFilter, setBrandFilter] = useState<'all' | 'Milwaukee' | 'Husky' | 'DEWALT'>('all');
+    const [brandFilter, setBrandFilter] = useState<'all' | string>('all');
     const [isBrandMenuOpen, setIsBrandMenuOpen] = useState(false);
-    const brandOptions = ['Milwaukee', 'Husky', 'DEWALT'];
+    const brandOptions = Array.from(
+        new Set(
+            tools
+                .map(t => (t.toolBrand || '').trim())
+                .filter(Boolean)
+        )
+    ).sort((a, b) => a.localeCompare(b));
     // NEW: tool type filter state and dropdown control
     const [typeFilter, setTypeFilter] = useState<'all' | string>('all');
     const [isTypeMenuOpen, setIsTypeMenuOpen] = useState(false);
@@ -586,7 +611,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     <button
                                         key={brand}
                                         className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${brandFilter === brand ? 'text-primary' : 'text-gray-700'}`}
-                                        onClick={() => { setBrandFilter(brand as 'Milwaukee' | 'Husky' | 'DEWALT'); setIsBrandMenuOpen(false); }}
+                                        onClick={() => { setBrandFilter(brand); setIsBrandMenuOpen(false); }}
                                     >
                                         {brand}
                                     </button>
@@ -966,19 +991,25 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             {/* Finger Cut Controls */}
             {isFingerCutSelected && selectedToolObject && (
-                <div className="bg-primary-100 p-1 rounded-lg">
-                    <h3 className="text-sm font-medium text-primary-800 mb-3 flex items-center gap-2">
-                        Finger Cut Settings
-                    </h3>
+                <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-sm font-medium text-primary">Shape Settings</h3>
+                        <button
+                            onClick={applyFingerCutSettings}
+                            className="px-3 py-1 text-sm rounded bg-primary text-white"
+                        >
+                            Apply
+                        </button>
+                    </div>
                     <div className="space-y-3">
                         <div>
-                            <label className="block text-xs font-medium text-primary-700 mb-1">
+                            <label className="block text-xs font-medium text-primary mb-1">
                                 Depth (inches)
                             </label>
                             <input
                                 type="number"
-                                value={selectedToolObject.depth ?? 0}
-                                onChange={(e) => handleFingerCutDepthChange(parseFloat(e.target.value) || 0)}
+                                value={fingerCutDraftDepth}
+                                onChange={(e) => setFingerCutDraftDepth(e.target.value)}
                                 className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                 min="0"
                                 step="0.01"
@@ -1137,14 +1168,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     );
 
     return (
-        <div className="w-80 bg-white border-l border-gray-200">
-            <div className="p-4">
+        <div className="w-80 bg-white border-l border-gray-200 h-full flex flex-col">
+            <div className="p-4 flex flex-col h-full">
                 {readOnly ? (
                     <>
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold text-gray-900">Tools in Layout</h3>
                         </div>
-                        <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+                        <div className="flex-1 min-h-0 overflow-y-auto">
                             <LayoutToolsView />
                         </div>
                     </>
@@ -1171,15 +1202,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </button>
                         </div>
 
-                        <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+                        <div className="flex-1 min-h-0 overflow-y-auto">
                             {activeTab === 'inventory' ? <ToolInventoryView /> : <EditLayoutView />}
                         </div>
                     </>
                 )}
             </div>
         </div>
-
-
     );
 };
 

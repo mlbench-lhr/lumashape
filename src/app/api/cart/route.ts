@@ -20,6 +20,7 @@ interface ToolDocument {
   cvResponse?: CvResponse
 }
 
+// Interface: ToolShape and Function: ensureToolDepths
 interface ToolShape {
   id?: string
   originalId?: string
@@ -32,6 +33,7 @@ interface ToolShape {
   smooth?: number
   image?: string
   groupId?: string | null
+  name?: string
 }
 
 
@@ -86,7 +88,9 @@ async function ensureToolDepths(tools: ToolShape[]): Promise<ToolShape[]> {
         flipVertical: typeof t.flipVertical === 'boolean' ? t.flipVertical : false,
         opacity: typeof t.opacity === 'number' ? t.opacity : 100,
         smooth: typeof t.smooth === 'number' ? t.smooth : 0,
-        image: typeof t.image === 'string' ? t.image : '',
+        image: (typeof t.image === 'string' && t.image.trim().length > 0)
+          ? t.image
+          : '/images/workspace/layout.svg',
         groupId: typeof t.groupId === 'string' ? t.groupId : (t.groupId ?? null),
       }
     })
