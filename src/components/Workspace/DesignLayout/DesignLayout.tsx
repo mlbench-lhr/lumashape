@@ -221,7 +221,7 @@ function DesignLayout({
           onOverlapChange={setHasOverlaps}
           readOnly={readOnly}
         />
-        <div className="w-80 m">
+        <div className="w-80 h-100">
           <Sidebar
             droppedTools={droppedTools}
             selectedTool={selectedTool}
