@@ -18,6 +18,7 @@ import {
     alignTools,
     autoLayout,
     createShape,
+    createTextTool,
     updateToolAppearance,
     createFingerCut,
     updateFingerCutDimensions,
@@ -101,6 +102,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     const selectedToolObject = selectedTool ? droppedTools.find(tool => tool.id === selectedTool) : null;
     const isFingerCutSelected = selectedToolObject?.metadata?.isFingerCut;
     const isShapeSelected = selectedToolObject?.toolBrand === 'SHAPE';
+    const isTextSelected = selectedToolObject && (selectedToolObject.toolType === 'text' || selectedToolObject.toolBrand === 'TEXT');
 
     // Local draft state for shape inputs
     const [shapeSettingsDraft, setShapeSettingsDraft] = useState({
@@ -110,10 +112,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         depth: '',
     });
 
-    const [isEditingShapeInputs, setIsEditingShapeInputs] = useState(false);
 
     useEffect(() => {
-        if (!isShapeSelected || !selectedToolObject || isEditingShapeInputs) return;
+        if (!isShapeSelected || !selectedToolObject) return;
 
         if (selectedToolObject.toolType === 'circle') {
             setShapeSettingsDraft({
@@ -130,7 +131,44 @@ const Sidebar: React.FC<SidebarProps> = ({
                 depth: String(selectedToolObject.depth ?? ''),
             });
         }
-    }, [isShapeSelected, selectedToolObject, isEditingShapeInputs]);
+    }, [
+        isShapeSelected,
+        selectedToolObject?.id,
+        selectedToolObject?.toolType,
+        selectedToolObject?.width,
+        selectedToolObject?.length,
+        selectedToolObject?.depth,
+    ]);
+
+    // NEW: draft state for text inputs (add width/length)
+    const [textSettingsDraft, setTextSettingsDraft] = useState<{
+        content: string;
+        fontSizePx: string;
+        color: string;
+        align: 'left' | 'center' | 'right';
+        width: string;
+        length: string;
+    }>({
+        content: '',
+        fontSizePx: '',
+        color: '#266ca8',
+        align: 'center',
+        width: '',
+        length: '',
+    });
+
+    useEffect(() => {
+        if (isTextSelected && selectedToolObject) {
+            setTextSettingsDraft({
+                content: selectedToolObject.textContent ?? '',
+                fontSizePx: String(selectedToolObject.textFontSizePx ?? 24),
+                color: selectedToolObject.textColor ?? '#266ca8',
+                align: (selectedToolObject.textAlign as 'left' | 'center' | 'right') ?? 'center',
+                width: String(selectedToolObject.width ?? ''),
+                length: String(selectedToolObject.length ?? ''),
+            });
+        }
+    }, [isTextSelected, selectedToolObject?.id]);
 
     // Draft state for Finger Cut depth (to mirror Shape settings apply flow)
     const [fingerCutDraftDepth, setFingerCutDraftDepth] = useState('');
@@ -570,6 +608,37 @@ const Sidebar: React.FC<SidebarProps> = ({
         onHistoryChange?.();
     }, [droppedTools, setDroppedTools, onHistoryChange, canvasWidth, canvasHeight, unit]);
 
+    // NEW: add text tool
+    const handleCreateText = useCallback(() => {
+        const position = { x: 220, y: 160 };
+        createTextTool(droppedTools, setDroppedTools, position, canvasWidth, canvasHeight, unit);
+        onHistoryChange?.();
+    }, [droppedTools, setDroppedTools, onHistoryChange, canvasWidth, canvasHeight, unit]);
+
+    // NEW: apply text settings (updates box dimensions)
+    const applyTextSettings = useCallback(() => {
+        if (!selectedToolObject) return;
+        const nextWidth = parseFloat(textSettingsDraft.width);
+        const nextLength = parseFloat(textSettingsDraft.length);
+
+        setDroppedTools(prev =>
+            prev.map(t =>
+                t.id === selectedToolObject.id
+                    ? {
+                        ...t,
+                        textContent: textSettingsDraft.content.trim(),
+                        textFontSizePx: parseInt(textSettingsDraft.fontSizePx) || t.textFontSizePx,
+                        textColor: textSettingsDraft.color || t.textColor,
+                        textAlign: textSettingsDraft.align,
+                        width: !isNaN(nextWidth) && nextWidth > 0 ? nextWidth : t.width,
+                        length: !isNaN(nextLength) && nextLength > 0 ? nextLength : t.length,
+                    }
+                    : t
+            )
+        );
+        onHistoryChange?.();
+    }, [selectedToolObject, setDroppedTools, textSettingsDraft, onHistoryChange]);
+
     const ToolInventoryView = () => (
         <>
             <div className="relative mb-4">
@@ -986,6 +1055,25 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </button>
                         <span className="text-xs text-gray-500 text-center leading-tight">Finger Grip</span>
                     </div>
+                    {/* NEW: Add Text */}
+                    <div className="flex flex-col items-center">
+                        <button
+                            className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center mb-1 transition-colors cursor-pointer"
+                            onClick={handleCreateText}
+                            disabled={readOnly}
+                        >
+                            <div className='w-6 h-6'>
+                                <Image
+                                    src="/images/workspace/text.svg"
+                                    alt="text"
+                                    width={24}
+                                    height={24}
+                                    className="w-full h-full object-contain"
+                                />
+                            </div>
+                        </button>
+                        <span className="text-xs text-gray-500 text-center leading-tight">Text</span>
+                    </div>
                 </div>
             </div>
 
@@ -1042,8 +1130,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     type="number"
                                     value={shapeSettingsDraft.diameter}
                                     onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, diameter: e.target.value }))}
-                                    onFocus={() => setIsEditingShapeInputs(true)}
-                                    onBlur={() => setIsEditingShapeInputs(false)}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                     min="1"
                                     step="0.01"
@@ -1057,8 +1143,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     type="number"
                                     value={shapeSettingsDraft.depth}
                                     onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, depth: e.target.value }))}
-                                    onFocus={() => setIsEditingShapeInputs(true)}
-                                    onBlur={() => setIsEditingShapeInputs(false)}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                     min="0"
                                     step="0.01"
@@ -1075,8 +1159,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     type="number"
                                     value={shapeSettingsDraft.width}
                                     onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, width: e.target.value }))}
-                                    onFocus={() => setIsEditingShapeInputs(true)}
-                                    onBlur={() => setIsEditingShapeInputs(false)}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                     min="1"
                                     step="0.01"
@@ -1090,8 +1172,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     type="number"
                                     value={shapeSettingsDraft.length}
                                     onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, length: e.target.value }))}
-                                    onFocus={() => setIsEditingShapeInputs(true)}
-                                    onBlur={() => setIsEditingShapeInputs(false)}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                     min="1"
                                     step="0.01"
@@ -1105,8 +1185,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     type="number"
                                     value={shapeSettingsDraft.depth}
                                     onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, depth: e.target.value }))}
-                                    onFocus={() => setIsEditingShapeInputs(true)}
-                                    onBlur={() => setIsEditingShapeInputs(false)}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                     min="0"
                                     step="0.01"
@@ -1114,6 +1192,76 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* NEW: Text Settings */}
+            {isTextSelected && selectedToolObject && (
+                <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-sm font-medium text-primary">Text Settings</h3>
+                        <button
+                            onClick={applyTextSettings}
+                            className="px-3 py-1 text-sm rounded bg-primary text-white"
+                        >
+                            Apply
+                        </button>
+                    </div>
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-xs font-medium text-primary mb-1">
+                                Content
+                            </label>
+                            <textarea
+                                value={textSettingsDraft.content}
+                                onChange={(e) => setTextSettingsDraft(prev => ({ ...prev, content: e.target.value }))}
+                                className="w-full h-24 px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
+                                placeholder="Enter text"
+                                rows={4}
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs font-medium text-primary mb-1">
+                                    Width ({unit})
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    step="0.01"
+                                    value={textSettingsDraft.width}
+                                    onChange={(e) => setTextSettingsDraft(prev => ({ ...prev, width: e.target.value }))}
+                                    className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-primary mb-1">
+                                    Length ({unit})
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    step="0.01"
+                                    value={textSettingsDraft.length}
+                                    onChange={(e) => setTextSettingsDraft(prev => ({ ...prev, length: e.target.value }))}
+                                    className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-primary mb-1">
+                                    Font Size (px)
+                                </label>
+                                <input
+                                    type="number"
+                                    min="8"
+                                    step="1"
+                                    value={textSettingsDraft.fontSizePx}
+                                    onChange={(e) => setTextSettingsDraft(prev => ({ ...prev, fontSizePx: e.target.value }))}
+                                    className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -1176,7 +1324,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <h3 className="text-lg font-semibold text-gray-900">Tools in Layout</h3>
                         </div>
                         <div className="flex-1 min-h-0 overflow-y-auto">
-                            <LayoutToolsView />
+                            {LayoutToolsView()}
                         </div>
                     </>
                 ) : (
@@ -1203,7 +1351,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </div>
 
                         <div className="flex-1 min-h-0 overflow-y-auto">
-                            {activeTab === 'inventory' ? <ToolInventoryView /> : <EditLayoutView />}
+                            {activeTab === 'inventory' ? ToolInventoryView() : EditLayoutView()}
                         </div>
                     </>
                 )}

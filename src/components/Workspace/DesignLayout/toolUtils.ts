@@ -667,3 +667,52 @@ export const setToolRotation = (
     )
   );
 };
+
+// NEW: Create text tool functionality
+export const createTextTool = (
+  droppedTools: DroppedTool[],
+  updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
+  position: { x: number; y: number },
+  canvasWidth?: number,
+  canvasHeight?: number,
+  unit: 'mm' | 'inches' = 'inches'
+): void => {
+  // Default box in pixels
+  const defaultWidthPx = 200;
+  const defaultHeightPx = 60;
+
+  // Convert to tool units for storage
+  const widthInches = defaultWidthPx / 96;
+  const heightInches = defaultHeightPx / 96;
+  const widthUnits = unit === 'mm' ? widthInches * 25.4 : widthInches;
+  const heightUnits = unit === 'mm' ? heightInches * 25.4 : heightInches;
+
+  const newText: DroppedTool = {
+    id: `text_${Date.now()}`,
+    name: 'Text',
+    icon: '🅣',
+    toolBrand: 'TEXT',
+    toolType: 'text',
+    SKUorPartNumber: '',
+    image: undefined,
+    x: position.x,
+    y: position.y,
+    rotation: 0,
+    flipHorizontal: false,
+    flipVertical: false,
+    width: widthUnits,
+    length: heightUnits,
+    depth: 0.1,
+    unit,
+    opacity: 100,
+    smooth: 0,
+    textContent: 'Your Text',
+    textFontFamily: 'Raleway, sans-serif',
+    textFontWeight: 500,
+    textFontSizePx: 24,
+    textAlign: 'center',
+    textColor: '#266ca8',
+  };
+
+  updateDroppedTools(prev => [...prev, newText]);
+};

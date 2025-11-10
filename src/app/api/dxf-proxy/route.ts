@@ -11,7 +11,7 @@ interface Tool {
     name: string;
     brand: string;
     dxf_link: string;
-    position_inches: PositionInches;
+    position_inches: PositionInches & { z?: number };
     rotation_degrees: number;
     height_diagonal_inches: number;
     depth_inches?: number;
@@ -19,6 +19,11 @@ interface Tool {
     flip_vertical: boolean;
     opacity: number;
     smooth: number;
+    // Allow custom shapes forwarded by client (including text)
+    is_custom_shape?: boolean;
+    shape_type?: "rectangle" | "circle" | "polygon" | "fingercut" | "text";
+    shape_data?: unknown;
+    cut_depth_inches?: number;
 }
 
 interface CanvasInformation {

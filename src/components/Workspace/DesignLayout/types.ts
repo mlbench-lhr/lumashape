@@ -30,6 +30,13 @@ export interface Tool {
     fingerCutWidth?: number;
     fingerCutLength?: number;
   };
+  // NEW: text tool properties (optional)
+  textContent?: string;
+  textFontFamily?: string;
+  textFontWeight?: number | string;
+  textFontSizePx?: number;
+  textAlign?: 'left' | 'center' | 'right';
+  textColor?: string;
 }
 
 export interface DroppedTool extends Tool {
@@ -54,6 +61,13 @@ export interface DroppedTool extends Tool {
   // NEW: Real calculated dimensions based on scale info
   realWidth?: number;   // Calculated from scaleFactor + length
   realHeight?: number;  // Calculated from scaleFactor + length
+  // NEW: text tool properties (optional)
+  textContent?: string;
+  textFontFamily?: string;
+  textFontWeight?: number | string;
+  textFontSizePx?: number;
+  textAlign?: 'left' | 'center' | 'right';
+  textColor?: string;
 }
 
 export interface ToolGroup {
