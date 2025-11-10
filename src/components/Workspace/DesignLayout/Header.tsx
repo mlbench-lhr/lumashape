@@ -63,11 +63,19 @@ interface ShapePayload {
   name: string;
   brand: string;
   is_custom_shape: true;
-  shape_type: "rectangle" | "circle" | "polygon" | "fingercut";
+  shape_type: "rectangle" | "circle" | "polygon" | "fingercut" | "text";
   shape_data:
-  | { width_inches: number; height_inches: number }
-  | { radius_inches: number }
-  | { points: { x: number; y: number }[] };
+    | { width_inches: number; height_inches: number }
+    | { radius_inches: number }
+    | { points: { x: number; y: number }[] }
+    | {
+        width_inches: number;
+        height_inches: number;
+        content: string;
+        font_size_px: number;
+        align: "left" | "center" | "right";
+        color?: string;
+      };
   position_inches: { x: number; y: number; z: number };
   rotation_degrees: number;
   cut_depth_inches: number;
@@ -178,6 +186,8 @@ const Header: React.FC<HeaderProps> = ({
             smooth: tool.smooth ?? 0,
             image: tool.image || '/images/workspace/layout.svg',
             groupId: tool.groupId ?? null,
+            // NEW: mark text tools for pricing
+            isText: tool.toolType === 'text' || tool.toolBrand === 'TEXT',
           };
         })
       );
@@ -448,6 +458,23 @@ const Header: React.FC<HeaderProps> = ({
       };
     }
 
+    // Text: convert stored width/length (mm/inches) to pixels
+    if (tool.toolBrand === "TEXT" || tool.toolType === "text") {
+      const widthPx =
+        tool.unit === "mm"
+          ? mmToPx(tool.width || 0)
+          : inchesToPx(tool.width || 0);
+      const heightPx =
+        tool.unit === "mm"
+          ? mmToPx(tool.length || 0)
+          : inchesToPx(tool.length || 0);
+
+      return {
+        toolWidth: Math.max(20, widthPx),
+        toolHeight: Math.max(20, heightPx),
+      };
+    }
+
     // Image tools: use metadata.length (treated as height) + aspect ratio
     if (tool.metadata?.length) {
       const toolHeightPx = inchesToPx(tool.metadata.length);
@@ -521,7 +548,8 @@ const Header: React.FC<HeaderProps> = ({
       // Process all dropped items
       for (const droppedTool of droppedTools) {
         // Get tool dimensions to calculate bottom-left position
-        const { toolHeight } = getToolDimensions(droppedTool);
+        const { toolHeight, toolWidth } = getToolDimensions(droppedTool);
+        const DPI = 96;
 
         // Convert positions to inches with bottom-left origin for Y
         const xInches = convertPositionToInches(
@@ -535,11 +563,42 @@ const Header: React.FC<HeaderProps> = ({
           false
         );
 
-        // Treat shapes and finger cuts as custom shapes
+        // Treat shapes, finger cuts, and text as custom shapes
         const isShape = droppedTool.toolBrand === "SHAPE";
         const isFingerCut =
           droppedTool.toolBrand === "FINGERCUT" ||
           droppedTool.metadata?.isFingerCut;
+        const isTextTool =
+          droppedTool.toolBrand === "TEXT" || droppedTool.toolType === "text";
+
+        // NEW: Handle text tools as custom shapes with text-specific fields
+        if (isTextTool) {
+          const widthInches = Number((toolWidth / DPI).toFixed(3));
+          const heightInches = Number((toolHeight / DPI).toFixed(3));
+
+          shapes.push({
+            tool_id: droppedTool.id,
+            name: droppedTool.name || "Text",
+            brand: "Text",
+            is_custom_shape: true,
+            shape_type: "text",
+            shape_data: {
+              width_inches: widthInches,
+              height_inches: heightInches,
+              content: droppedTool.textContent ?? "",
+              font_size_px: droppedTool.textFontSizePx ?? 24,
+              align: droppedTool.textAlign ?? "center",
+              color: droppedTool.textColor || "#000000",
+            },
+            position_inches: { x: xInches, y: yInches, z: 0 },
+            rotation_degrees: normalizeRotationDeg(droppedTool.rotation),
+            cut_depth_inches: await computeDepthInches(droppedTool),
+            flip_horizontal: droppedTool.flipHorizontal || false,
+            flip_vertical: droppedTool.flipVertical || false,
+          });
+
+          continue;
+        }
 
         if (isShape || isFingerCut) {
           let shapeType: "rectangle" | "circle" | "polygon" | "fingercut" = "rectangle";
@@ -1111,7 +1170,18 @@ const Header: React.FC<HeaderProps> = ({
               if (typeof tool.length === "number") return tool.length;
               return undefined;
             })(),
-            metadata: tool.metadata,
+            // NEW: persist text metadata and identifiers so edit mode can rehydrate text tools
+            metadata: {
+              ...(tool.metadata || {}),
+              toolBrand: tool.toolBrand,
+              toolType: tool.toolType,
+              textContent: tool.textContent,
+              textFontFamily: tool.textFontFamily,
+              textFontWeight: tool.textFontWeight,
+              textFontSizePx: tool.textFontSizePx,
+              textAlign: tool.textAlign,
+              textColor: tool.textColor,
+            },
           };
 
           return shapeType

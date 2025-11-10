@@ -191,6 +191,24 @@ export const useCanvas = ({
       };
     }
 
+    // NEW: Text tool sizing from stored units
+    const isText = tool.toolType === 'text' || tool.toolBrand === 'TEXT';
+    if (isText) {
+      const widthPx =
+        typeof tool.width === 'number'
+          ? (tool.unit === 'mm' ? mmToPx(tool.width) : inchesToPx(tool.width))
+          : 200; // sensible default
+      const heightPx =
+        typeof tool.length === 'number'
+          ? (tool.unit === 'mm' ? mmToPx(tool.length) : inchesToPx(tool.length))
+          : 60; // sensible default
+
+      return {
+        toolWidth: Math.max(20, widthPx),
+        toolHeight: Math.max(20, heightPx),
+      };
+    }
+
     if (tool.metadata?.isFingerCut) {
       // Legacy heuristic: if values look like px (huge in inches), treat them as px
       const looksLikePx =
@@ -344,9 +362,12 @@ export const useCanvas = ({
     // Bypass overlap check if either tool is a cylinder
     const isTool1Cylinder = tool1.id.startsWith('cylinder_') || tool1.name === 'Finger Cut';
     const isTool2Cylinder = tool2.id.startsWith('cylinder_') || tool2.name === 'Finger Cut';
+    // NEW: Bypass overlap check for text tools
+    const isTool1Text = tool1.toolType === 'text' || tool1.toolBrand === 'TEXT';
+    const isTool2Text = tool2.toolType === 'text' || tool2.toolBrand === 'TEXT';
 
-    if (isTool1Cylinder || isTool2Cylinder) {
-      return false; // No overlap for cylinders
+    if (isTool1Cylinder || isTool2Cylinder || isTool1Text || isTool2Text) {
+      return false; // No overlap for cylinders or text
     }
 
     const a1 = getTransformedAABB(tool1);
@@ -367,7 +388,10 @@ export const useCanvas = ({
   const doToolsAABBOverlap = useCallback((tool1: DroppedTool, tool2: DroppedTool) => {
     const isTool1Cylinder = tool1.id.startsWith('cylinder_') || tool1.name === 'Finger Cut';
     const isTool2Cylinder = tool2.id.startsWith('cylinder_') || tool2.name === 'Finger Cut';
-    if (isTool1Cylinder || isTool2Cylinder) return false;
+    // NEW: Bypass for text tools
+    const isTool1Text = tool1.toolType === 'text' || tool1.toolBrand === 'TEXT';
+    const isTool2Text = tool2.toolType === 'text' || tool2.toolBrand === 'TEXT';
+    if (isTool1Cylinder || isTool2Cylinder || isTool1Text || isTool2Text) return false;
 
     const a1 = getTransformedAABB(tool1);
     const a2 = getTransformedAABB(tool2);
@@ -386,7 +410,10 @@ export const useCanvas = ({
     // Skip cylinders (non-rectangular helper visual)
     const isTool1Cylinder = tool1.id.startsWith('cylinder_') || tool1.name === 'Finger Cut';
     const isTool2Cylinder = tool2.id.startsWith('cylinder_') || tool2.name === 'Finger Cut';
-    if (isTool1Cylinder || isTool2Cylinder) return false;
+    // NEW: Bypass for text tools
+    const isTool1Text = tool1.toolType === 'text' || tool1.toolBrand === 'TEXT';
+    const isTool2Text = tool2.toolType === 'text' || tool2.toolBrand === 'TEXT';
+    if (isTool1Cylinder || isTool2Cylinder || isTool1Text || isTool2Text) return false;
 
     // Quick reject using rotated AABBs
     if (!doToolsAABBOverlap(tool1, tool2)) return false;
@@ -471,11 +498,18 @@ export const useCanvas = ({
 
     for (let i = 0; i < droppedTools.length; i++) {
       for (let j = i + 1; j < droppedTools.length; j++) {
+        // NEW: Skip pairs if either is a text tool
+        const t1 = droppedTools[i];
+        const t2 = droppedTools[j];
+        const t1IsText = t1.toolType === 'text' || t1.toolBrand === 'TEXT';
+        const t2IsText = t2.toolType === 'text' || t2.toolBrand === 'TEXT';
+        if (t1IsText || t2IsText) continue;
+
         // Only mark overlap when pixel-level detection confirms it
         // Fast AABB pre-filter happens inside doToolsOverlapPixel
-        if (await doToolsOverlapPixel(droppedTools[i], droppedTools[j])) {
-          overlaps.add(droppedTools[i].id);
-          overlaps.add(droppedTools[j].id);
+        if (await doToolsOverlapPixel(t1, t2)) {
+          overlaps.add(t1.id);
+          overlaps.add(t2.id);
         }
       }
     }
@@ -503,6 +537,12 @@ export const useCanvas = ({
     startX?: number,
     startY?: number
   ) => {
+    // NEW: Do not avoid overlaps for text tools; just constrain to canvas
+    const isTextTool = tool.toolType === 'text' || tool.toolBrand === 'TEXT';
+    if (isTextTool) {
+      return constrainToCanvas(tool, startX ?? tool.x, startY ?? tool.y);
+    }
+
     const { toolWidth, toolHeight } = getToolDimensions(tool);
     const { width: canvasWidthPx, height: canvasHeightPx } = getCanvasBounds();
     const maxCanvasWidth = canvasWidthPx - toolWidth;
@@ -1292,7 +1332,7 @@ export const useCanvas = ({
     const widthInches = lengthPx / 96;
     const widthUnits = unit === 'mm' ? widthInches * 25.4 : widthInches;
 
-    const defaultThicknessInches = 0.5;
+    const defaultThicknessInches = 1;
     const thicknessUnits = unit === 'mm' ? defaultThicknessInches * 25.4 : defaultThicknessInches;
     const thicknessPx = unit === 'mm' ? mmToPx(thicknessUnits) : inchesToPx(thicknessUnits);
 

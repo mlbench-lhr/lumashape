@@ -71,6 +71,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     fingerCutStart,
     fingerCutPreviewEnd,
     constrainToCanvas,
+    handleResizeStart,
   } = useCanvas(props);
 
   // Helper function to convert pixel position to inches with bottom-left origin
@@ -344,9 +345,11 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             const { toolWidth, toolHeight } = getToolDimensions(tool);
             const isSelected = selectedTools.includes(tool.id);
             const isPrimarySelection = selectedTool === tool.id;
-            const isOverlapping = overlappingTools.includes(tool.id);
             const isShape = tool.toolBrand === 'SHAPE';
             const isFingerCut = tool.metadata?.isFingerCut;
+            const isText = tool.toolType === 'text' || tool.toolBrand === 'TEXT';
+            // NEW: Never treat text as overlapping in UI
+            const isOverlapping = overlappingTools.includes(tool.id) && !isText;
 
             // Helpers for physical → pixel conversion
             const inchesToPx = (inches: number) => inches * 96;
@@ -457,15 +460,6 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                             fill={isOverlapping ? '#f87171' : '#266ca8'}
                             stroke="none"
                           />
-                          {/* Outer circle (buffer boundary stroke on top) */}
-                          {/* <circle
-                            cx={toolWidth / 2}
-                            cy={toolHeight / 2}
-                            r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - 1)}
-                            fill="none"
-                            stroke={isOverlapping ? '#f87171' : '#266ca8'}
-                            strokeWidth={2}
-                          /> */}
                         </>
                       ) : (
                         <>
@@ -487,50 +481,100 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                             fill={isOverlapping ? '#f87171' : '#266ca8'}
                             stroke="none"
                           />
-                          {/* Outer rectangle stroke on top */}
-                          {/* <rect
-                            x={1}
-                            y={1}
-                            width={Math.max(0, toolWidth - 2)}
-                            height={Math.max(0, toolHeight - 2)}
-                            fill="none"
-                            stroke={isOverlapping ? '#f87171' : '#266ca8'}
-                            strokeWidth={2}
-                          /> */}
                         </>
                       )}
                     </svg>
                   ) : (
-                    // Regular tool rendering (image)
-                    tool.image && (
-                      <div className="relative w-full h-full">
-                        <img
-                          src={tool.image}
-                          alt={tool.name}
-                          onLoad={(e) => {
-                            const img = e.currentTarget;
-                            props.setDroppedTools(prev =>
-                              prev.map(t =>
-                                t.id === tool.id
-                                  ? {
-                                    ...t,
-                                    metadata: {
-                                      ...t.metadata,
-                                      naturalWidth: img.naturalWidth,
-                                      naturalHeight: img.naturalHeight,
-                                    },
-                                  }
-                                  : t
-                              )
-                            );
-                          }}
-                          className={`relative w-full h-full object-contain transition-all duration-200 ${isOverlapping ? 'brightness-75 saturate-150' : ''}`}
-                          style={{ opacity, filter: `blur(${blurAmount}px)` }}
-                          draggable={false}
-                          // Click only when an opaque pixel is hit
-                          onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
-                        />
-                      </div>
+                    isText ? (
+                      <div className="relative w-full h-full border border-gray-300 rounded" style={{ overflow: 'hidden' }}>
+                        <div
+                            className="absolute inset-0 flex items-center"
+                            style={{
+                                opacity,
+                                filter: `blur(${blurAmount}px)`,
+                                display: 'flex',
+                                justifyContent:
+                                    (tool.textAlign || 'center') === 'left'
+                                        ? 'flex-start'
+                                        : (tool.textAlign || 'center') === 'right'
+                                            ? 'flex-end'
+                                            : 'center',
+                            }}
+                            onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
+                        >
+                            <span
+                                style={{
+                                    fontFamily: tool.textFontFamily || 'Raleway, sans-serif',
+                                    fontWeight: tool.textFontWeight || 500,
+                                    fontSize: `${tool.textFontSizePx ?? 18}px`,
+                                    color: tool.textColor || '#266ca8',
+                                    whiteSpace: 'pre-wrap',
+                                    textAlign: tool.textAlign || 'center',
+                                    wordBreak: 'break-word',
+                                }}
+                            >
+                                {tool.textContent || 'Text'}
+                            </span>
+                        </div>
+
+                        {/* Resize handles for text tools */}
+                        {isSelected && !props.readOnly && (
+                            <>
+                                <div
+                                    className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
+                                    style={{ top: -6, left: -6, width: 12, height: 12, cursor: 'nw-resize' }}
+                                    onMouseDown={(e) => handleResizeStart(e, tool.id, 'nw')}
+                                />
+                                <div
+                                    className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
+                                    style={{ top: -6, right: -6, width: 12, height: 12, cursor: 'ne-resize' }}
+                                    onMouseDown={(e) => handleResizeStart(e, tool.id, 'ne')}
+                                />
+                                <div
+                                    className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
+                                    style={{ bottom: -6, left: -6, width: 12, height: 12, cursor: 'sw-resize' }}
+                                    onMouseDown={(e) => handleResizeStart(e, tool.id, 'sw')}
+                                />
+                                <div
+                                    className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
+                                    style={{ bottom: -6, right: -6, width: 12, height: 12, cursor: 'se-resize' }}
+                                    onMouseDown={(e) => handleResizeStart(e, tool.id, 'se')}
+                                />
+                            </>
+                        )}
+                    </div>
+                    ) : (
+                      // Regular tool rendering (image)
+                      tool.image && (
+                        <div className="relative w-full h-full">
+                          <img
+                            src={tool.image}
+                            alt={tool.name}
+                            onLoad={(e) => {
+                              const img = e.currentTarget;
+                              props.setDroppedTools(prev =>
+                                prev.map(t =>
+                                  t.id === tool.id
+                                    ? {
+                                      ...t,
+                                      metadata: {
+                                        ...t.metadata,
+                                        naturalWidth: img.naturalWidth,
+                                        naturalHeight: img.naturalHeight,
+                                      },
+                                    }
+                                    : t
+                                )
+                              );
+                            }}
+                            className={`relative w-full h-full object-contain transition-all duration-200 ${isOverlapping ? 'brightness-75 saturate-150' : ''}`}
+                            style={{ opacity, filter: `blur(${blurAmount}px)` }}
+                            draggable={false}
+                            // Click only when an opaque pixel is hit
+                            onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
+                          />
+                        </div>
+                      )
                     )
                   )
                 )}

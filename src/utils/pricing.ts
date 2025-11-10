@@ -48,11 +48,19 @@ export const calculatePriceFromLayoutData = (layoutData: {
     unit: 'mm' | 'inches';
     thickness: number;
   };
+  // NEW: optionally include tools for extras computation
+  tools?: Array<{ isText?: boolean }>;
 }): number => {
-  return calculateLayoutPrice({
+  const base = calculateLayoutPrice({
     width: layoutData.canvas.width,
     height: layoutData.canvas.height,
     thickness: layoutData.canvas.thickness,
     unit: layoutData.canvas.unit,
   });
+
+  // NEW: $12 flat engraving fee if any text tool exists
+  const hasText = Array.isArray(layoutData.tools) && layoutData.tools.some(t => t?.isText);
+  const engravingFee = hasText ? 12 : 0;
+
+  return Math.round((base + engravingFee) * 100) / 100;
 };

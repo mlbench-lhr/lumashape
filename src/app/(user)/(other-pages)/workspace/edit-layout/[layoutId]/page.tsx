@@ -28,6 +28,12 @@ interface ToolMetadata {
   depth?: number;
   naturalWidth?: number;
   naturalHeight?: number;
+  textContent?: string;
+  textFontFamily?: string;
+  textFontWeight?: number | string;
+  textFontSizePx?: number;
+  textAlign?: 'left' | 'center' | 'right';
+  textColor?: string;
 }
 
 interface LayoutTool {
@@ -117,26 +123,25 @@ export default function EditLayoutPage({
 
       const mapped: DroppedTool[] = layout.tools.map((t) => {
         const toolUnit: Unit = t.unit || canvasUnit;
-
-        // Always interpret DB positions in inches (bottom-left origin → top-left pixels)
+      
+        // DB stores bottom-left inches; convert to top-left canvas pixels
         const xPx = inchesToPx(t.x || 0);
         const yPxRaw = inchesToPx(t.y || 0);
         const yPx = canvasHeightPx - yPxRaw;
-
+      
+        // Prepare width/length rehydration
         let widthCanvasUnits = 0;
         let lengthCanvasUnits = 0;
         let widthPxFallback = 0;
         let heightPxFallback = 0;
-
+      
         let toolBrand: string = t.metadata?.toolBrand || '';
-        // NEW: capture shape toolType from DB shapeType
         let shapeToolType: 'circle' | 'square' | 'polygon' | '' = '';
-
-        // Handle shapes
+      
         if (t.isCustomShape && t.shapeType && t.shapeData) {
           toolBrand = 'SHAPE';
           const sd = t.shapeData;
-
+      
           if (
             t.shapeType === 'rectangle' &&
             typeof sd.width_inches === 'number' &&
@@ -171,7 +176,7 @@ export default function EditLayoutPage({
             shapeToolType = 'polygon';
           }
         } else {
-          // Non-shape tools
+          // Non-shape tools (images/text/tools)
           if (t.metadata?.length) {
             // Images: rendering uses metadata.length (inches) and aspect ratio
             // Keep a pixel fallback for initial visual sizing; Canvas will compute using metadata anyway
@@ -183,14 +188,14 @@ export default function EditLayoutPage({
             heightPxFallback = heightPx;
             widthPxFallback = heightPx * aspect;
           } else {
-            // Convert stored real dimensions to the canvas unit (not pixels)
+            // Use saved realWidth/realHeight (stored in the tool’s unit)
             const rw = t.realWidth ?? t.width ?? 0;
             const rh = t.realHeight ?? t.length ?? 0;
             widthCanvasUnits = convertUnits(rw, toolUnit, canvasUnit);
             lengthCanvasUnits = convertUnits(rh, toolUnit, canvasUnit);
           }
         }
-
+      
         return {
           id: t.id,
           name: t.name,
@@ -213,8 +218,14 @@ export default function EditLayoutPage({
           realWidth: t.realWidth,
           realHeight: t.realHeight,
           toolBrand,
-          // NEW: ensure Canvas renderer knows the shape kind
           toolType: shapeToolType || (t.metadata?.toolType ?? ''),
+          // Rehydrate text props so Canvas renders the exact saved text
+          textContent: t.metadata?.textContent,
+          textFontFamily: t.metadata?.textFontFamily,
+          textFontWeight: t.metadata?.textFontWeight,
+          textFontSizePx: t.metadata?.textFontSizePx,
+          textAlign: t.metadata?.textAlign as 'left' | 'center' | 'right' | undefined,
+          textColor: t.metadata?.textColor,
         } as DroppedTool;
       });
 
