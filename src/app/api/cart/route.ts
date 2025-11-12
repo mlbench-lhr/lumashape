@@ -162,7 +162,6 @@ export async function POST(req: NextRequest) {
       cart = new Cart({ userEmail, items: [] })
     }
 
-    // Repair pre-existing items missing depths to avoid validation failures
     if (Array.isArray(cart.items) && cart.items.length) {
       for (const existing of cart.items) {
         if (existing?.layoutData?.tools && Array.isArray(existing.layoutData.tools)) {
@@ -173,15 +172,29 @@ export async function POST(req: NextRequest) {
         }
       }
     }
-
-    // Ensure incoming item tools have depth populated
     if (itemData?.layoutData?.tools && Array.isArray(itemData.layoutData.tools)) {
       itemData.layoutData.tools = await ensureToolDepths(itemData.layoutData.tools)
     }
-
-    // Check if item already exists
+    // Depth vs thickness validation (unit-aware)
+    const canvasUnit = itemData?.layoutData?.canvas?.unit
+    const canvasThickness = itemData?.layoutData?.canvas?.thickness
+    if (typeof canvasThickness !== 'number' || !(canvasThickness > 0) || (canvasUnit !== 'mm' && canvasUnit !== 'inches')) {
+      return NextResponse.json({ message: 'Invalid canvas thickness or unit' }, { status: 400 })
+    }
+    const thicknessInches = canvasUnit === 'mm' ? mmToInches(canvasThickness) : canvasThickness
+    const offending = (itemData.layoutData.tools || []).filter((t: ToolShape) => {
+      const d = typeof t.depth === 'number' ? t.depth : 0
+      const di = t.unit === 'mm' ? mmToInches(d) : d
+      return di > thicknessInches
+    })
+    if (offending.length > 0) {
+      const names = offending.map((t: ToolShape) => t?.name || t?.id || 'unknown').join(', ')
+      return NextResponse.json(
+        { message: `Tool cut depth exceeds material thickness for: ${names}` },
+        { status: 400 }
+      )
+    }
     const existingItemIndex = cart.items.findIndex(item => item.id === itemData.id)
-
     if (existingItemIndex !== -1) {
       cart.items[existingItemIndex].quantity += 1
       cart.items[existingItemIndex].updatedAt = new Date()
@@ -195,9 +208,7 @@ export async function POST(req: NextRequest) {
       }
       cart.items.push(newItem)
     }
-
     await cart.save()
-
     return NextResponse.json({
       success: true,
       message: 'Item added to cart successfully'

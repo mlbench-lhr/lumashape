@@ -237,6 +237,7 @@ function DesignLayout({
           canvasWidth={canvasWidth}
           canvasHeight={canvasHeight}
           unit={unit}
+          thickness={thickness}
           activeTool={activeTool}
           setActiveTool={setActiveTool}
           onOverlapChange={setHasOverlaps}

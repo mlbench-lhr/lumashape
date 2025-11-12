@@ -809,7 +809,7 @@ export const useCanvas = ({
         flipVertical: false,
         width: 50, // Legacy fallback
         length: 50, // Legacy fallback
-        depth: tool.metadata?.depth || 0.5,
+        depth: tool.metadata?.depth || 0.25,
         SKUorPartNumber: tool.metadata?.SKUorPartNumber || '',
         unit,
         opacity: 100,
@@ -945,9 +945,12 @@ export const useCanvas = ({
         const newWidthInUnits = tool.unit === 'mm' ? newWidthInInches * 25.4 : newWidthInInches;
         const newHeightInUnits = tool.unit === 'mm' ? newHeightInInches * 25.4 : newHeightInInches;
 
+        // Round to 2 decimals for stable values
+        const round2 = (n: number) => Number(n.toFixed(2));
+
         // For perfect shapes, ensure both dimensions are exactly equal
-        const finalWidth = isPerfectShape ? newWidthInUnits : newWidthInUnits;
-        const finalHeight = isPerfectShape ? newWidthInUnits : newHeightInUnits;
+        const finalWidth = round2(isPerfectShape ? newWidthInUnits : newWidthInUnits);
+        const finalHeight = round2(isPerfectShape ? newWidthInUnits : newHeightInUnits);
 
         return {
           ...tool,
@@ -1353,7 +1356,7 @@ export const useCanvas = ({
       flipVertical: false,
       width: widthUnits,       // store in physical units
       length: thicknessUnits,  // store in physical units
-      depth: 0.5,
+      depth: 0.25,
       unit,                    // inches|mm
       opacity: 100,
       smooth: 0,

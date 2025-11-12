@@ -40,6 +40,7 @@ interface CanvasData {
   height: number;
   unit: 'mm' | 'inches';
   thickness: number;
+  materialColor?: string;
 }
 
 interface LayoutStats {
@@ -84,7 +85,7 @@ const validateCanvas = (canvas: unknown): CanvasData => {
   }
 
   const canvasObj = canvas as Record<string, unknown>;
-  const { width, height, unit, thickness } = canvasObj;
+  const { width, height, unit, thickness, materialColor } = canvasObj;
 
   if (typeof width !== 'number' || typeof height !== 'number' || width <= 0 || height <= 0) {
     throw new Error('Canvas must have valid positive dimensions');
@@ -98,11 +99,16 @@ const validateCanvas = (canvas: unknown): CanvasData => {
     throw new Error('Canvas thickness must be positive');
   }
 
+  if (materialColor !== undefined && typeof materialColor !== 'string') {
+    throw new Error('Canvas materialColor must be a string if provided');
+  }
+
   return {
     width,
     height,
     unit: unit as 'mm' | 'inches',
-    thickness
+    thickness,
+    materialColor: materialColor as string | undefined,
   };
 };
 

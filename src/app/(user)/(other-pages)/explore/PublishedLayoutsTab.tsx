@@ -191,9 +191,7 @@ const PublishedLayoutsTab = () => {
     // Get thickness options based on selected unit
     const getThicknessOptions = () => {
         return [
-            { value: "0.5", label: "0.5" },
-            { value: "1.0", label: "1.0" },
-            { value: "1.5", label: "1.5" },
+            { value: "1.25", label: "1.25" },
             { value: "2.0", label: "2.0" },
             { value: "2.5", label: "2.5" },
             { value: "3.0", label: "3.0" },

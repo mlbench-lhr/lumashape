@@ -16,6 +16,7 @@ export interface ICartItem {
       height: number
       unit: 'mm' | 'inches'
       thickness: number
+      materialColor?: string
     }
     tools: Array<{
       id: string
@@ -90,6 +91,7 @@ const CartItemSchema: Schema<ICartItem> = new mongoose.Schema(
         height: { type: Number, required: true },
         unit: { type: String, required: true, enum: ['mm', 'inches'] },
         thickness: { type: Number, required: true },
+        materialColor: { type: String, default: 'black' },
       },
       tools: [{
         id: { type: String, required: true },

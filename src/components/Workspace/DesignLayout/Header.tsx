@@ -40,6 +40,7 @@ interface LayoutFormData {
   canvasWidth?: number;
   canvasHeight?: number;
   thickness?: number;
+  materialColor?: string;
 }
 
 interface ToolPayload {
@@ -65,17 +66,17 @@ interface ShapePayload {
   is_custom_shape: true;
   shape_type: "rectangle" | "circle" | "polygon" | "fingercut" | "text";
   shape_data:
-    | { width_inches: number; height_inches: number }
-    | { radius_inches: number }
-    | { points: { x: number; y: number }[] }
-    | {
-        width_inches: number;
-        height_inches: number;
-        content: string;
-        font_size_px: number;
-        align: "left" | "center" | "right";
-        color?: string;
-      };
+  | { width_inches: number; height_inches: number }
+  | { radius_inches: number }
+  | { points: { x: number; y: number }[] }
+  | {
+    width_inches: number;
+    height_inches: number;
+    content: string;
+    font_size_px: number;
+    align: "left" | "center" | "right";
+    color?: string;
+  };
   position_inches: { x: number; y: number; z: number };
   rotation_degrees: number;
   cut_depth_inches: number;
@@ -125,6 +126,14 @@ const Header: React.FC<HeaderProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { addToCart } = useCart();
 
+  // Compute depth vs thickness for status indicator
+  const thicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
+  const tooDeepCount = droppedTools.filter((t) => {
+    const depthInches = typeof t.depth === "number" ? t.depth : 0; // depth stored in inches
+    return depthInches > thicknessInches;
+  }).length;
+  const isLayoutInvalid = hasOverlaps || tooDeepCount > 0;
+
   const handleAddToCart = async () => {
     if (hasOverlaps) {
       setSaveError(
@@ -143,7 +152,6 @@ const Header: React.FC<HeaderProps> = ({
     setSaveError(null);
 
     try {
-      // Read session for canvas dimensions and name (for containerSize)
       let additionalData: LayoutFormData = {};
       const sessionData = sessionStorage.getItem("layoutForm");
       if (sessionData) {
@@ -154,24 +162,30 @@ const Header: React.FC<HeaderProps> = ({
         }
       }
 
+      const thicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
+      const depths = await Promise.all(droppedTools.map((t) => computeDepthInches(t)));
+      const tooDeep = depths.some((d) => d > thicknessInches);
+      if (tooDeep) {
+        const msg = "One or more tool cut depths exceed selected material thickness.";
+        setSaveError(msg);
+        toast.error(msg);
+        setIsSaving(false);
+        return;
+      }
+
       const layoutName = await resolveLayoutName(additionalData);
       const containerSize = `${additionalData.canvasWidth ?? canvasWidth}" × ${additionalData.canvasHeight ?? canvasHeight}"`;
-
-      // Save layout via Save & Exit handler (single source of truth)
       const saveResult = await handleSaveAndExit({ skipRedirect: true });
       if (!saveResult || !saveResult.id) {
         throw new Error("Failed to save layout");
       }
       const savedLayoutId = saveResult.id;
       const snapshotUrl = saveResult.snapshotUrl || undefined;
-
-      // Prepare minimal cart layout data (cart schema)
       const cartTools = await Promise.all(
         droppedTools.map(async (tool) => {
           const depthInches = await computeDepthInches(tool);
           const depthForCart =
             tool.unit === "mm" ? inchesToMm(depthInches) : depthInches;
-
           return {
             id: tool.id,
             name: tool.name,
@@ -184,26 +198,23 @@ const Header: React.FC<HeaderProps> = ({
             unit: tool.unit,
             opacity: tool.opacity ?? 100,
             smooth: tool.smooth ?? 0,
-            image: tool.image || '/images/workspace/layout.svg',
+            image: tool.image || "/images/workspace/layout.svg",
             groupId: tool.groupId ?? null,
-            // NEW: mark text tools for pricing
-            isText: tool.toolType === 'text' || tool.toolBrand === 'TEXT',
+            isText: tool.toolType === "text" || tool.toolBrand === "TEXT",
           };
         })
       );
-
       const cartLayoutData = {
         canvas: {
           width: additionalData.canvasWidth ?? canvasWidth,
           height: additionalData.canvasHeight ?? canvasHeight,
           unit,
           thickness,
+          materialColor: additionalData.materialColor || "black",
         },
         tools: cartTools,
       };
-
       const calculatedPrice = calculatePriceFromLayoutData(cartLayoutData);
-
       await addToCart({
         id: savedLayoutId,
         name: layoutName,
@@ -212,7 +223,6 @@ const Header: React.FC<HeaderProps> = ({
         snapshotUrl,
         layoutData: cartLayoutData,
       });
-
       toast.success("Layout saved and added to cart successfully!");
     } catch (error) {
       console.error("Error adding to cart:", error);
@@ -259,14 +269,14 @@ const Header: React.FC<HeaderProps> = ({
     let editingId: string | null = null;
     try {
       editingId = sessionStorage.getItem("editingLayoutId");
-    } catch {}
+    } catch { }
 
     if (editingId) {
       // Prefer cached name if available
       try {
         const cached = sessionStorage.getItem("editingLayoutName");
         if (cached && cached.trim()) return cached.trim();
-      } catch {}
+      } catch { }
 
       // Fallback: fetch existing layout name to avoid overwriting
       try {
@@ -281,11 +291,11 @@ const Header: React.FC<HeaderProps> = ({
           if (typeof existingName === "string" && existingName.trim()) {
             try {
               sessionStorage.setItem("editingLayoutName", existingName);
-            } catch {}
+            } catch { }
             return existingName;
           }
         }
-      } catch {}
+      } catch { }
     }
 
     // Final fallback for brand-new layouts
@@ -327,7 +337,8 @@ const Header: React.FC<HeaderProps> = ({
     const isFingerCut =
       droppedTool.toolBrand === "FINGERCUT" ||
       droppedTool.metadata?.isFingerCut;
-    if (!toolData && !isShape && !isFingerCut) {
+    const isText = droppedTool.toolBrand === "TEXT" || droppedTool.toolType === "text";
+    if (!toolData && !isShape && !isFingerCut && !isText) {
       const authToken = getAuthToken();
       if (authToken) {
         const toolId =
@@ -344,7 +355,7 @@ const Header: React.FC<HeaderProps> = ({
               toolData = json.tool;
             }
           }
-        } catch {}
+        } catch { }
       }
     }
 
@@ -367,7 +378,7 @@ const Header: React.FC<HeaderProps> = ({
     if (typeof dtDepthInches === "number" && dtDepthInches > 0)
       return parseFloat(dtDepthInches.toFixed(3));
 
-    return 0.2; // final fallback
+    return 0.25; // final fallback
   };
 
   const convertPositionToInches = (
@@ -1006,6 +1017,11 @@ const Header: React.FC<HeaderProps> = ({
       setSaveError("Cannot save empty layout. Please add at least one tool.");
       return;
     }
+    // Block save when layout is invalid
+    if (hasOverlaps) {
+      setSaveError("Cannot save layout with overlapping tools. Please fix overlaps first.");
+      return;
+    }
 
     setIsSaving(true);
     setSaveError(null);
@@ -1026,6 +1042,18 @@ const Header: React.FC<HeaderProps> = ({
         } catch (error) {
           console.error("Error parsing session data:", error);
         }
+      }
+
+      const localThickness = (additionalData.thickness ?? thickness);
+      const thicknessInches = unit === "mm" ? mmToInches(localThickness) : localThickness;
+      const depths = await Promise.all(droppedTools.map((t) => computeDepthInches(t)));
+      const tooDeep = depths.some((d) => d > thicknessInches);
+      if (tooDeep) {
+        const msg = "Cannot save layout: one or more tool cut depths exceed selected material thickness.";
+        setSaveError(msg);
+        toast.error(msg);
+        setIsSaving(false);
+        return;
       }
 
       // Step 1: Capture and upload image
@@ -1064,6 +1092,7 @@ const Header: React.FC<HeaderProps> = ({
           height: additionalData.canvasHeight ?? canvasHeight,
           unit: additionalData.units ?? unit,
           thickness: additionalData.thickness ?? thickness,
+          materialColor: additionalData.materialColor || undefined,
         },
         tools: droppedTools.map((tool) => {
           // Determine shape info
@@ -1091,7 +1120,7 @@ const Header: React.FC<HeaderProps> = ({
                 width_inches: widthInches,
                 height_inches: heightInches,
               };
-            } else if ( 
+            } else if (
               tool.name.toLowerCase().includes("circle") ||
               (tool.image || "").includes("circle.svg")
             ) {
@@ -1190,7 +1219,7 @@ const Header: React.FC<HeaderProps> = ({
         }),
         stats: {
           totalTools: droppedTools.length,
-          validLayout: !hasOverlaps,
+          validLayout: !(hasOverlaps || tooDeep),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
@@ -1320,15 +1349,15 @@ const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center space-x-2">
               <>
                 <button
-                  className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors ${isSaving || hasOverlaps || droppedTools.length === 0
-                      ? "bg-gray-400 cursor-not-allowed"
-                      : saveSuccess
-                        ? "bg-green-500 hover:bg-green-600"
-                        : "bg-primary"
+                  className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors ${isSaving || isLayoutInvalid || droppedTools.length === 0
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : saveSuccess
+                      ? "bg-green-500 hover:bg-green-600"
+                      : "bg-primary"
                     } text-white`}
                   onClick={() => handleSaveAndExit()}
                   disabled={
-                    isSaving || hasOverlaps || droppedTools.length === 0
+                    isSaving || isLayoutInvalid || droppedTools.length === 0
                   }
                 >
                   {isSaving ? (
@@ -1379,8 +1408,8 @@ const Header: React.FC<HeaderProps> = ({
                       <button
                         key={index}
                         className={`w-full px-4 py-3 text-left text-sm flex items-center space-x-3 transition-colors ${option.disabled
-                            ? "text-gray-400 cursor-not-allowed"
-                            : "text-gray-700 hover:bg-gray-50 cursor-pointer"
+                          ? "text-gray-400 cursor-not-allowed"
+                          : "text-gray-700 hover:bg-gray-50 cursor-pointer"
                           }`}
                         onClick={option.disabled ? undefined : option.action}
                         disabled={option.disabled}
@@ -1468,7 +1497,6 @@ const Header: React.FC<HeaderProps> = ({
       )}
 
       {/* Layout Status */}
-
       <div className="flex justify-between items-center mt-3 text-sm">
         <div className="flex items-center space-x-4">
           <span className="text-gray-600">
@@ -1485,6 +1513,11 @@ const Header: React.FC<HeaderProps> = ({
         {!readOnly && (
           <div className="flex items-center space-x-2">
             {hasOverlaps ? (
+              <>
+                <AlertTriangle className="w-4 h-4 text-red-600" />
+                <span className="text-red-600">Invalid Layout</span>
+              </>
+            ) : tooDeepCount > 0 ? (
               <>
                 <AlertTriangle className="w-4 h-4 text-red-600" />
                 <span className="text-red-600">Invalid Layout</span>

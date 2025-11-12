@@ -20,6 +20,7 @@ interface CanvasProps {
   canvasWidth: number;
   canvasHeight: number;
   unit: 'mm' | 'inches';
+  thickness: number;
   activeTool: 'cursor' | 'hand' | 'box' | 'fingercut';
   setActiveTool: (tool: 'cursor' | 'hand' | 'box' | 'fingercut') => void;
   onOverlapChange?: (hasOverlaps: boolean) => void;
@@ -39,6 +40,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     canvasWidth,
     canvasHeight,
     unit,
+    thickness,
     activeTool,
   } = props;
 
@@ -73,6 +75,18 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     constrainToCanvas,
     handleResizeStart,
   } = useCanvas(props);
+
+  // Auto-fit the canvas when workspace opens and when dimensions or unit change
+  React.useEffect(() => {
+    const raf = requestAnimationFrame(() => fitToView());
+    return () => cancelAnimationFrame(raf);
+  }, [canvasWidth, canvasHeight, unit]);
+
+  React.useEffect(() => {
+    if (props.onOverlapChange) {
+      props.onOverlapChange(hasOverlaps);
+    }
+  }, [hasOverlaps, props.onOverlapChange]);
 
   // Helper function to convert pixel position to inches with bottom-left origin
   const convertPositionToInches = (
@@ -113,6 +127,15 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     return Number(inches.toFixed(2));
   };
 
+  // Convert thickness to inches for comparison
+  const thicknessInches = unit === 'mm' ? mmToInches(thickness) : thickness;
+  const depthInchesFor = (t: DroppedTool) =>
+    typeof t.depth === 'number'
+      ? (t.unit === 'mm' ? mmToInches(t.depth) : t.depth)
+      : 0;
+  const tooDeepCount = droppedTools.filter(t => depthInchesFor(t) > thicknessInches).length;
+  const isLayoutInvalid = hasOverlaps || tooDeepCount > 0;
+
   // Rotation guard: block rotation if the rotated bounds would exceed the canvas
   const canRotateWithinCanvas = useCallback((tool: DroppedTool, rotation: number) => {
     const { toolWidth, toolHeight } = getToolDimensions(tool);
@@ -139,11 +162,12 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     return left >= 0 && top >= 0 && right <= canvasWidthPx && bottom <= canvasHeightPx;
   }, [getToolDimensions, getCanvasStyle]);
 
+  // handleResize function used by old resize handles (also round to 2 decimals)
   const handleResize = useCallback((toolId: string, newWidth: number, newHeight: number) => {
     props.setDroppedTools(prevTools =>
       prevTools.map(tool =>
         tool.id === toolId
-          ? { ...tool, width: newWidth, length: newHeight }
+          ? { ...tool, width: Number(newWidth.toFixed(2)), length: Number(newHeight.toFixed(2)) }
           : tool
       )
     );
@@ -156,34 +180,34 @@ const Canvas: React.FC<CanvasProps> = (props) => {
   };
 
   // Render overlap notification
-  const renderOverlapNotification = () => {
-    if (!hasOverlaps) return null;
+  // const renderOverlapNotification = () => {
+  //   if (!hasOverlaps) return null;
 
-    return (
-      <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-50">
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 shadow-lg max-w-sm">
-          <div className="flex items-start space-x-3">
-            <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-red-800">
-                Note: The layout that you have selected is invalid
-              </p>
-              <p className="text-xs text-red-600 mt-1">
-                {overlappingTools.length} tool{overlappingTools.length > 1 ? 's are' : ' is'} overlapping
-              </p>
-              <button
-                onClick={autoFixOverlaps}
-                className="mt-2 inline-flex items-center px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded transition-colors"
-              >
-                <Check className="w-3 h-3" />
-                Auto-fix positions
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  //   return (
+  //     <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 z-50">
+  //       <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 shadow-lg max-w-sm">
+  //         <div className="flex items-start space-x-3">
+  //           <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+  //           <div className="flex-1">
+  //             <p className="text-sm font-medium text-red-800">
+  //               Note: The layout that you have selected is invalid
+  //             </p>
+  //             <p className="text-xs text-red-600 mt-1">
+  //               {overlappingTools.length} tool{overlappingTools.length > 1 ? 's are' : ' is'} overlapping
+  //             </p>
+  //             <button
+  //               onClick={autoFixOverlaps}
+  //               className="mt-2 inline-flex items-center px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-medium rounded transition-colors"
+  //             >
+  //               <Check className="w-3 h-3" />
+  //               Auto-fix positions
+  //             </button>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // };
 
   React.useEffect(() => {
     if (props.onOverlapChange) {
@@ -231,7 +255,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
   return (
     <div className="flex-1 relative bg-gray-100 overflow-hidden">
       {/* Overlap Notification */}
-      {renderOverlapNotification()}
+      {/* {renderOverlapNotification()} */}
 
       {/* Viewport Controls */}
       <div className="absolute top-4 right-4 z-40 flex flex-col gap-2 bg-white rounded-lg shadow-lg p-2">
@@ -350,6 +374,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             const isText = tool.toolType === 'text' || tool.toolBrand === 'TEXT';
             // NEW: Never treat text as overlapping in UI
             const isOverlapping = overlappingTools.includes(tool.id) && !isText;
+            const isTooDeep = (typeof tool.depth === 'number' ? tool.depth : 0) > thicknessInches;
 
             // Helpers for physical → pixel conversion
             const inchesToPx = (inches: number) => inches * 96;
@@ -488,61 +513,61 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     isText ? (
                       <div className="relative w-full h-full border border-gray-300 rounded" style={{ overflow: 'hidden' }}>
                         <div
-                            className="absolute inset-0 flex items-center"
-                            style={{
-                                opacity,
-                                filter: `blur(${blurAmount}px)`,
-                                display: 'flex',
-                                justifyContent:
-                                    (tool.textAlign || 'center') === 'left'
-                                        ? 'flex-start'
-                                        : (tool.textAlign || 'center') === 'right'
-                                            ? 'flex-end'
-                                            : 'center',
-                            }}
-                            onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
+                          className="absolute inset-0 flex items-center"
+                          style={{
+                            opacity,
+                            filter: `blur(${blurAmount}px)`,
+                            display: 'flex',
+                            justifyContent:
+                              (tool.textAlign || 'center') === 'left'
+                                ? 'flex-start'
+                                : (tool.textAlign || 'center') === 'right'
+                                  ? 'flex-end'
+                                  : 'center',
+                          }}
+                          onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
                         >
-                            <span
-                                style={{
-                                    fontFamily: tool.textFontFamily || 'Raleway, sans-serif',
-                                    fontWeight: tool.textFontWeight || 500,
-                                    fontSize: `${tool.textFontSizePx ?? 18}px`,
-                                    color: tool.textColor || '#266ca8',
-                                    whiteSpace: 'pre-wrap',
-                                    textAlign: tool.textAlign || 'center',
-                                    wordBreak: 'break-word',
-                                }}
-                            >
-                                {tool.textContent || 'Text'}
-                            </span>
+                          <span
+                            style={{
+                              fontFamily: tool.textFontFamily || 'Raleway, sans-serif',
+                              fontWeight: tool.textFontWeight || 500,
+                              fontSize: `${tool.textFontSizePx ?? 18}px`,
+                              color: tool.textColor || '#266ca8',
+                              whiteSpace: 'pre-wrap',
+                              textAlign: tool.textAlign || 'center',
+                              wordBreak: 'break-word',
+                            }}
+                          >
+                            {tool.textContent || 'Text'}
+                          </span>
                         </div>
 
                         {/* Resize handles for text tools */}
                         {isSelected && !props.readOnly && (
-                            <>
-                                <div
-                                    className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
-                                    style={{ top: -6, left: -6, width: 12, height: 12, cursor: 'nw-resize' }}
-                                    onMouseDown={(e) => handleResizeStart(e, tool.id, 'nw')}
-                                />
-                                <div
-                                    className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
-                                    style={{ top: -6, right: -6, width: 12, height: 12, cursor: 'ne-resize' }}
-                                    onMouseDown={(e) => handleResizeStart(e, tool.id, 'ne')}
-                                />
-                                <div
-                                    className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
-                                    style={{ bottom: -6, left: -6, width: 12, height: 12, cursor: 'sw-resize' }}
-                                    onMouseDown={(e) => handleResizeStart(e, tool.id, 'sw')}
-                                />
-                                <div
-                                    className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
-                                    style={{ bottom: -6, right: -6, width: 12, height: 12, cursor: 'se-resize' }}
-                                    onMouseDown={(e) => handleResizeStart(e, tool.id, 'se')}
-                                />
-                            </>
+                          <>
+                            <div
+                              className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
+                              style={{ top: -6, left: -6, width: 12, height: 12, cursor: 'nw-resize' }}
+                              onMouseDown={(e) => handleResizeStart(e, tool.id, 'nw')}
+                            />
+                            <div
+                              className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
+                              style={{ top: -6, right: -6, width: 12, height: 12, cursor: 'ne-resize' }}
+                              onMouseDown={(e) => handleResizeStart(e, tool.id, 'ne')}
+                            />
+                            <div
+                              className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
+                              style={{ bottom: -6, left: -6, width: 12, height: 12, cursor: 'sw-resize' }}
+                              onMouseDown={(e) => handleResizeStart(e, tool.id, 'sw')}
+                            />
+                            <div
+                              className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
+                              style={{ bottom: -6, right: -6, width: 12, height: 12, cursor: 'se-resize' }}
+                              onMouseDown={(e) => handleResizeStart(e, tool.id, 'se')}
+                            />
+                          </>
                         )}
-                    </div>
+                      </div>
                     ) : (
                       // Regular tool rendering (image)
                       tool.image && (
@@ -582,9 +607,12 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 {/* CLEAN: Subtle selection indicator - tight border only */}
                 {isSelected && null}
 
-                {/* Minimal overlap indicator */}
-                {isOverlapping && (
-                  <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center z-30">
+                {/* Minimal hazard indicator (overlap or too-deep) */}
+                {(isOverlapping || isTooDeep) && (
+                  <div
+                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center z-30"
+                    title={isTooDeep ? 'Depth exceeds material thickness' : 'Overlapping'}
+                  >
                     <AlertTriangle className="w-2.5 h-2.5" />
                   </div>
                 )}
@@ -721,8 +749,8 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 
         {/* Layout Status Indicator */}
         <div className="absolute bottom-4 right-4 bg-white bg-opacity-90 rounded-lg px-3 py-2 text-sm shadow-lg">
-          <div className={`flex items-center space-x-2 ${hasOverlaps ? 'text-red-600' : 'text-green-600'}`}>
-            {hasOverlaps ? (
+          <div className={`flex items-center space-x-2 ${isLayoutInvalid ? 'text-red-600' : 'text-green-600'}`}>
+            {isLayoutInvalid ? (
               <>
                 <AlertTriangle className="w-4 h-4" />
                 <span className="font-medium">Layout Invalid</span>
@@ -737,6 +765,11 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           {hasOverlaps && (
             <div className="text-xs text-gray-600 mt-1">
               {overlappingTools.length} overlapping tool{overlappingTools.length > 1 ? 's' : ''}
+            </div>
+          )}
+          {tooDeepCount > 0 && (
+            <div className="text-xs text-gray-600 mt-1">
+              {tooDeepCount} tool{tooDeepCount > 1 ? 's' : ''} deeper than material thickness
             </div>
           )}
         </div>
