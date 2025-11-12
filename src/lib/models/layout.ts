@@ -35,6 +35,7 @@ interface Canvas {
   height: number;
   unit: "mm" | "inches";
   thickness: number;
+  materialColor?: string;
 }
 
 interface Stats {
@@ -124,6 +125,7 @@ const CanvasSchema = new mongoose.Schema<Canvas>(
     height: { type: Number, required: true, min: 1 },
     unit: { type: String, required: true, enum: ["mm", "inches"] },
     thickness: { type: Number, required: true, min: 0 },
+    materialColor: { type: String, trim: true },
   },
   { _id: false }
 );

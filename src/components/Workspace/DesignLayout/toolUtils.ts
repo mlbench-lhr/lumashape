@@ -489,7 +489,7 @@ export const createShape = (
     flipVertical: false,
     width: width,
     length: length,
-    depth: 0.2,
+    depth: 0.25,
     unit: targetUnit,
     opacity: 100,
     smooth: 0,
@@ -529,7 +529,7 @@ export const createFingerCut = (
     flipVertical: false,
     width: 50,
     length: 30,
-    depth: 0.2,
+    depth: 0.25,
     unit: unit || 'mm',
     opacity: 100,
     smooth: 0,
@@ -606,14 +606,15 @@ export const updateShapeDepth = (
   depthInches: number
 ): void => {
   if (isNaN(depthInches)) return;
+  const clamped = Math.max(0.25, parseFloat(depthInches.toFixed(2)));
   updateDroppedTools(prev =>
     prev.map(tool =>
       tool.id === toolId && tool.toolBrand === 'SHAPE'
-        ? { ...tool, depth: depthInches }
+        ? { ...tool, depth: clamped }
         : tool
     )
   );
-};
+}
 
 // Update finger cut depth (in inches)
 export const updateFingerCutDepth = (
@@ -623,14 +624,15 @@ export const updateFingerCutDepth = (
   depthInches: number
 ): void => {
   if (isNaN(depthInches)) return;
+  const clamped = Math.max(0.25, parseFloat(depthInches.toFixed(2)));
   updateDroppedTools(prev =>
     prev.map(tool =>
       tool.id === toolId && (tool.metadata?.isFingerCut || tool.toolBrand === 'FINGERCUT')
-        ? { ...tool, depth: depthInches }
+        ? { ...tool, depth: clamped }
         : tool
     )
   );
-};
+}
 
 // Update tool appearance - no longer saves to global history
 export const updateToolAppearance = (
@@ -687,6 +689,10 @@ export const createTextTool = (
   const widthUnits = unit === 'mm' ? widthInches * 25.4 : widthInches;
   const heightUnits = unit === 'mm' ? heightInches * 25.4 : heightInches;
 
+  // Round to 2 decimals to avoid long fractional values
+  const widthUnitsRounded = Number(widthUnits.toFixed(2));
+  const heightUnitsRounded = Number(heightUnits.toFixed(2));
+
   const newText: DroppedTool = {
     id: `text_${Date.now()}`,
     name: 'Text',
@@ -700,9 +706,9 @@ export const createTextTool = (
     rotation: 0,
     flipHorizontal: false,
     flipVertical: false,
-    width: widthUnits,
-    length: heightUnits,
-    depth: 0.1,
+    width: widthUnitsRounded,
+    length: heightUnitsRounded,
+    depth: 0.25,
     unit,
     opacity: 100,
     smooth: 0,

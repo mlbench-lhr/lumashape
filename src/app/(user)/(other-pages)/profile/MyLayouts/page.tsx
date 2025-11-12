@@ -23,7 +23,8 @@ interface CanvasData {
     width: number;
     height: number;
     unit: 'mm' | 'inches';
-    thickness: number;
+    thickness?: number;
+    materialColor?: string;
 }
 
 interface LayoutStats {

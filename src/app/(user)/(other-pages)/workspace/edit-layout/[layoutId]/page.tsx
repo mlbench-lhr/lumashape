@@ -209,7 +209,12 @@ export default function EditLayoutPage({
           flipVertical: !!t.flipVertical,
           width: widthCanvasUnits || widthPxFallback || 50,
           length: lengthCanvasUnits || heightPxFallback || 50,
-          depth: t.metadata?.depth ?? 0.2,
+          depth:
+            typeof t.depth === 'number'
+              ? t.depth
+              : typeof t.metadata?.depth === 'number'
+                ? t.metadata.depth
+                : 0.2,
           unit: canvasUnit,
           opacity: t.opacity ?? 100,
           smooth: t.smooth ?? 0,

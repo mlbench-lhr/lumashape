@@ -18,6 +18,7 @@ export interface CartItem {
       height: number;
       unit: 'mm' | 'inches';
       thickness: number;
+      materialColor?: string;
     };
     tools: Array<{
       id: string;

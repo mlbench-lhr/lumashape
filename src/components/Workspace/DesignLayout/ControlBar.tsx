@@ -249,12 +249,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
             disabled={readOnly}
             className="bg-white text-gray-900 px-2 py-1 w-32 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
           >
-            <option value={0.5}>0.500 inches</option>
-            <option value={0.75}>0.750 inches</option>
-            <option value={1}>1.000 inches</option>
             <option value={1.25}>1.250 inches</option>
-            <option value={1.5}>1.500 inches</option>
-            <option value={1.75}>1.750 inches</option>
             <option value={2}>2.000 inches</option>
             <option value={2.5}>2.500 inches</option>
             <option value={3}>3.000 inches</option>

@@ -10,7 +10,9 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 interface ToolMetadata {
   SKUorPartNumber?: string;
   isFingerCut?: boolean;
-  [key: string]: unknown; // allow extra keys safely
+  toolType?: string;
+  toolBrand?: string;
+  [key: string]: unknown;
 }
 
 interface Tool {
@@ -61,20 +63,27 @@ export async function PATCH(req: Request) {
     // Ensure type safety for tools
     const tools: Tool[] = Array.isArray(layout.tools) ? layout.tools : [];
 
-    const isShapeOrFingerCut = (t: Tool): boolean => {
-      const brand = t.toolBrand?.toUpperCase() ?? "";
+    const isExcludedFromSku = (t: Tool): boolean => {
+      const brand =
+        (t.toolBrand ?? t.metadata?.toolBrand)?.toUpperCase() ?? "";
+      const metaType = (t.metadata?.toolType || "").toString().toLowerCase();
+      const shapeType = (t.shapeType || "").toString().toLowerCase();
       const meta = t.metadata;
+
       return (
         t.isCustomShape === true ||
         !!t.shapeType ||
         brand === "SHAPE" ||
         brand === "FINGERCUT" ||
-        meta?.isFingerCut === true
+        meta?.isFingerCut === true ||
+        brand === "TEXT" ||
+        metaType === "text" ||
+        shapeType === "text"
       );
     };
 
     const hasMissingSku = tools.some((t: Tool) => {
-      if (isShapeOrFingerCut(t)) return false;
+      if (isExcludedFromSku(t)) return false;
       const sku = t.metadata?.SKUorPartNumber;
       return !sku || sku.trim().length === 0;
     });

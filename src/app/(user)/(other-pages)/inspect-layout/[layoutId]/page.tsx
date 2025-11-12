@@ -23,6 +23,11 @@ interface ShapeData {
   height_inches?: number;
   radius_inches?: number;
   points?: ShapePoint[];
+  // NEW: text shape fields
+  content?: string;
+  font_size_px?: number;
+  align?: 'left' | 'center' | 'right';
+  color?: string;
 }
 
 interface ToolMetadata {
@@ -32,6 +37,12 @@ interface ToolMetadata {
   depth?: number;
   naturalWidth?: number;
   naturalHeight?: number;
+  textContent?: string;
+  textFontFamily?: string;
+  textFontWeight?: number | string;
+  textFontSizePx?: number;
+  textAlign?: 'left' | 'center' | 'right';
+  textColor?: string;
 }
 
 interface LayoutTool {
@@ -48,7 +59,7 @@ interface LayoutTool {
   smooth?: number;
   groupId?: string;
   isCustomShape?: boolean;
-  shapeType?: 'rectangle' | 'circle' | 'polygon';
+  shapeType?: 'rectangle' | 'circle' | 'polygon' | 'text';
   shapeData?: ShapeData;
   metadata?: ToolMetadata;
   realWidth?: number;
@@ -118,7 +129,6 @@ export default function InspectLayoutPage({
       const mapped: DroppedTool[] = (layout.tools ?? []).map((t) => {
         const toolUnit: Unit = t.unit || canvasUnit;
 
-        // Always interpret DB positions in inches (bottom-left origin → top-left pixels)
         const xPx = inchesToPx(t.x ?? 0);
         const yPxRaw = inchesToPx(t.y ?? 0);
         const yPx = canvasHeightPx - yPxRaw;
@@ -129,37 +139,50 @@ export default function InspectLayoutPage({
         let heightPxFallback = 0;
 
         let toolBrand: string = t.metadata?.toolBrand || '';
+
+        // NEW: text fields (optional, only for text shapes)
+        let textContent: string | undefined;
+        let textFontSizePx: number | undefined;
+        let textAlign: 'left' | 'center' | 'right' | undefined;
+        let textColor: string | undefined;
+
         const shapeToolType: 'circle' | 'square' | 'polygon' | '' =
           t.isCustomShape && t.shapeType
             ? t.shapeType === 'circle'
               ? 'circle'
               : t.shapeType === 'rectangle'
-              ? 'square'
-              : t.shapeType === 'polygon'
-              ? 'polygon'
-              : ''
+                ? 'square'
+                : t.shapeType === 'polygon'
+                  ? 'polygon'
+                  : ''
             : '';
 
         if (t.isCustomShape && t.shapeType && t.shapeData) {
-          toolBrand = 'SHAPE';
           const shapeData = t.shapeData;
 
-          if (
-            t.shapeType === 'rectangle' &&
+          // NEW: handle text shape
+          if (t.shapeType === 'text') {
+            toolBrand = 'TEXT';
+            const wInches = shapeData.width_inches ?? 0;
+            const hInches = shapeData.height_inches ?? 0;
+            widthCanvasUnits = canvasUnit === 'mm' ? wInches * 25.4 : wInches;
+            lengthCanvasUnits = canvasUnit === 'mm' ? hInches * 25.4 : hInches;
+
+            textContent = shapeData.content ?? '';
+            textFontSizePx = shapeData.font_size_px ?? 24;
+            textAlign = (shapeData.align as 'left' | 'center' | 'right') ?? 'center';
+            textColor = shapeData.color ?? '#000000';
+          } else if (t.shapeType === 'rectangle' &&
             typeof shapeData.width_inches === 'number' &&
-            typeof shapeData.height_inches === 'number'
-          ) {
+            typeof shapeData.height_inches === 'number') {
             const wInches = shapeData.width_inches;
             const hInches = shapeData.height_inches;
             widthCanvasUnits = canvasUnit === 'mm' ? wInches * 25.4 : wInches;
             lengthCanvasUnits = canvasUnit === 'mm' ? hInches * 25.4 : hInches;
-          } else if (
-            t.shapeType === 'circle' &&
-            typeof shapeData.radius_inches === 'number'
-          ) {
+          } else if (t.shapeType === 'circle' &&
+            typeof shapeData.radius_inches === 'number') {
             const diameterInches = shapeData.radius_inches * 2;
-            widthCanvasUnits =
-              canvasUnit === 'mm' ? diameterInches * 25.4 : diameterInches;
+            widthCanvasUnits = canvasUnit === 'mm' ? diameterInches * 25.4 : diameterInches;
             lengthCanvasUnits = widthCanvasUnits;
           } else if (Array.isArray(shapeData.points)) {
             const points = shapeData.points;
@@ -169,10 +192,8 @@ export default function InspectLayoutPage({
             const maxY = Math.max(...points.map((p) => p.y));
             const widthInches = maxX - minX;
             const heightInches = maxY - minY;
-            widthCanvasUnits =
-              canvasUnit === 'mm' ? widthInches * 25.4 : widthInches;
-            lengthCanvasUnits =
-              canvasUnit === 'mm' ? heightInches * 25.4 : heightInches;
+            widthCanvasUnits = canvasUnit === 'mm' ? widthInches * 25.4 : widthInches;
+            lengthCanvasUnits = canvasUnit === 'mm' ? heightInches * 25.4 : heightInches;
           }
         } else {
           if (t.metadata?.length) {
@@ -192,6 +213,17 @@ export default function InspectLayoutPage({
             lengthCanvasUnits = convertUnits(rh, toolUnit, canvasUnit);
           }
         }
+
+        const isTextFromMeta =
+          (t.metadata?.toolBrand === 'TEXT') || (t.metadata?.toolType === 'text');
+        if (isTextFromMeta) {
+          toolBrand = 'TEXT';
+          textContent = String(t.metadata?.textContent ?? '');  
+          textFontSizePx = (t.metadata?.textFontSizePx as number) ?? 24;
+          textAlign = (t.metadata?.textAlign as 'left' | 'center' | 'right') ?? 'center';
+          textColor = String(t.metadata?.textColor ?? '#000000');
+        }
+
 
         return {
           id: t.id,
@@ -215,7 +247,13 @@ export default function InspectLayoutPage({
           realWidth: t.realWidth,
           realHeight: t.realHeight,
           toolBrand,
-          toolType: shapeToolType || (t.metadata?.toolType ?? ''),
+          // NEW: set text tool type for Canvas/UI
+          toolType: (t.shapeType === 'text' ? 'text' : (shapeToolType || (t.metadata?.toolType ?? ''))),
+          // NEW: text fields for Canvas rendering
+          textContent,
+          textFontSizePx,
+          textAlign,
+          textColor,
         } as DroppedTool;
       });
 

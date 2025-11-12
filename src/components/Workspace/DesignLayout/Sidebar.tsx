@@ -104,6 +104,19 @@ const Sidebar: React.FC<SidebarProps> = ({
     const isShapeSelected = selectedToolObject?.toolBrand === 'SHAPE';
     const isTextSelected = selectedToolObject && (selectedToolObject.toolType === 'text' || selectedToolObject.toolBrand === 'TEXT');
 
+    // Helpers: sanitize to at most 2 decimals, and integer-only for font size
+    const sanitizeTwoDecimals = (value: string) => {
+        const cleaned = value.replace(/[^\d.]/g, '');
+        if (!cleaned) return '';
+        const [intPart = '0', decPart = ''] = cleaned.split('.');
+        const dec = decPart.slice(0, 2);
+        return dec ? `${intPart}.${dec}` : intPart;
+    };
+
+    const sanitizeInteger = (value: string) => {
+        return value.replace(/\D/g, '');
+    };
+
     // Local draft state for shape inputs
     const [shapeSettingsDraft, setShapeSettingsDraft] = useState({
         diameter: '',
@@ -179,33 +192,46 @@ const Sidebar: React.FC<SidebarProps> = ({
         }
     }, [isFingerCutSelected, selectedToolObject]);
 
+    // Validation flags for depth inputs
+    const shapeDepthInvalid = (() => {
+        const v = parseFloat(shapeSettingsDraft.depth);
+        return isShapeSelected && !isNaN(v) && v < 0.25;
+    })();
+
+    const fingerDepthInvalid = (() => {
+        const v = parseFloat(fingerCutDraftDepth);
+        return isFingerCutSelected && !isNaN(v) && v < 0.25;
+    })();
+
     const applyShapeSettings = useCallback(() => {
         if (!selectedTool || !isShapeSelected || !selectedToolObject) return;
 
         if (selectedToolObject.toolType === 'circle') {
-            const diameter = parseFloat(shapeSettingsDraft.diameter);
-            const depth = parseFloat(shapeSettingsDraft.depth);
+            const diameterRaw = parseFloat(shapeSettingsDraft.diameter);
+            const depthRaw = parseFloat(shapeSettingsDraft.depth);
 
-            if (!isNaN(diameter) && diameter > 0) {
+            if (!isNaN(diameterRaw) && diameterRaw > 0) {
+                const diameter = parseFloat(diameterRaw.toFixed(2));
                 updateShapeDimensions(selectedTool, droppedTools, setDroppedTools, diameter, diameter);
             }
-            if (!isNaN(depth) && depth >= 0) {
+            if (!isNaN(depthRaw) && depthRaw >= 0.25) {
+                const depth = parseFloat(depthRaw.toFixed(2));
                 updateShapeDepth(selectedTool, droppedTools, setDroppedTools, depth);
             }
         } else {
-            const width = parseFloat(shapeSettingsDraft.width);
-            const length = parseFloat(shapeSettingsDraft.length);
-            const depth = parseFloat(shapeSettingsDraft.depth);
+            const widthRaw = parseFloat(shapeSettingsDraft.width);
+            const lengthRaw = parseFloat(shapeSettingsDraft.length);
+            const depthRaw = parseFloat(shapeSettingsDraft.depth);
 
-            const widthArg = !isNaN(width) && width > 0 ? width : undefined;
-            const lengthArg = !isNaN(length) && length > 0 ? length : undefined;
+            const widthArg = !isNaN(widthRaw) && widthRaw > 0 ? parseFloat(widthRaw.toFixed(2)) : undefined;
+            const lengthArg = !isNaN(lengthRaw) && lengthRaw > 0 ? parseFloat(lengthRaw.toFixed(2)) : undefined;
             if (widthArg !== undefined || lengthArg !== undefined) {
-                // Fallback to current values to maintain function arity
                 const w = widthArg !== undefined ? widthArg : selectedToolObject.width;
                 const l = lengthArg !== undefined ? lengthArg : selectedToolObject.length;
                 updateShapeDimensions(selectedTool, droppedTools, setDroppedTools, w, l);
             }
-            if (!isNaN(depth) && depth >= 0) {
+            if (!isNaN(depthRaw) && depthRaw >= 0.25) {
+                const depth = parseFloat(depthRaw.toFixed(2));
                 updateShapeDepth(selectedTool, droppedTools, setDroppedTools, depth);
             }
         }
@@ -213,11 +239,12 @@ const Sidebar: React.FC<SidebarProps> = ({
         onHistoryChange?.();
     }, [selectedTool, isShapeSelected, selectedToolObject, shapeSettingsDraft, droppedTools, setDroppedTools, onHistoryChange]);
 
-    // Apply handler for Finger Cut depth
+    // Inside Sidebar component: applyFingerCutSettings
     const applyFingerCutSettings = useCallback(() => {
         if (!selectedTool || !isFingerCutSelected) return;
-        const depth = parseFloat(fingerCutDraftDepth);
-        if (!isNaN(depth) && depth >= 0) {
+        const depthRaw = parseFloat(fingerCutDraftDepth);
+        if (!isNaN(depthRaw) && depthRaw >= 0.25) {
+            const depth = parseFloat(depthRaw.toFixed(2));
             updateFingerCutDepth(selectedTool, droppedTools, setDroppedTools, depth);
             onHistoryChange?.();
         }
@@ -618,8 +645,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     // NEW: apply text settings (updates box dimensions)
     const applyTextSettings = useCallback(() => {
         if (!selectedToolObject) return;
-        const nextWidth = parseFloat(textSettingsDraft.width);
-        const nextLength = parseFloat(textSettingsDraft.length);
+        const nextWidthRaw = parseFloat(textSettingsDraft.width);
+        const nextLengthRaw = parseFloat(textSettingsDraft.length);
 
         setDroppedTools(prev =>
             prev.map(t =>
@@ -630,8 +657,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                         textFontSizePx: parseInt(textSettingsDraft.fontSizePx) || t.textFontSizePx,
                         textColor: textSettingsDraft.color || t.textColor,
                         textAlign: textSettingsDraft.align,
-                        width: !isNaN(nextWidth) && nextWidth > 0 ? nextWidth : t.width,
-                        length: !isNaN(nextLength) && nextLength > 0 ? nextLength : t.length,
+                        width: !isNaN(nextWidthRaw) && nextWidthRaw > 0 ? parseFloat(nextWidthRaw.toFixed(2)) : t.width,
+                        length: !isNaN(nextLengthRaw) && nextLengthRaw > 0 ? parseFloat(nextLengthRaw.toFixed(2)) : t.length,
                     }
                     : t
             )
@@ -789,6 +816,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     const LayoutToolsView = () => {
         const filteredLayoutTools = droppedTools
             .filter(t => !t.metadata?.isFingerCut && t.toolBrand !== 'SHAPE')
+            .filter(t => !readOnly || !(t.toolBrand === 'TEXT' || t.toolType === 'text'))
             .filter(t => brandFilter === 'all' || (t.toolBrand || '').toLowerCase() === brandFilter.toLowerCase())
             .filter(t =>
                 t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1084,7 +1112,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <h3 className="text-sm font-medium text-primary">Shape Settings</h3>
                         <button
                             onClick={applyFingerCutSettings}
-                            className="px-3 py-1 text-sm rounded bg-primary text-white"
+                            disabled={fingerDepthInvalid}
+                            className={`px-3 py-1 text-sm rounded text-white ${fingerDepthInvalid ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary'}`}
                         >
                             Apply
                         </button>
@@ -1097,11 +1126,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <input
                                 type="number"
                                 value={fingerCutDraftDepth}
-                                onChange={(e) => setFingerCutDraftDepth(e.target.value)}
+                                onChange={(e) => setFingerCutDraftDepth(sanitizeTwoDecimals(e.target.value))}
                                 className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
-                                min="0"
+                                min="0.25"
                                 step="0.01"
                             />
+                            {fingerDepthInvalid && (
+                                <p className="text-xs text-red-600 mt-1">Minimum depth is 0.25 inches.</p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1114,7 +1146,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <h3 className="text-sm font-medium text-primary">Shape Settings</h3>
                         <button
                             onClick={applyShapeSettings}
-                            className="px-3 py-1 text-sm rounded bg-primary text-white"
+                            disabled={shapeDepthInvalid}
+                            className={`px-3 py-1 text-sm rounded text-white ${shapeDepthInvalid ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary'}`}
                         >
                             Apply
                         </button>
@@ -1129,7 +1162,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 <input
                                     type="number"
                                     value={shapeSettingsDraft.diameter}
-                                    onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, diameter: e.target.value }))}
+                                    onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, diameter: sanitizeTwoDecimals(e.target.value) }))}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                     min="1"
                                     step="0.01"
@@ -1142,11 +1175,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 <input
                                     type="number"
                                     value={shapeSettingsDraft.depth}
-                                    onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, depth: e.target.value }))}
+                                    onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, depth: sanitizeTwoDecimals(e.target.value) }))}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
-                                    min="0"
+                                    min="0.25"
                                     step="0.01"
                                 />
+                                {shapeDepthInvalid && (
+                                    <p className="text-xs text-red-600 mt-1">Minimum depth is 0.25 inches.</p>
+                                )}
                             </div>
                         </div>
                     ) : (
@@ -1158,7 +1194,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 <input
                                     type="number"
                                     value={shapeSettingsDraft.width}
-                                    onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, width: e.target.value }))}
+                                    onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, width: sanitizeTwoDecimals(e.target.value) }))}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                     min="1"
                                     step="0.01"
@@ -1171,7 +1207,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 <input
                                     type="number"
                                     value={shapeSettingsDraft.length}
-                                    onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, length: e.target.value }))}
+                                    onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, length: sanitizeTwoDecimals(e.target.value) }))}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                     min="1"
                                     step="0.01"
@@ -1184,11 +1220,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 <input
                                     type="number"
                                     value={shapeSettingsDraft.depth}
-                                    onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, depth: e.target.value }))}
+                                    onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, depth: sanitizeTwoDecimals(e.target.value) }))}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
-                                    min="0"
+                                    min="0.25"
                                     step="0.01"
                                 />
+                                {shapeDepthInvalid && (
+                                    <p className="text-xs text-red-600 mt-1">Minimum depth is 0.25 inches.</p>
+                                )}
                             </div>
                         </div>
                     )}
@@ -1230,7 +1269,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     min="1"
                                     step="0.01"
                                     value={textSettingsDraft.width}
-                                    onChange={(e) => setTextSettingsDraft(prev => ({ ...prev, width: e.target.value }))}
+                                    onChange={(e) => setTextSettingsDraft(prev => ({ ...prev, width: sanitizeTwoDecimals(e.target.value) }))}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                 />
                             </div>
@@ -1243,7 +1282,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     min="1"
                                     step="0.01"
                                     value={textSettingsDraft.length}
-                                    onChange={(e) => setTextSettingsDraft(prev => ({ ...prev, length: e.target.value }))}
+                                    onChange={(e) => setTextSettingsDraft(prev => ({ ...prev, length: sanitizeTwoDecimals(e.target.value) }))}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                 />
                             </div>
@@ -1255,8 +1294,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     type="number"
                                     min="8"
                                     step="1"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
                                     value={textSettingsDraft.fontSizePx}
-                                    onChange={(e) => setTextSettingsDraft(prev => ({ ...prev, fontSizePx: e.target.value }))}
+                                    onChange={(e) => setTextSettingsDraft(prev => ({ ...prev, fontSizePx: sanitizeInteger(e.target.value) }))}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
                                 />
                             </div>
