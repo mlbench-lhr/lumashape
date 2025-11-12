@@ -1063,7 +1063,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 />
                             </div>
                         </button>
-                        <span className="text-xs text-gray-500 text-center leading-tight">Square</span>
+                        <span className="text-xs text-gray-500 text-center leading-tight">Rectangle</span>
                     </div>
                     <div className="flex flex-col items-center">
                         <button
@@ -1083,6 +1083,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </button>
                         <span className="text-xs text-gray-500 text-center leading-tight">Finger Grip</span>
                     </div>
+                </div>
+            </div>
+
+            {/* Laser Engraving Section */}
+            <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Laser Engraving</h3>
+                <div className="flex space-x-4">
                     {/* NEW: Add Text */}
                     <div className="flex flex-col items-center">
                         <button
