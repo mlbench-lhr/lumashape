@@ -110,18 +110,22 @@ const ControlBar: React.FC<ControlBarProps> = ({
   }, [hasLoadedFromSession, unit, canvasWidth, canvasHeight, thickness]);
 
   const MAX_INCHES = 72;
-  const MAX_MM = 1828.8;
+  const MAX_MM = 1828;
 
   const handleHeightChange = (value: number) => {
     const max = unit === "inches" ? MAX_INCHES : MAX_MM;
-    if (value > 0 && value <= max) {
+    if (value > max) {
+      setCanvasHeight(max);
+    } else if (value > 0) {
       setCanvasHeight(value);
     }
   };
 
   const handleWidthChange = (value: number) => {
     const max = unit === "inches" ? MAX_INCHES : MAX_MM;
-    if (value > 0 && value <= max) {
+    if (value > max) {
+      setCanvasWidth(max);
+    } else if (value > 0) {
       setCanvasWidth(value);
     }
   };
@@ -152,6 +156,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
             value={canvasHeight}
             onChange={(e) => handleHeightChange(Number(e.target.value))}
             disabled={readOnly}
+            max={unit === 'inches' ? MAX_INCHES : MAX_MM}
             className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
           />
           <span className="text-sm inline-block w-12">{unit}</span>
@@ -165,6 +170,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
             value={canvasWidth}
             onChange={(e) => handleWidthChange(Number(e.target.value))}
             disabled={readOnly}
+            max={unit === 'inches' ? MAX_INCHES : MAX_MM}
             className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
           />
           <span className="text-sm inline-block w-12">{unit}</span>
