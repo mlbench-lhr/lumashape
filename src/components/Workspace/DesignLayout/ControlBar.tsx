@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { Info } from 'lucide-react';
 
 interface ControlBarProps {
   canvasWidth: number;
@@ -19,6 +20,8 @@ interface ControlBarProps {
   onUndo?: () => void;
   onRedo?: () => void;
   readOnly?: boolean;
+  materialColor: string;
+  setMaterialColor: (color: string) => void;
 }
 
 const ControlBar: React.FC<ControlBarProps> = ({
@@ -37,8 +40,13 @@ const ControlBar: React.FC<ControlBarProps> = ({
   onUndo = () => { },
   onRedo = () => { },
   readOnly = false,
+  materialColor,
+  setMaterialColor,
 }) => {
   const [hasLoadedFromSession, setHasLoadedFromSession] = useState(false);
+
+  const [isInfoColorOpen, setIsInfoColorOpen] = useState(false);
+  const [isInfoThicknessOpen, setIsInfoThicknessOpen] = useState(false);
 
   // Load initial values from sessionStorage only once on first load
   useEffect(() => {
@@ -74,13 +82,16 @@ const ControlBar: React.FC<ControlBarProps> = ({
           if (parsed.thickness !== undefined && !isNaN(Number(parsed.thickness))) {
             setThickness(Number(parsed.thickness));
           }
+          if (typeof parsed.materialColor === 'string') {
+            setMaterialColor(parsed.materialColor);
+          }
         } catch (error) {
           console.error('Error parsing sessionStorage data:', error);
         }
       }
       setHasLoadedFromSession(true);
     }
-  }, [hasLoadedFromSession, setCanvasWidth, setCanvasHeight, setThickness, setUnit]);
+  }, [hasLoadedFromSession, setCanvasWidth, setCanvasHeight, setThickness, setUnit, setMaterialColor]);
 
   // Save to sessionStorage whenever values change
   useEffect(() => {
@@ -103,11 +114,12 @@ const ControlBar: React.FC<ControlBarProps> = ({
         length: canvasHeight, // Keep original length field  
         canvasWidth: canvasWidth,
         canvasHeight: canvasHeight,
-        thickness: thickness
+        thickness: thickness,
+        materialColor: materialColor
       };
       sessionStorage.setItem('layoutForm', JSON.stringify(dataToSave));
     }
-  }, [hasLoadedFromSession, unit, canvasWidth, canvasHeight, thickness]);
+  }, [hasLoadedFromSession, unit, canvasWidth, canvasHeight, thickness, materialColor]);
 
   const MAX_INCHES = 72;
   const MAX_MM = 1828;
@@ -174,6 +186,97 @@ const ControlBar: React.FC<ControlBarProps> = ({
             className="bg-white text-gray-900 px-2 py-1 rounded text-sm w-28 border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
           />
           <span className="text-sm inline-block w-12">{unit}</span>
+        </div>
+
+        {/* Thickness */}
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-2 relative">
+            <label className="block text-sm font-medium text-white">
+              Thickness
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setIsInfoThicknessOpen(!isInfoThicknessOpen)}
+              className="text-white hover:text-blue-400"
+            >
+              <Info size={18} />
+            </button>
+
+            {/* Info popup positioned under the icon */}
+            {isInfoThicknessOpen && (
+              <div className="absolute left-[60px] top-full mt-2 w-72 rounded-md border border-gray-200 bg-white shadow-lg p-3 z-20">
+                <div className="flex items-start flex-col gap-3">
+                  <Image
+                    src="/images/workspace/create_new_layout/thickness-info.png"
+                    alt="Info"
+                    width={500}
+                    height={500}
+                    className="rounded"
+                  />
+                  <p className="text-sm text-gray-700">
+                    Lumashape order fulfillment does not cut entirely through the
+                    material thickness. A minimum floor thickness of 0.25 inches
+                    must remain beneath all tool pockets to ensure proper vacuum
+                    hold-down during manufacturing.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+          <select
+            value={thickness}
+            onChange={(e) => setThickness(Number(e.target.value))}
+            disabled={readOnly}
+            className="bg-white text-gray-900 px-2 py-1 w-32 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
+          >
+            <option value={1.25}>1.25 inches</option>
+            <option value={2}>2.00 inches</option>
+            <option value={2.5}>2.50 inches</option>
+            <option value={3}>3.00 inches</option>
+          </select>
+
+        </div>
+
+        {/* Color */}
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center gap-2 relative">
+            <label className="block text-sm font-medium text-white">
+              Color
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setIsInfoColorOpen(!isInfoColorOpen)}
+              className="text-white hover:text-blue-400"
+            >
+              <Info size={18} />
+            </button>
+
+            {/* Info popup positioned under the icon */}
+            {isInfoColorOpen && (
+              <div className="absolute left-[60px] top-full mt-2 w-72 rounded-md border border-gray-200 bg-white shadow-lg p-3 z-1000">
+                <div className="flex items-start flex-col gap-3">
+                  <p className="text-sm text-gray-700">
+                    Foam color selection is only required when submitting this layout for order fulfillment.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+          <select
+            value={materialColor}
+            onChange={(e) => setMaterialColor(e.target.value)}
+            disabled={readOnly}
+            className="bg-white text-gray-900 px-2 py-1 w-32 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
+          >
+            <option value="">Select</option>
+            <option value="blue">Blue</option>
+            <option value="black">Black</option>
+            <option value="yellow">Yellow</option>
+            <option value="red">Red</option>
+          </select>
+
         </div>
 
         {/* Undo/Redo Controls */}
@@ -246,22 +349,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
           </div>
         )}
 
-        {/* Thickness */}
-        <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium">Thickness</label>
-          <select
-            value={thickness}
-            onChange={(e) => setThickness(Number(e.target.value))}
-            disabled={readOnly}
-            className="bg-white text-gray-900 px-2 py-1 w-32 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
-          >
-            <option value={1.25}>1.250 inches</option>
-            <option value={2}>2.000 inches</option>
-            <option value={2.5}>2.500 inches</option>
-            <option value={3}>3.000 inches</option>
-          </select>
-
-        </div>
       </div>
     </div>
   );
