@@ -36,6 +36,7 @@ function DesignLayout({
   const [canvasHeight, setCanvasHeight] = useState<number>(initialCanvas?.height ?? 300);
   const [thickness, setThickness] = useState<number>(initialCanvas?.thickness ?? 12.7);
   const [unit, setUnit] = useState<'mm' | 'inches'>(initialCanvas?.unit ?? 'mm');
+  const [materialColor, setMaterialColor] = useState<string>('');
 
   useEffect(() => {
     if (editingLayoutId) {
@@ -205,6 +206,7 @@ function DesignLayout({
         hasOverlaps={hasOverlaps}
         onSaveLayout={handleSaveLayout}
         readOnly={readOnly}
+        materialColor={materialColor}
         // NEW: allow header to toggle selection UI suppression
         setSuppressSelectionUI={setSuppressSelectionUI}
       />
@@ -225,6 +227,8 @@ function DesignLayout({
         onUndo={handleUndo}
         onRedo={handleRedo}
         readOnly={readOnly}
+        materialColor={materialColor}
+        setMaterialColor={setMaterialColor}
       />
       <div className="flex flex-1 overflow-hidden min-h-0">
         <Canvas

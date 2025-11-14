@@ -133,7 +133,8 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     typeof t.depth === 'number'
       ? (t.unit === 'mm' ? mmToInches(t.depth) : t.depth)
       : 0;
-  const tooDeepCount = droppedTools.filter(t => depthInchesFor(t) > thicknessInches).length;
+  const allowedDepthInches = Math.max(0, thicknessInches - 0.25);
+  const tooDeepCount = droppedTools.filter(t => depthInchesFor(t) > allowedDepthInches).length;
   const isLayoutInvalid = hasOverlaps || tooDeepCount > 0;
 
   // Rotation guard: block rotation if the rotated bounds would exceed the canvas
@@ -374,7 +375,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             const isText = tool.toolType === 'text' || tool.toolBrand === 'TEXT';
             // NEW: Never treat text as overlapping in UI
             const isOverlapping = overlappingTools.includes(tool.id) && !isText;
-            const isTooDeep = (typeof tool.depth === 'number' ? tool.depth : 0) > thicknessInches;
+            const isTooDeep = depthInchesFor(tool) > allowedDepthInches;
 
             // Helpers for physical → pixel conversion
             const inchesToPx = (inches: number) => inches * 96;
@@ -611,7 +612,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 {(isOverlapping || isTooDeep) && (
                   <div
                     className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center z-30"
-                    title={isTooDeep ? 'Depth exceeds material thickness' : 'Overlapping'}
+                    title={isTooDeep ? 'Depth exceeds allowed cut depth (thickness - 0.25 in)' : 'Overlapping'}
                   >
                     <AlertTriangle className="w-2.5 h-2.5" />
                   </div>
@@ -748,7 +749,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
         </div>
 
         {/* Layout Status Indicator */}
-        <div className="absolute bottom-4 right-4 bg-white bg-opacity-90 rounded-lg px-3 py-2 text-sm shadow-lg">
+        <div className="absolute bottom-4 right-4 bg-white bg-opacity-90 rounded-lg px-3 py-2 w-[350] text-sm shadow-lg">
           <div className={`flex items-center space-x-2 ${isLayoutInvalid ? 'text-red-600' : 'text-green-600'}`}>
             {isLayoutInvalid ? (
               <>
@@ -769,7 +770,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           )}
           {tooDeepCount > 0 && (
             <div className="text-xs text-gray-600 mt-1">
-              {tooDeepCount} tool{tooDeepCount > 1 ? 's' : ''} deeper than material thickness
+              {tooDeepCount} tool{tooDeepCount > 1 ? 's' : ''} pocket{tooDeepCount > 1 ? 's' : ''} exceed{tooDeepCount == 1 ? 's' : ''} the allowable depth for this material thickness. Each pocket must maintain a 0.25-inch floor (e.g., a 1-inch material allows a 0.75-inch max pocket depth)
             </div>
           )}
         </div>

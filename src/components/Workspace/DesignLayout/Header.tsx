@@ -29,6 +29,7 @@ interface HeaderProps {
   hasOverlaps: boolean;
   onSaveLayout?: () => void;
   readOnly?: boolean;
+  materialColor: string;
   setSuppressSelectionUI?: (value: boolean) => void;
 }
 
@@ -116,6 +117,7 @@ const Header: React.FC<HeaderProps> = ({
   hasOverlaps,
   onSaveLayout,
   readOnly,
+  materialColor,
   setSuppressSelectionUI,
 }) => {
   const [isSaving, setIsSaving] = useState(false);
@@ -147,18 +149,24 @@ const Header: React.FC<HeaderProps> = ({
       );
       return;
     }
+    if (!materialColor) {
+      const msg = "Please select a material color before adding to cart.";
+      setSaveError(msg);
+      toast.error(msg);
+      return;
+    }
 
     setIsSaving(true);
     setSaveError(null);
 
     try {
       let additionalData: LayoutFormData = {};
-      const sessionData = sessionStorage.getItem("layoutForm");
-      if (sessionData) {
+      const savedData = sessionStorage.getItem("layoutForm");
+      if (savedData) {
         try {
-          additionalData = JSON.parse(sessionData) as LayoutFormData;
+          additionalData = JSON.parse(savedData) as LayoutFormData;
         } catch (error) {
-          console.error("Error parsing session data:", error);
+          console.error("Error parsing stored data:", error);
         }
       }
 
@@ -210,7 +218,7 @@ const Header: React.FC<HeaderProps> = ({
           height: additionalData.canvasHeight ?? canvasHeight,
           unit,
           thickness,
-          materialColor: additionalData.materialColor || "black",
+          materialColor: additionalData.materialColor || materialColor,
         },
         tools: cartTools,
       };
@@ -1323,7 +1331,7 @@ const Header: React.FC<HeaderProps> = ({
       icon: ShoppingCart,
       label: "Add to cart",
       action: handleAddToCart,
-      disabled: false,
+      disabled: isLayoutInvalid || droppedTools.length === 0 || !materialColor,
     },
   ];
 
@@ -1392,8 +1400,9 @@ const Header: React.FC<HeaderProps> = ({
           {!readOnly && (
             <div className="relative" ref={dropdownRef}>
               <button
-                className="bg-primary hover:bg-primary/90 px-4 py-4 rounded-2xl transition-colors"
-                onClick={() => setShowDropdown(!showDropdown)}
+                className={`px-4 py-4 rounded-2xl transition-colors ${isLayoutInvalid || droppedTools.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/90'}`}
+                onClick={() => { if (isLayoutInvalid || droppedTools.length === 0) return; setShowDropdown(!showDropdown); }}
+                disabled={isLayoutInvalid || droppedTools.length === 0}
               >
                 <MoreHorizontal className="w-5 h-5 text-white" />
               </button>

@@ -182,15 +182,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Invalid canvas thickness or unit' }, { status: 400 })
     }
     const thicknessInches = canvasUnit === 'mm' ? mmToInches(canvasThickness) : canvasThickness
+    const allowedDepthInches = Math.max(0, thicknessInches - 0.25)
     const offending = (itemData.layoutData.tools || []).filter((t: ToolShape) => {
       const d = typeof t.depth === 'number' ? t.depth : 0
       const di = t.unit === 'mm' ? mmToInches(d) : d
-      return di > thicknessInches
+      return di > allowedDepthInches
     })
     if (offending.length > 0) {
       const names = offending.map((t: ToolShape) => t?.name || t?.id || 'unknown').join(', ')
       return NextResponse.json(
-        { message: `Tool cut depth exceeds material thickness for: ${names}` },
+        { message: `Tool cut depth exceeds allowed depth (material thickness minus 0.25 in) for: ${names}` },
         { status: 400 }
       )
     }
