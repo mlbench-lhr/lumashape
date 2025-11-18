@@ -231,9 +231,9 @@ const ControlBar: React.FC<ControlBarProps> = ({
             className="bg-white text-gray-900 px-2 py-1 w-32 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
           >
             <option value={1.25}>1.25 inches</option>
-            <option value={2}>2.00 inches</option>
+            {/* <option value={2}>2.00 inches</option>
             <option value={2.5}>2.50 inches</option>
-            <option value={3}>3.00 inches</option>
+            <option value={3}>3.00 inches</option> */}
           </select>
 
         </div>

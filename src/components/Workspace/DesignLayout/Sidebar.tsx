@@ -437,6 +437,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 toolBrand: extractedData.toolBrand,
                 toolType: extractedData.toolType,
                 image: extractedData.contour_image_url || extractedData.imageUrl,
+                unit: (typeof extractedData.length === 'number' && extractedData.length > 45) ? 'mm' : 'inches',
                 metadata: {
                     userEmail: extractedData.userEmail,
                     toolBrand: extractedData.toolBrand,
@@ -1326,7 +1327,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         )}
                         <div className="flex justify-between items-center">
                             <span className="text-gray-600">Depth:</span>
-                            <span className="text-gray-900">{Number(selectedToolObject.depth ?? 0).toFixed(2)} inches</span>
+                            <span className="text-gray-900">{Number(selectedToolObject.depth ?? 0).toFixed(2)} {selectedToolObject.unit}</span>
                         </div>
                         {!isShapeSelected && selectedToolObject.toolBrand !== 'FINGERCUT' && (
                             <>

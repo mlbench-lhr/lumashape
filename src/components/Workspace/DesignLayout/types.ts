@@ -5,6 +5,10 @@ export interface Tool {
   toolBrand: string;
   toolType: string;
   image?: string;
+  unit?: 'mm' | 'inches';
+  width?: number;
+  length?: number;
+  depth?: number;
   // Store all extracted data for potential future use
   metadata?: {
     userEmail?: string;
