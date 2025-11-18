@@ -242,7 +242,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
         <div className="flex items-center space-x-2">
           <div className="flex items-center gap-2 relative">
             <label className="block text-sm font-medium text-white">
-              Color
+              Foam Color
             </label>
 
             <button

@@ -178,10 +178,12 @@ export default function EditLayoutPage({
             shapeToolType = 'polygon';
           }
         } else {
-          // Non-shape tools (images/text/tools)
-          if (t.metadata?.length) {
-            // Images: rendering uses metadata.length (inches) and aspect ratio
-            // Keep a pixel fallback for initial visual sizing; Canvas will compute using metadata anyway
+          const rw = typeof t.realWidth === 'number' ? t.realWidth : (typeof t.width === 'number' ? t.width : 0);
+          const rh = typeof t.realHeight === 'number' ? t.realHeight : (typeof t.length === 'number' ? t.length : 0);
+          if (rw > 0 || rh > 0) {
+            widthCanvasUnits = convertUnits(rw, toolUnit, canvasUnit);
+            lengthCanvasUnits = convertUnits(rh, toolUnit, canvasUnit);
+          } else if (t.metadata?.length) {
             const heightPx = inchesToPx(t.metadata.length);
             const aspect =
               t.metadata.naturalWidth && t.metadata.naturalHeight
@@ -189,12 +191,6 @@ export default function EditLayoutPage({
                 : 1.6;
             heightPxFallback = heightPx;
             widthPxFallback = heightPx * aspect;
-          } else {
-            // Use saved realWidth/realHeight (stored in the tool’s unit)
-            const rw = t.realWidth ?? t.width ?? 0;
-            const rh = t.realHeight ?? t.length ?? 0;
-            widthCanvasUnits = convertUnits(rw, toolUnit, canvasUnit);
-            lengthCanvasUnits = convertUnits(rh, toolUnit, canvasUnit);
           }
         }
       
@@ -230,8 +226,20 @@ export default function EditLayoutPage({
           smooth: t.smooth ?? 0,
           groupId: t.groupId,
           isSelected: false,
-          realWidth: t.realWidth,
-          realHeight: t.realHeight,
+          realWidth: (typeof t.realWidth === 'number' && t.realWidth > 0)
+            ? t.realWidth
+            : (widthPxFallback
+                ? pxToUnits(widthPxFallback, toolUnit)
+                : (widthCanvasUnits
+                    ? convertUnits(widthCanvasUnits, canvasUnit, toolUnit)
+                    : undefined)),
+          realHeight: (typeof t.realHeight === 'number' && t.realHeight > 0)
+            ? t.realHeight
+            : (heightPxFallback
+                ? pxToUnits(heightPxFallback, toolUnit)
+                : (lengthCanvasUnits
+                    ? convertUnits(lengthCanvasUnits, canvasUnit, toolUnit)
+                    : undefined)),
           toolBrand,
           toolType: shapeToolType || (t.metadata?.toolType ?? ''),
           // Rehydrate text props so Canvas renders the exact saved text

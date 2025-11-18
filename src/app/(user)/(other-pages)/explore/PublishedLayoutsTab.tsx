@@ -192,9 +192,9 @@ const PublishedLayoutsTab = () => {
     const getThicknessOptions = () => {
         return [
             { value: "1.25", label: "1.25" },
-            { value: "2.0", label: "2.0" },
-            { value: "2.5", label: "2.5" },
-            { value: "3.0", label: "3.0" },
+            // { value: "2.0", label: "2.0" },
+            // { value: "2.5", label: "2.5" },
+            // { value: "3.0", label: "3.0" },
         ];
     };
 
