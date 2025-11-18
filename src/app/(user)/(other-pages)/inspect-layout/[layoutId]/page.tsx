@@ -198,8 +198,12 @@ export default function InspectLayoutPage({
             lengthCanvasUnits = canvasUnit === 'mm' ? heightInches * 25.4 : heightInches;
           }
         } else {
-          if (t.metadata?.length) {
-            // Images: rendering uses metadata.length (inches) and aspect ratio
+          const rw = typeof t.realWidth === 'number' ? t.realWidth : (typeof t.width === 'number' ? t.width : 0);
+          const rh = typeof t.realHeight === 'number' ? t.realHeight : (typeof t.length === 'number' ? t.length : 0);
+          if (rw > 0 || rh > 0) {
+            widthCanvasUnits = convertUnits(rw, toolUnit, canvasUnit);
+            lengthCanvasUnits = convertUnits(rh, toolUnit, canvasUnit);
+          } else if (t.metadata?.length) {
             const heightPx = inchesToPx(t.metadata.length);
             const aspect =
               t.metadata.naturalWidth && t.metadata.naturalHeight
@@ -207,12 +211,6 @@ export default function InspectLayoutPage({
                 : 1.6;
             heightPxFallback = heightPx;
             widthPxFallback = heightPx * aspect;
-          } else {
-            // Convert stored real dimensions to the canvas unit (not pixels)
-            const rw = t.realWidth ?? t.width ?? 0;
-            const rh = t.realHeight ?? t.length ?? 0;
-            widthCanvasUnits = convertUnits(rw, toolUnit, canvasUnit);
-            lengthCanvasUnits = convertUnits(rh, toolUnit, canvasUnit);
           }
         }
 
@@ -254,8 +252,20 @@ export default function InspectLayoutPage({
           smooth: t.smooth ?? 0,
           groupId: t.groupId,
           isSelected: false,
-          realWidth: t.realWidth,
-          realHeight: t.realHeight,
+          realWidth: (typeof t.realWidth === 'number' && t.realWidth > 0)
+            ? t.realWidth
+            : (widthPxFallback
+                ? pxToUnits(widthPxFallback, toolUnit)
+                : (widthCanvasUnits
+                    ? convertUnits(widthCanvasUnits, canvasUnit, toolUnit)
+                    : undefined)),
+          realHeight: (typeof t.realHeight === 'number' && t.realHeight > 0)
+            ? t.realHeight
+            : (heightPxFallback
+                ? pxToUnits(heightPxFallback, toolUnit)
+                : (lengthCanvasUnits
+                    ? convertUnits(lengthCanvasUnits, canvasUnit, toolUnit)
+                    : undefined)),
           toolBrand,
           // NEW: set text tool type for Canvas/UI
           toolType: (t.shapeType === 'text' ? 'text' : (shapeToolType || (t.metadata?.toolType ?? ''))),

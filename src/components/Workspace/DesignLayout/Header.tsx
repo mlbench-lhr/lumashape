@@ -151,12 +151,7 @@ const Header: React.FC<HeaderProps> = ({
       );
       return;
     }
-    if (!materialColor) {
-      const msg = "Please select a material color before adding to cart.";
-      setSaveError(msg);
-      toast.error(msg);
-      return;
-    }
+
 
     setIsSaving(true);
     setSaveError(null);
@@ -170,6 +165,18 @@ const Header: React.FC<HeaderProps> = ({
         } catch (error) {
           console.error("Error parsing stored data:", error);
         }
+      }
+
+      const effectiveMaterialColor =
+        (materialColor && materialColor.trim()) ||
+        (additionalData.materialColor && additionalData.materialColor.trim()) ||
+        "";
+      if (!effectiveMaterialColor) {
+        const msg = "Please select a material color before adding to cart.";
+        setSaveError(msg);
+        toast.error(msg);
+        setIsSaving(false);
+        return;
       }
 
       const thicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
@@ -1326,7 +1333,23 @@ const Header: React.FC<HeaderProps> = ({
       icon: ShoppingCart,
       label: "Add to cart",
       action: handleAddToCart,
-      disabled: hasOverlaps || droppedTools.length === 0 || !materialColor || floorViolationCount > 0,
+      disabled:
+        hasOverlaps ||
+        droppedTools.length === 0 ||
+        !(
+          materialColor ||
+          (typeof window !== "undefined" &&
+            (() => {
+              try {
+                const s = sessionStorage.getItem("layoutForm");
+                const p = s ? JSON.parse(s) : null;
+                return typeof (p && p.materialColor) === "string" && p.materialColor;
+              } catch {
+                return "";
+              }
+            })())
+        ) ||
+        floorViolationCount > 0,
     },
   ];
 
@@ -1443,7 +1466,7 @@ const Header: React.FC<HeaderProps> = ({
                                 <p className="text-xs text-gray-700">
                                   {floorViolationCount === 1
                                     ? "This layout can’t be added to your cart because 1 tool pocket exceeds the allowable depth for this material thickness. Each pocket must maintain at least a 0.25-inch floor (e.g., with 1-inch material, the deepest pocket allowed is 0.75 inches)."
-                                    : `This layout can’t be added to your cart because ${floorViolationCount} tools pockets exceed the allowable depth for this material thickness. Each pocket must maintain at least a 0.25-inch floor (e.g., with 1-inch material, the deepest pocket allowed is 0.75 inches).`}
+                                    : `This layout can’t be added to your cart because ${floorViolationCount} tool pockets exceed the allowable depth for this material thickness. Each pocket must maintain at least a 0.25-inch floor (e.g., with 1-inch material, the deepest pocket allowed is 0.75 inches).`}
                                 </p>
                               </div>
                             )}

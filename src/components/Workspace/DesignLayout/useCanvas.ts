@@ -235,8 +235,9 @@ export const useCanvas = ({
       return { toolWidth: Math.max(10, widthPx), toolHeight: Math.max(10, heightPx) };
     }
 
-    // Prefer real physical dimensions if present
+    // Prefer real physical dimensions only when no explicit image length is present
     if (
+      !tool.metadata?.length &&
       typeof tool.realWidth === 'number' &&
       typeof tool.realHeight === 'number' &&
       tool.realWidth > 0 &&

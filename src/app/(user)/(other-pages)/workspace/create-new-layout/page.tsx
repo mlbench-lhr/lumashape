@@ -250,7 +250,7 @@ const CreateNewLayout = () => {
                                                         className={`w-full px-3 py-2 border rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-primary text-gray-900 ${errors.thickness ? 'border-red-500' : 'border-gray-300'
                                                             }`}
                                                     >
-                                                        {/* <option value="">Select Thickness</option> */}
+                                                        <option value="">Select Thickness</option>
                                                         <option value="1.25">1.25</option>
                                                         {/* <option value="2.00">2.00</option>
                                                         <option value="2.50">2.50</option>
@@ -281,17 +281,17 @@ const CreateNewLayout = () => {
                                         <div>
                                             <div className="flex items-center mb-2 gap-2 relative">
                                                 <label className="block text-sm font-medium text-gray-700">
-                                                    Color
+                                                   Foam Color
                                                 </label>
 
 
-                                                <button
+                                                {/* <button
                                                     type="button"
                                                     onClick={() => setIsInfoColorOpen(!isInfoColorOpen)}
                                                     className="text-gray-500 hover:text-gray-700"
                                                 >
                                                     <Info size={18} />
-                                                </button>
+                                                </button> */}
 
                                                 {/* Info popup positioned under the icon */}
                                                 {isInfoColorOpen && (
