@@ -751,6 +751,7 @@ const Header: React.FC<HeaderProps> = ({
           height_inches: canvasHeightInches,
           thickness_inches: canvasThicknessInches,
           has_overlaps: hasOverlaps,
+          canvas_color: materialColor,
         },
         layout_metadata: {
           layout_name: layoutName,
