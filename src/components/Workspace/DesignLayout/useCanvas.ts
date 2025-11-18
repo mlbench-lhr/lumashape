@@ -253,10 +253,13 @@ export const useCanvas = ({
       };
     }
 
-    // Image tools: use metadata length (treated as height) + aspect ratio
+    // Image tools: use metadata length (physical height) + aspect ratio
     if (tool.metadata?.length) {
-      // 🔹 Now this is actually the HEIGHT of the tool, not the diagonal
-      const toolHeightPx = inchesToPx(tool.metadata.length);
+      const len = tool.metadata.length;
+      const toolHeightPx =
+        tool.unit === 'mm'
+          ? mmToPx(len)
+          : inchesToPx(len);
 
       // Default aspect ratio if natural dimensions are missing
       let aspectRatio = 1.6;
@@ -811,7 +814,7 @@ export const useCanvas = ({
         length: 50, // Legacy fallback
         depth: tool.metadata?.depth || 0.25,
         SKUorPartNumber: tool.metadata?.SKUorPartNumber || '',
-        unit,
+        unit: tool.unit ?? (typeof tool.metadata?.length === 'number' ? (tool.metadata.length > 45 ? 'mm' : 'inches') : unit),
         opacity: 100,
         smooth: 0,
         metadata: {

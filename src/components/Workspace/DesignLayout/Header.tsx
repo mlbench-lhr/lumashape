@@ -497,9 +497,10 @@ const Header: React.FC<HeaderProps> = ({
       };
     }
 
-    // Image tools: use metadata.length (treated as height) + aspect ratio
+    // Image tools: use metadata.length (physical height) + aspect ratio
     if (tool.metadata?.length) {
-      const toolHeightPx = inchesToPx(tool.metadata.length);
+      const len = tool.metadata.length;
+      const toolHeightPx = tool.unit === 'mm' ? mmToPx(len) : inchesToPx(len);
 
       let aspectRatio = 1.6;
       if (
