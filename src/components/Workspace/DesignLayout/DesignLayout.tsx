@@ -68,60 +68,19 @@ function DesignLayout({
       : value * 25.4;
   };
 
-  // Handle unit change - converts canvas dimensions and tool thicknesses
+  // Handle unit change - convert canvas dimensions only; tools keep native units
   const handleUnitChange = useCallback((newUnit: 'mm' | 'inches') => {
     if (newUnit === unit) return;
 
-    // Convert canvas dimensions
     const convertedCanvasWidth = parseFloat(convertValue(canvasWidth, unit, newUnit).toFixed(3));
     const convertedCanvasHeight = parseFloat(convertValue(canvasHeight, unit, newUnit).toFixed(3));
     const convertedThickness = parseFloat(convertValue(thickness, unit, newUnit).toFixed(3));
 
-    // Convert width/length/real dims only. Depth remains inches, unchanged.
-    const convertedTools = droppedTools.map(tool => {
-      const convertedWidth =
-        typeof tool.width === 'number'
-          ? parseFloat(convertValue(tool.width, tool.unit, newUnit).toFixed(3))
-          : tool.width;
-
-      const convertedLength =
-        typeof tool.length === 'number'
-          ? parseFloat(convertValue(tool.length, tool.unit, newUnit).toFixed(3))
-          : tool.length;
-
-      const convertedRealWidth =
-        typeof tool.realWidth === 'number'
-          ? parseFloat(convertValue(tool.realWidth, tool.unit, newUnit).toFixed(3))
-          : tool.realWidth;
-
-      const convertedRealHeight =
-        typeof tool.realHeight === 'number'
-          ? parseFloat(convertValue(tool.realHeight, tool.unit, newUnit).toFixed(3))
-          : tool.realHeight;
-
-      const convertedToolDepth = parseFloat(
-        convertValue(tool.depth, tool.unit, newUnit).toFixed(3)
-      );
-
-      // Leave metadata.length as inches; it's used as inches in rendering logic
-      return {
-        ...tool,
-        width: convertedWidth,
-        length: convertedLength,
-        realWidth: convertedRealWidth,
-        realHeight: convertedRealHeight,
-        depth: tool.depth, // keep inches, do not convert
-        unit: newUnit,
-      };
-    });
-
-    // Update all values
     setCanvasWidth(convertedCanvasWidth);
     setCanvasHeight(convertedCanvasHeight);
     setThickness(convertedThickness);
     setUnit(newUnit);
-    setDroppedTools(convertedTools);
-  }, [unit, canvasWidth, canvasHeight, thickness, droppedTools]);
+  }, [unit, canvasWidth, canvasHeight, thickness]);
 
   // Batch history while an interaction is in progress
   const [isHistoryBatching, setIsHistoryBatching] = useState(false);

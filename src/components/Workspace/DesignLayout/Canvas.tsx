@@ -135,7 +135,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
       : 0;
   const allowedDepthInches = Math.max(0, thicknessInches - 0.25);
   const tooDeepCount = droppedTools.filter(t => depthInchesFor(t) > allowedDepthInches).length;
-  const isLayoutInvalid = hasOverlaps || tooDeepCount > 0;
+  const isLayoutInvalid = hasOverlaps;
 
   // Rotation guard: block rotation if the rotated bounds would exceed the canvas
   const canRotateWithinCanvas = useCallback((tool: DroppedTool, rotation: number) => {
@@ -609,7 +609,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 {isSelected && null}
 
                 {/* Minimal hazard indicator (overlap or too-deep) */}
-                {(isOverlapping || isTooDeep) && (
+                {(isOverlapping) && (
                   <div
                     className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center z-30"
                     title={isTooDeep ? 'Depth exceeds allowed cut depth (thickness - 0.25 in)' : 'Overlapping'}
@@ -749,7 +749,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
         </div>
 
         {/* Layout Status Indicator */}
-        <div className="absolute bottom-4 right-4 bg-white bg-opacity-90 rounded-lg px-3 py-2 w-[350] text-sm shadow-lg">
+        <div className="absolute bottom-4 right-4 bg-white bg-opacity-90 rounded-lg px-3 py-2 text-sm shadow-lg">
           <div className={`flex items-center space-x-2 ${isLayoutInvalid ? 'text-red-600' : 'text-green-600'}`}>
             {isLayoutInvalid ? (
               <>
@@ -768,11 +768,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
               {overlappingTools.length} overlapping tool{overlappingTools.length > 1 ? 's' : ''}
             </div>
           )}
-          {tooDeepCount > 0 && (
-            <div className="text-xs text-gray-600 mt-1">
-              {tooDeepCount} tool{tooDeepCount > 1 ? 's' : ''} pocket{tooDeepCount > 1 ? 's' : ''} exceed{tooDeepCount == 1 ? 's' : ''} the allowable depth for this material thickness. Each pocket must maintain a 0.25-inch floor (e.g., a 1-inch material allows a 0.75-inch max pocket depth)
-            </div>
-          )}
+
         </div>
       </div>
     </div>

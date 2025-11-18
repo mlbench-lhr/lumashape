@@ -204,6 +204,7 @@ const Cart = () => {
                         <div className="flex-1">
                           <h3 className="text-xl font-semibold">{item.name}</h3>
                           <p className="text-base text-gray-700">{`Container Size : ${item.containerSize} x ${item.layoutData?.canvas.thickness}"`}</p>
+                          <p className="text-base text-gray-700">{`Foam Color : ${item.layoutData?.canvas.materialColor}`}</p>
                         </div>
 
                         {/* Quantity Controls as circles */}
@@ -294,6 +295,7 @@ const Cart = () => {
                       <div className="flex-1">
                         <p className="font-medium text-sm">{item.name}</p>
                         <p className="text-xs text-gray-600">{`Container Size : ${item.containerSize} x ${item.layoutData?.canvas.thickness}"`}</p>
+                        <p className="text-xs text-gray-600">{`Foam Color : ${item.layoutData?.canvas.materialColor}`}</p>
                         <p className="text-xs text-gray-500">Qty: {item.quantity} × ${item.price}</p>
                       </div>
                     </div>

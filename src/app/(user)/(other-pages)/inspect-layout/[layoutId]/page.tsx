@@ -84,6 +84,8 @@ const inchesToPx = (inches: number) => inches * 96;
 const mmToPx = (mm: number) => (mm / 25.4) * 96;
 const convertUnits = (value: number, from: Unit, to: Unit) =>
   from === to ? value : from === 'mm' ? value / 25.4 : value * 25.4;
+// px -> units helper
+const pxToUnits = (px: number, unit: Unit) => unit === 'mm' ? (px / 96) * 25.4 : (px / 96);
 
 function getAuthToken(): string | null {
   try {
@@ -236,10 +238,18 @@ export default function InspectLayoutPage({
           rotation: t.rotation ?? 0,
           flipHorizontal: !!t.flipHorizontal,
           flipVertical: !!t.flipVertical,
-          width: widthCanvasUnits || widthPxFallback || 50,
-          length: lengthCanvasUnits || heightPxFallback || 50,
+          width: widthCanvasUnits
+            ? convertUnits(widthCanvasUnits, canvasUnit, toolUnit)
+            : widthPxFallback
+              ? pxToUnits(widthPxFallback, toolUnit)
+              : 50,
+          length: lengthCanvasUnits
+            ? convertUnits(lengthCanvasUnits, canvasUnit, toolUnit)
+            : heightPxFallback
+              ? pxToUnits(heightPxFallback, toolUnit)
+              : 50,
           depth: t.metadata?.depth ?? 0.2,
-          unit: canvasUnit,
+          unit: toolUnit,
           opacity: t.opacity ?? 100,
           smooth: t.smooth ?? 0,
           groupId: t.groupId,

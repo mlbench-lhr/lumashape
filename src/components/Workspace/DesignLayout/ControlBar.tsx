@@ -162,7 +162,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
         {/* Canvas Height */}
         <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium">Height:</label>
+          <label className="text-sm font-medium">Length:</label>
           <input
             type="number"
             value={canvasHeight}
@@ -205,13 +205,13 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
             {/* Info popup positioned under the icon */}
             {isInfoThicknessOpen && (
-              <div className="absolute left-[60px] top-full mt-2 w-72 rounded-md border border-gray-200 bg-white shadow-lg p-3 z-20">
+              <div className="absolute left-[60px] top-full mt-2 w-120 rounded-md border border-gray-200 bg-white shadow-lg p-3 z-100">
                 <div className="flex items-start flex-col gap-3">
                   <Image
                     src="/images/workspace/create_new_layout/thickness-info.png"
                     alt="Info"
-                    width={500}
-                    height={500}
+                    width={700}
+                    height={700}
                     className="rounded"
                   />
                   <p className="text-sm text-gray-700">
@@ -270,7 +270,6 @@ const ControlBar: React.FC<ControlBarProps> = ({
             disabled={readOnly}
             className="bg-white text-gray-900 px-2 py-1 w-32 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
           >
-            <option value="">Select</option>
             <option value="blue">Blue</option>
             <option value="black">Black</option>
             <option value="yellow">Yellow</option>
