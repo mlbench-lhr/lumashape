@@ -11,6 +11,7 @@ import {
   Image as ImageIcon,
   File,
   ShoppingCart,
+  Info,
 } from "lucide-react";
 import Image from "next/image";
 import { DroppedTool } from "./types";
@@ -125,16 +126,17 @@ const Header: React.FC<HeaderProps> = ({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isDxfGenerating, setIsDxfGenerating] = useState(false);
+  const [isCartInfoOpen, setIsCartInfoOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { addToCart } = useCart();
 
-  // Compute depth vs thickness for status indicator
   const thicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
-  const tooDeepCount = droppedTools.filter((t) => {
-    const depthInches = typeof t.depth === "number" ? t.depth : 0; // depth stored in inches
-    return depthInches > thicknessInches;
+  const allowedDepthInches = Math.max(0, thicknessInches - 0.25);
+  const floorViolationCount = droppedTools.filter((t) => {
+    const depthInches = typeof t.depth === "number" ? (t.unit === "mm" ? mmToInches(t.depth) : t.depth) : 0;
+    return depthInches > allowedDepthInches;
   }).length;
-  const isLayoutInvalid = hasOverlaps || tooDeepCount > 0;
+  const isLayoutInvalid = hasOverlaps;
 
   const handleAddToCart = async () => {
     if (hasOverlaps) {
@@ -171,10 +173,11 @@ const Header: React.FC<HeaderProps> = ({
       }
 
       const thicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
+      const allowedDepthInches = Math.max(0, thicknessInches - 0.25);
       const depths = await Promise.all(droppedTools.map((t) => computeDepthInches(t)));
-      const tooDeep = depths.some((d) => d > thicknessInches);
+      const tooDeep = depths.some((d) => d > allowedDepthInches);
       if (tooDeep) {
-        const msg = "One or more tool cut depths exceed selected material thickness.";
+        const msg = "One or more tool pocket depths exceed the allowable depth for this material thickness.";
         setSaveError(msg);
         toast.error(msg);
         setIsSaving(false);
@@ -1052,17 +1055,7 @@ const Header: React.FC<HeaderProps> = ({
         }
       }
 
-      const localThickness = (additionalData.thickness ?? thickness);
-      const thicknessInches = unit === "mm" ? mmToInches(localThickness) : localThickness;
-      const depths = await Promise.all(droppedTools.map((t) => computeDepthInches(t)));
-      const tooDeep = depths.some((d) => d > thicknessInches);
-      if (tooDeep) {
-        const msg = "Cannot save layout: one or more tool cut depths exceed selected material thickness.";
-        setSaveError(msg);
-        toast.error(msg);
-        setIsSaving(false);
-        return;
-      }
+
 
       // Step 1: Capture and upload image
       try {
@@ -1227,7 +1220,7 @@ const Header: React.FC<HeaderProps> = ({
         }),
         stats: {
           totalTools: droppedTools.length,
-          validLayout: !(hasOverlaps || tooDeep),
+          validLayout: !hasOverlaps,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },
@@ -1331,7 +1324,7 @@ const Header: React.FC<HeaderProps> = ({
       icon: ShoppingCart,
       label: "Add to cart",
       action: handleAddToCart,
-      disabled: isLayoutInvalid || droppedTools.length === 0 || !materialColor,
+      disabled: hasOverlaps || droppedTools.length === 0 || !materialColor || floorViolationCount > 0,
     },
   ];
 
@@ -1357,7 +1350,7 @@ const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center space-x-2">
               <>
                 <button
-                  className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors ${isSaving || isLayoutInvalid || droppedTools.length === 0
+                  className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors ${isSaving || hasOverlaps || droppedTools.length === 0
                     ? "bg-gray-400 cursor-not-allowed"
                     : saveSuccess
                       ? "bg-green-500 hover:bg-green-600"
@@ -1365,7 +1358,7 @@ const Header: React.FC<HeaderProps> = ({
                     } text-white`}
                   onClick={() => handleSaveAndExit()}
                   disabled={
-                    isSaving || isLayoutInvalid || droppedTools.length === 0
+                    isSaving || hasOverlaps || droppedTools.length === 0
                   }
                 >
                   {isSaving ? (
@@ -1400,9 +1393,9 @@ const Header: React.FC<HeaderProps> = ({
           {!readOnly && (
             <div className="relative" ref={dropdownRef}>
               <button
-                className={`px-4 py-4 rounded-2xl transition-colors ${isLayoutInvalid || droppedTools.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/90'}`}
-                onClick={() => { if (isLayoutInvalid || droppedTools.length === 0) return; setShowDropdown(!showDropdown); }}
-                disabled={isLayoutInvalid || droppedTools.length === 0}
+                className={`px-4 py-4 rounded-2xl transition-colors ${hasOverlaps || droppedTools.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/90'}`}
+                onClick={() => { if (hasOverlaps || droppedTools.length === 0) return; setShowDropdown(!showDropdown); }}
+                disabled={hasOverlaps || droppedTools.length === 0}
               >
                 <MoreHorizontal className="w-5 h-5 text-white" />
               </button>
@@ -1414,14 +1407,16 @@ const Header: React.FC<HeaderProps> = ({
                       Export Options
                     </div>
                     {exportOptions.map((option, index) => (
-                      <button
+                      <div
                         key={index}
+                        role="button"
+                        tabIndex={0}
+                        aria-disabled={option.disabled}
                         className={`w-full px-4 py-3 text-left text-sm flex items-center space-x-3 transition-colors ${option.disabled
                           ? "text-gray-400 cursor-not-allowed"
                           : "text-gray-700 hover:bg-gray-50 cursor-pointer"
                           }`}
                         onClick={option.disabled ? undefined : option.action}
-                        disabled={option.disabled}
                       >
                         {option.loading ? (
                           <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1431,6 +1426,28 @@ const Header: React.FC<HeaderProps> = ({
                         <span>
                           {option.loading ? "Downloading DXF..." : option.label}
                         </span>
+                        {option.label === "Add to cart" && option.disabled && floorViolationCount > 0 && (
+                          <div className="relative flex-shrink-0">
+                            <button
+                              type="button"
+                              className="ml-8 text-gray-400 hover:text-gray-600"
+                              onClick={(e) => { e.stopPropagation(); setIsCartInfoOpen(!isCartInfoOpen); }}
+                            >
+                              <Info className="w-4 h-4" />
+                            </button>
+
+                            {isCartInfoOpen && (
+                              <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-md shadow-lg p-3 w-80 z-50">
+                                <p className="text-xs text-gray-700">
+                                  {floorViolationCount === 1
+                                    ? "This layout can’t be added to your cart because 1 tool pocket exceeds the allowable depth for this material thickness. Each pocket must maintain at least a 0.25-inch floor (e.g., with 1-inch material, the deepest pocket allowed is 0.75 inches)."
+                                    : `This layout can’t be added to your cart because ${floorViolationCount} tools pockets exceed the allowable depth for this material thickness. Each pocket must maintain at least a 0.25-inch floor (e.g., with 1-inch material, the deepest pocket allowed is 0.75 inches).`}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                        )}
                         {option.disabled &&
                           !option.loading &&
                           droppedTools.length === 0 && (
@@ -1438,7 +1455,7 @@ const Header: React.FC<HeaderProps> = ({
                               (Add tools first)
                             </span>
                           )}
-                      </button>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -1522,11 +1539,6 @@ const Header: React.FC<HeaderProps> = ({
         {!readOnly && (
           <div className="flex items-center space-x-2">
             {hasOverlaps ? (
-              <>
-                <AlertTriangle className="w-4 h-4 text-red-600" />
-                <span className="text-red-600">Invalid Layout</span>
-              </>
-            ) : tooDeepCount > 0 ? (
               <>
                 <AlertTriangle className="w-4 h-4 text-red-600" />
                 <span className="text-red-600">Invalid Layout</span>

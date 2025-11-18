@@ -85,6 +85,13 @@ const CreateNewLayout = () => {
             newErrors.thickness = 'Thickness must be a number.';
         }
 
+        if (!materialColor) {
+            newErrors.materialColor = 'Material color selection is required.';
+        }
+        else if (!colorOptions.find(color => color.id === materialColor)) {
+            newErrors.materialColor = 'Invalid material color selection.';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -214,13 +221,13 @@ const CreateNewLayout = () => {
 
                                                 {/* Info popup positioned under the icon */}
                                                 {isInfoThicknessOpen && (
-                                                    <div className="absolute left-[60px] top-full mt-2 w-72 rounded-md border border-gray-200 bg-white shadow-lg p-3 z-20">
+                                                    <div className="absolute left-[60px] top-full mt-2 w-65 lg:w-120 rounded-md border border-gray-200 bg-white shadow-lg p-2 z-20">
                                                         <div className="flex items-start flex-col gap-3">
                                                             <Image
                                                                 src="/images/workspace/create_new_layout/thickness-info.png"
                                                                 alt="Info"
-                                                                width={500}
-                                                                height={500}
+                                                                width={700}
+                                                                height={700}
                                                                 className="rounded"
                                                             />
                                                             <p className="text-sm text-gray-700">
@@ -233,7 +240,6 @@ const CreateNewLayout = () => {
                                                     </div>
                                                 )}
                                             </div>
-
 
                                             <div className="relative">
                                                 {/* Select wrapper */}
@@ -275,8 +281,9 @@ const CreateNewLayout = () => {
                                         <div>
                                             <div className="flex items-center mb-2 gap-2 relative">
                                                 <label className="block text-sm font-medium text-gray-700">
-                                                    Color (Optional)
+                                                    Color
                                                 </label>
+
 
                                                 <button
                                                     type="button"
@@ -320,9 +327,6 @@ const CreateNewLayout = () => {
                                                 ))}
                                             </div>
                                         </div>
-
-
-
                                     </div>
                                 </div>
                             </div>
@@ -333,7 +337,15 @@ const CreateNewLayout = () => {
                     <div className="mt-8">
                         <button
                             onClick={handleContinue}
-                            disabled={!layoutName || /\s/.test(layoutName) || !units || !width || isNaN(Number(width)) || !length || isNaN(Number(length)) || !thickness || isNaN(Number(thickness))}
+                            disabled={
+                                !layoutName ||
+                                /\s/.test(layoutName) ||
+                                !units ||
+                                !width || isNaN(Number(width)) ||
+                                !length || isNaN(Number(length)) ||
+                                !thickness || isNaN(Number(thickness)) ||
+                                !materialColor
+                            }
                             className="text-white py-3 px-4 rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 bg-primary disabled:bg-gray-400 disabled:cursor-not-allowed"
                         >
                             Continue To Canvas
