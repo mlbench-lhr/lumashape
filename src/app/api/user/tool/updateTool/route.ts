@@ -38,6 +38,7 @@ export async function PUT(request: NextRequest) {
             toolBrand,
             toolType,
             SKUorPartNumber,
+            depth,
         } = body;
 
         // Validate required fields
@@ -48,9 +49,9 @@ export async function PUT(request: NextRequest) {
             );
         }
 
-        if (!toolBrand || !toolType || !SKUorPartNumber) {
+        if (!toolBrand || !toolType || !SKUorPartNumber || !depth) {
             return NextResponse.json(
-                { error: 'Brand, tool type, and SKU/Part Number are required' },
+                { error: 'Brand, tool type, SKU/Part Number, and depth are required' },
                 { status: 400 }
             );
         }
@@ -82,6 +83,7 @@ export async function PUT(request: NextRequest) {
             toolBrand,
             toolType,
             SKUorPartNumber,
+            depth,
             updatedAt: new Date()
         };
 
