@@ -245,13 +245,13 @@ const ControlBar: React.FC<ControlBarProps> = ({
               Foam Color
             </label>
 
-            <button
+            {/* <button
               type="button"
               onClick={() => setIsInfoColorOpen(!isInfoColorOpen)}
               className="text-white hover:text-blue-400"
             >
               <Info size={18} />
-            </button>
+            </button> */}
 
             {/* Info popup positioned under the icon */}
             {isInfoColorOpen && (
