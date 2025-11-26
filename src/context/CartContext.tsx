@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useUser } from "./UserContext";
+import { calculateOrderPricing } from "@/utils/pricing";
 
 // Define the cart item interface based on layout structure
 export interface CartItem {
@@ -133,12 +134,28 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   }, [user, syncCart]); // Include syncCart in dependencies
 
-  // Calculate total price whenever cart items change
+  // Calculate total price using order-level pricing model
   useEffect(() => {
-    const total = cartItems.reduce((sum, item) => {
-      return item.selected ? sum + (item.price * item.quantity) : sum;
-    }, 0);
-    setTotalPrice(total);
+    const selected = cartItems.filter((i) => i.selected);
+    const itemsForPricing = selected.map(i => {
+      const canvas = i.layoutData?.canvas ? {
+        width: i.layoutData.canvas.width,
+        height: i.layoutData.canvas.height,
+        unit: i.layoutData.canvas.unit,
+        thickness: i.layoutData.canvas.thickness,
+        materialColor: i.layoutData.canvas.materialColor,
+      } : undefined;
+
+      const toolsMini = Array.isArray(i.layoutData?.tools)
+        ? i.layoutData!.tools!.map(t => ({
+            isText: Boolean((t as any)?.isText) || ((t as any)?.toolBrand === 'TEXT' || (t as any)?.toolType === 'text'),
+          }))
+        : undefined;
+
+      return canvas ? { id: i.id, name: i.name, quantity: i.quantity, layoutData: { canvas, tools: toolsMini } } : { id: i.id, name: i.name, quantity: i.quantity };
+    });
+    const pricing = calculateOrderPricing(itemsForPricing);
+    setTotalPrice(pricing.totals.customerTotal);
   }, [cartItems]);
 
   // Add item to cart
