@@ -318,6 +318,26 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Name availability check (pre-validation)
+    const checkName = searchParams.get('checkName');
+    const nameToCheck = searchParams.get('name');
+    if (checkName && nameToCheck) {
+      const tokenForCheck = req.headers.get("Authorization")?.split(" ")[1];
+      if (!tokenForCheck) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const decodedForCheck = jwt.verify(tokenForCheck, JWT_SECRET);
+      if (!isValidJWTPayload(decodedForCheck)) {
+        return NextResponse.json({ error: "Invalid token payload" }, { status: 401 });
+      }
+      const escaped = nameToCheck.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const exists = await Layout.findOne({
+        userEmail: decodedForCheck.email,
+        name: { $regex: `^${escaped}$`, $options: 'i' }
+      }).lean();
+      return NextResponse.json({ success: true, available: !exists });
+    }
+
     // Listing user-owned layouts still requires auth
     const token = req.headers.get("Authorization")?.split(" ")[1];
     if (!token) {
@@ -594,26 +614,6 @@ export async function DELETE(req: NextRequest) {
         { success: false, error: 'Layout not found or access denied' },
         { status: 404 }
       );
-    }
-
-    // Name availability check (pre-validation)
-    const checkName = searchParams.get('checkName');
-    const nameToCheck = searchParams.get('name');
-    if (checkName && nameToCheck) {
-      const tokenForCheck = req.headers.get("Authorization")?.split(" ")[1];
-      if (!tokenForCheck) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-      const decodedForCheck = jwt.verify(tokenForCheck, JWT_SECRET);
-      if (!isValidJWTPayload(decodedForCheck)) {
-        return NextResponse.json({ error: "Invalid token payload" }, { status: 401 });
-      }
-      const escaped = nameToCheck.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const exists = await Layout.findOne({
-        userEmail: decodedForCheck.email,
-        name: { $regex: `^${escaped}$`, $options: 'i' }
-      }).lean();
-      return NextResponse.json({ success: true, available: !exists });
     }
 
     return NextResponse.json({
