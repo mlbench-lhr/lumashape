@@ -192,7 +192,7 @@ const validateTools = (tools: unknown): ToolData[] => {
     if ('shapeData' in toolObj && typeof toolObj.shapeData === 'object' && toolObj.shapeData !== null) {
       validatedTool.shapeData = toolObj.shapeData as Record<string, unknown>;
     }
-    
+
     // Store metadata and real dimensions
     if (metadata && typeof metadata === 'object') {
       validatedTool.metadata = metadata as ToolData['metadata'];
@@ -269,64 +269,64 @@ export async function GET(req: NextRequest) {
 
     // If requesting a specific layout by id, allow published/public access and owner/purchaser access
     if (id) {
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return NextResponse.json(
-                { success: false, error: 'Invalid layout id format' },
-                { status: 400 }
-            );
-        }
-    
-        // Optional auth: if present, use to determine ownership/purchase
-        const token = req.headers.get("Authorization")?.split(" ")[1];
-        let requesterEmail: string | null = null;
-    
-        if (token) {
-            try {
-                const decoded = jwt.verify(token, JWT_SECRET);
-                if (isValidJWTPayload(decoded)) {
-                    requesterEmail = decoded.email.toLowerCase().trim();
-                }
-            } catch {
-                // Ignore token errors for public published access
-            }
-        }
-    
-        const layout = await Layout.findById(id).lean();
-        if (!layout) {
-            return NextResponse.json(
-                { success: false, error: 'Layout not found' },
-                { status: 404 }
-            );
-        }
-    
-        const isOwner =
-            requesterEmail &&
-            layout.userEmail?.toLowerCase().trim() === requesterEmail;
-        const isBuyer =
-            requesterEmail &&
-            Array.isArray(layout.downloadedByUsers) &&
-            layout.downloadedByUsers.includes(requesterEmail);
-        const isPublished = Boolean(layout.published);
-    
-        if (isOwner || isPublished || isBuyer) {
-            return NextResponse.json({ success: true, data: layout });
-        }
-    
+      if (!mongoose.Types.ObjectId.isValid(id)) {
         return NextResponse.json(
-            { success: false, error: 'Layout not found or access denied' },
-            { status: 404 }
+          { success: false, error: 'Invalid layout id format' },
+          { status: 400 }
         );
+      }
+
+      // Optional auth: if present, use to determine ownership/purchase
+      const token = req.headers.get("Authorization")?.split(" ")[1];
+      let requesterEmail: string | null = null;
+
+      if (token) {
+        try {
+          const decoded = jwt.verify(token, JWT_SECRET);
+          if (isValidJWTPayload(decoded)) {
+            requesterEmail = decoded.email.toLowerCase().trim();
+          }
+        } catch {
+          // Ignore token errors for public published access
+        }
+      }
+
+      const layout = await Layout.findById(id).lean();
+      if (!layout) {
+        return NextResponse.json(
+          { success: false, error: 'Layout not found' },
+          { status: 404 }
+        );
+      }
+
+      const isOwner =
+        requesterEmail &&
+        layout.userEmail?.toLowerCase().trim() === requesterEmail;
+      const isBuyer =
+        requesterEmail &&
+        Array.isArray(layout.downloadedByUsers) &&
+        layout.downloadedByUsers.includes(requesterEmail);
+      const isPublished = Boolean(layout.published);
+
+      if (isOwner || isPublished || isBuyer) {
+        return NextResponse.json({ success: true, data: layout });
+      }
+
+      return NextResponse.json(
+        { success: false, error: 'Layout not found or access denied' },
+        { status: 404 }
+      );
     }
 
     // Listing user-owned layouts still requires auth
     const token = req.headers.get("Authorization")?.split(" ")[1];
     if (!token) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
     if (!isValidJWTPayload(decoded)) {
-        return NextResponse.json({ error: "Invalid token payload" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid token payload" }, { status: 401 });
     }
 
     const page = parseInt(searchParams.get('page') || '1');
@@ -338,30 +338,30 @@ export async function GET(req: NextRequest) {
     const searchQuery: SearchQuery = { userEmail: decoded.email };
 
     if (search) {
-        searchQuery.$or = [
-            { name: { $regex: search, $options: 'i' } },
-            { brand: { $regex: search, $options: 'i' } }
-        ];
+      searchQuery.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { brand: { $regex: search, $options: 'i' } }
+      ];
     }
 
     const [layouts, total] = await Promise.all([
-        Layout.find(searchQuery)
-            .sort({ 'stats.updatedAt': -1 })
-            .skip(skip)
-            .limit(limit)
-            .lean(),
-        Layout.countDocuments(searchQuery)
+      Layout.find(searchQuery)
+        .sort({ 'stats.updatedAt': -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Layout.countDocuments(searchQuery)
     ]);
 
     return NextResponse.json({
-        success: true,
-        data: layouts,
-        pagination: {
-            page,
-            limit,
-            total,
-            totalPages: Math.ceil(total / limit)
-        }
+      success: true,
+      data: layouts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
     });
 
   } catch (error) {
@@ -398,13 +398,25 @@ export async function POST(req: NextRequest) {
     const bodyObj = body as LayoutRequestBody & { snapshotUrl?: string };
     const { name, brand, canvas, tools, stats, snapshotUrl, ...metadata } = bodyObj;
 
+    const escapedName = validatedData.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const duplicate = await Layout.findOne({
+      userEmail: decoded.email,
+      name: { $regex: `^${escapedName}$`, $options: 'i' }
+    }).lean();
+    if (duplicate) {
+      return NextResponse.json(
+        { success: false, error: "Layout name already exists" },
+        { status: 409 }
+      );
+    }
+
     const layout = new Layout({
       userEmail: decoded.email,
       name: validatedData.name,
       brand: validatedData.brand || "",
       canvas: validatedData.canvas,
       tools: validatedData.tools,
-      snapshotUrl: snapshotUrl || null, // ✅ store image URL
+      snapshotUrl: snapshotUrl || null,
       stats: {
         ...validatedData.stats,
         createdAt: new Date(),
@@ -488,6 +500,20 @@ export async function PUT(req: NextRequest) {
       );
     }
 
+
+    const escapedNamePut = validatedData.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const nameConflict = await Layout.findOne({
+      userEmail: decoded.email,
+      name: { $regex: `^${escapedNamePut}$`, $options: 'i' },
+      _id: { $ne: layoutId }
+    }).lean();
+    if (nameConflict) {
+      return NextResponse.json(
+        { success: false, error: "Layout name already exists" },
+        { status: 409 }
+      );
+    }
+
     const updatedLayout = await Layout.findByIdAndUpdate(
       layoutId,
       {
@@ -495,7 +521,7 @@ export async function PUT(req: NextRequest) {
         brand: validatedData.brand || "",
         canvas: validatedData.canvas,
         tools: validatedData.tools,
-        snapshotUrl: snapshotUrl || existingLayout.snapshotUrl, // ✅ update snapshot if provided
+        snapshotUrl: snapshotUrl || existingLayout.snapshotUrl,
         stats: {
           ...validatedData.stats,
           updatedAt: new Date(),
@@ -568,6 +594,26 @@ export async function DELETE(req: NextRequest) {
         { success: false, error: 'Layout not found or access denied' },
         { status: 404 }
       );
+    }
+
+    // Name availability check (pre-validation)
+    const checkName = searchParams.get('checkName');
+    const nameToCheck = searchParams.get('name');
+    if (checkName && nameToCheck) {
+      const tokenForCheck = req.headers.get("Authorization")?.split(" ")[1];
+      if (!tokenForCheck) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const decodedForCheck = jwt.verify(tokenForCheck, JWT_SECRET);
+      if (!isValidJWTPayload(decodedForCheck)) {
+        return NextResponse.json({ error: "Invalid token payload" }, { status: 401 });
+      }
+      const escaped = nameToCheck.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const exists = await Layout.findOne({
+        userEmail: decodedForCheck.email,
+        name: { $regex: `^${escaped}$`, $options: 'i' }
+      }).lean();
+      return NextResponse.json({ success: true, available: !exists });
     }
 
     return NextResponse.json({

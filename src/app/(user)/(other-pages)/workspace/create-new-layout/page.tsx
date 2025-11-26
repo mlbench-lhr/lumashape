@@ -96,8 +96,29 @@ const CreateNewLayout = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleContinue = () => {
+    const handleContinue = async () => {
         if (!validateForm()) {
+            return;
+        }
+        const authToken = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+        if (!authToken) {
+            setErrors(prev => ({ ...prev, layoutName: 'Authentication required.' }));
+            return;
+        }
+        try {
+            const res = await fetch(`/api/layouts?checkName=1&name=${encodeURIComponent(layoutName)}`, {
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            const data = await res.json();
+            if (!res.ok || data.success === false) {
+                throw new Error(data.error || 'Failed to validate name');
+            }
+            if (!data.available) {
+                setErrors(prev => ({ ...prev, layoutName: 'Layout name already exists. Choose a different name.' }));
+                return;
+            }
+        } catch (e) {
+            setErrors(prev => ({ ...prev, layoutName: 'Unable to validate name. Please try again.' }));
             return;
         }
         try { sessionStorage.removeItem('editingLayoutId'); } catch { }
