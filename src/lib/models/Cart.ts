@@ -138,7 +138,6 @@ const CartSchema: Schema<ICart> = new mongoose.Schema(
 )
 
 // Create indexes
-CartSchema.index({ userEmail: 1 })
 CartSchema.index({ 'items.id': 1 })
 
 // Export the model
