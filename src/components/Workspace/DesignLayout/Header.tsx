@@ -183,13 +183,13 @@ const Header: React.FC<HeaderProps> = ({
       const allowedDepthInches = Math.max(0, thicknessInches - 0.25);
       const depths = await Promise.all(droppedTools.map((t) => computeDepthInches(t)));
       const tooDeep = depths.some((d) => d > allowedDepthInches);
-      if (tooDeep) {
-        const msg = "One or more tool pocket depths exceed the allowable depth for this material thickness.";
-        setSaveError(msg);
-        toast.error(msg);
-        setIsSaving(false);
-        return;
-      }
+      // if (tooDeep) {
+      //   const msg = "One or more tool pocket depths exceed the allowable depth for this material thickness.";
+      //   setSaveError(msg);
+      //   toast.error(msg);
+      //   setIsSaving(false);
+      //   return;
+      // }
 
       const layoutName = await resolveLayoutName(additionalData);
       const containerSize = `${additionalData.canvasWidth ?? canvasWidth}" × ${additionalData.canvasHeight ?? canvasHeight}"`;

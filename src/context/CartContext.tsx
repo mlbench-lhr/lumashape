@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useUser } from "./UserContext";
+import { calculateOrderPricing } from "@/utils/pricing";
 
 // Define the cart item interface based on layout structure
 export interface CartItem {
@@ -25,6 +26,8 @@ export interface CartItem {
       name: string;
       x: number;
       y: number;
+      toolBrand?: string;
+      toolType?: string;
       rotation: number;
       flipHorizontal: boolean;
       flipVertical: boolean;
@@ -37,6 +40,12 @@ export interface CartItem {
     }>;
   };
 }
+
+
+type MiniTool = {
+  isText: boolean;
+};
+
 
 interface CartContextType {
   cartItems: CartItem[];
@@ -58,15 +67,15 @@ interface CartProviderProps {
 // Create context with default values
 export const CartContext = createContext<CartContextType>({
   cartItems: [],
-  addToCart: async () => {},
-  removeFromCart: async () => {},
-  updateQuantity: async () => {},
-  toggleSelected: async () => {},
-  toggleSelectAll: async () => {},
-  clearCart: async () => {},
+  addToCart: async () => { },
+  removeFromCart: async () => { },
+  updateQuantity: async () => { },
+  toggleSelected: async () => { },
+  toggleSelectAll: async () => { },
+  clearCart: async () => { },
   totalPrice: 0,
   loading: false,
-  syncCart: async () => {},
+  syncCart: async () => { },
 });
 
 // Cart Provider Component
@@ -86,7 +95,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       const token = getAuthToken();
-      
+
       if (!token) {
         console.log('No auth token found, clearing cart');
         setCartItems([]);
@@ -133,18 +142,44 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   }, [user, syncCart]); // Include syncCart in dependencies
 
-  // Calculate total price whenever cart items change
+  // Calculate total price using order-level pricing model
   useEffect(() => {
-    const total = cartItems.reduce((sum, item) => {
-      return item.selected ? sum + (item.price * item.quantity) : sum;
-    }, 0);
-    setTotalPrice(total);
+    const selected = cartItems.filter((i) => i.selected);
+    const itemsForPricing = selected.map(i => {
+      const canvas = i.layoutData?.canvas
+        ? {
+          width: i.layoutData.canvas.width,
+          height: i.layoutData.canvas.height,
+          unit: i.layoutData.canvas.unit,
+          thickness: i.layoutData.canvas.thickness,
+          materialColor: i.layoutData.canvas.materialColor
+        }
+        : undefined;
+
+      const toolsMini: MiniTool[] | undefined =
+        Array.isArray(i.layoutData?.tools)
+          ? i.layoutData.tools.map((t): MiniTool => ({
+            isText:
+              t.name === 'TEXT' ||
+              t.name.toLowerCase() === 'text' ||
+              t.toolBrand === 'TEXT' ||
+              t.toolType === 'text'
+          }))
+          : undefined;
+
+      return canvas
+        ? { id: i.id, name: i.name, quantity: i.quantity, layoutData: { canvas, tools: toolsMini } }
+        : { id: i.id, name: i.name, quantity: i.quantity };
+    });
+
+    const pricing = calculateOrderPricing(itemsForPricing);
+    setTotalPrice(pricing.totals.customerTotal);
   }, [cartItems]);
 
   // Add item to cart
   const addToCart = async (item: Omit<CartItem, "quantity" | "selected">) => {
     const token = getAuthToken();
-    
+
     // Check for authentication - either user object or token should exist
     if (!user && !token) {
       throw new Error("Please log in to add items to cart");
@@ -218,7 +253,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   // Update item quantity
   const updateQuantity = async (id: string, quantity: number) => {
     if (quantity < 1) return;
-    
+
     const token = getAuthToken();
     if (!token) {
       console.log('No auth token for updateQuantity');
@@ -295,9 +330,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
     try {
       setLoading(true);
-      
+
       // Update all items locally first for immediate feedback
-      setCartItems(prevItems => 
+      setCartItems(prevItems =>
         prevItems.map(item => ({ ...item, selected }))
       );
 

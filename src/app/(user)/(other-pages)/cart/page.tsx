@@ -68,25 +68,39 @@ const Cart = () => {
   //   }
   // }, [user, syncCart]);
 
-  const handleSubmitOrder = () => {
+  const handleSubmitOrder = async () => {
     if (!isAuthenticated()) {
       toast.error("Please log in to submit an order");
       return;
     }
 
-    const selectedItems = cartItems.filter(item => item.selected);
-    if (selectedItems.length === 0) {
+    const selectedIds = cartItems.filter((item) => item.selected).map((i) => i.id);
+    if (selectedIds.length === 0) {
       toast.error("Please select at least one item to submit an order");
       return;
     }
 
     setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      toast.success("Order submitted successfully! Stripe integration will be added later.");
+    try {
+      const token = localStorage.getItem("auth-token");
+      const res = await fetch("/api/cart/checkout", {
+        method: "POST",
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ selectedItemIds: selectedIds }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.url) {
+        throw new Error(data?.error || "Failed to start checkout");
+      }
+      window.location.href = data.url;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Checkout failed";
+      toast.error(msg);
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   // Show loading state while checking authentication or loading cart
@@ -306,12 +320,10 @@ const Cart = () => {
               {/* Price Breakdown */}
               <div className="pb-4 mb-4">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Layout Base Price</span>
+                  <span className="text-gray-600">Order Total</span>
                   <span>${totalPrice.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Base price per layout design</span>
-                </div>
+
               </div>
               
               <div className="border-b pb-4 mb-4">
