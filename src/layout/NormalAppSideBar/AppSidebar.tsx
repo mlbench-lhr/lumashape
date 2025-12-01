@@ -121,6 +121,26 @@ const navItems: NavItem[] = [
     name: "Profile",
     path: "/profile",
   },
+  {
+    icon: (
+      <Image
+        src="/images/icons/sidebar/cart.svg"
+        alt="My Orders"
+        width={24}
+        height={24}
+      />
+    ),
+    iconActive: (
+      <Image
+        src="/images/icons/sidebar/active/cart.svg"
+        alt="My Orders Active"
+        width={24}
+        height={24}
+      />
+    ),
+    name: "My Orders",
+    path: "/my-orders",
+  }
 ];
 
 const othersItems: NavItem[] = [];
@@ -254,8 +274,8 @@ const NormalAppSidebar: React.FC = () => {
               >
                 <span
                   className={`transition-all duration-200 ${openSubmenu?.type === menuType && openSubmenu?.index === index
-                      ? "text-primary"
-                      : "text-gray-600"
+                    ? "text-primary"
+                    : "text-gray-600"
                     }`}
                 >
                   {nav.icon}
@@ -263,9 +283,9 @@ const NormalAppSidebar: React.FC = () => {
                 {!shouldShowIconsOnly && (
                   <span
                     className={`font-medium transition-colors ${openSubmenu?.type === menuType &&
-                        openSubmenu?.index === index
-                        ? "text-primary"
-                        : "text-gray-700"
+                      openSubmenu?.index === index
+                      ? "text-primary"
+                      : "text-gray-700"
                       }`}
                   >
                     {nav.name}
@@ -319,8 +339,8 @@ const NormalAppSidebar: React.FC = () => {
                       >
                         <span
                           className={`${isActive(subItem.path)
-                              ? "text-primary font-medium"
-                              : "text-gray-600"
+                            ? "text-primary font-medium"
+                            : "text-gray-600"
                             }`}
                         >
                           {subItem.name}
@@ -329,8 +349,8 @@ const NormalAppSidebar: React.FC = () => {
                           {subItem.new && (
                             <span
                               className={`px-2 py-1 text-xs rounded-full ${isActive(subItem.path)
-                                  ? "bg-primary/10 text-primary"
-                                  : "bg-gray-100 text-gray-600"
+                                ? "bg-primary/10 text-primary"
+                                : "bg-gray-100 text-gray-600"
                                 }`}
                             >
                               new
@@ -339,8 +359,8 @@ const NormalAppSidebar: React.FC = () => {
                           {subItem.pro && (
                             <span
                               className={`px-2 py-1 text-xs rounded-full ${isActive(subItem.path)
-                                  ? "bg-primary/10 text-primary"
-                                  : "bg-gray-100 text-gray-600"
+                                ? "bg-primary/10 text-primary"
+                                : "bg-gray-100 text-gray-600"
                                 }`}
                             >
                               pro

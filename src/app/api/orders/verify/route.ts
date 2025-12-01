@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import jwt from 'jsonwebtoken'
 import dbConnect from '@/utils/dbConnect'
 import ManufacturingOrder from '@/lib/models/ManufacturingOrder'
+import Cart from '@/lib/models/Cart'
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY!
 const JWT_SECRET = process.env.JWT_SECRET!
@@ -31,6 +32,15 @@ export async function POST(req: NextRequest) {
     order.status = 'paid'
     order.stripePaymentIntentId = (session.payment_intent as Stripe.PaymentIntent | null)?.id || null
     await order.save()
+
+    try {
+      const cart = await Cart.findOne({ userEmail: order.buyerEmail })
+      if (cart && Array.isArray(order.items) && order.items.length > 0) {
+        const removeIds = order.items.map(i => i.layoutId)
+        cart.items = cart.items.filter(item => !removeIds.includes(item.id))
+        await cart.save()
+      }
+    } catch {}
 
     return NextResponse.json({ verified: true })
   } catch (err) {

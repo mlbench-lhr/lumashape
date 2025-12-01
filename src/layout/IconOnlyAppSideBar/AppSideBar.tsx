@@ -101,6 +101,26 @@ const navItems: NavItem[] = [
   {
     icon: (
       <Image
+        src="/images/icons/sidebar/cart.svg"
+        alt="My Orders"
+        width={24}
+        height={24}
+      />
+    ),
+    iconActive: (
+      <Image
+        src="/images/icons/sidebar/active/cart.svg"
+        alt="My Orders Active"
+        width={24}
+        height={24}
+      />
+    ),
+    name: "My Orders",
+    path: "/my-orders",
+  },
+  {
+    icon: (
+      <Image
         src="/images/icons/sidebar/profile.svg"
         alt="Profile"
         width={24}
@@ -118,6 +138,26 @@ const navItems: NavItem[] = [
     name: "Profile",
     path: "/profile",
   },
+  {
+    icon: (
+      <Image
+        src="/images/icons/sidebar/cart.svg"
+        alt="My Orders"
+        width={24}
+        height={24}
+      />
+    ),
+    iconActive: (
+      <Image
+        src="/images/icons/sidebar/active/cart.svg"
+        alt="My Orders Active"
+        width={24}
+        height={24}
+      />
+    ),
+    name: "My Orders",
+    path: "/my-orders",
+  }
 ];
 
 const DesignLayoutAppSidebar: React.FC = () => {
@@ -127,21 +167,21 @@ const DesignLayoutAppSidebar: React.FC = () => {
   const isActive = useCallback(
     (path: string) => {
       if (!path) return false;
-      
+
       // Exact match or with trailing slash
       if (pathname === path || pathname === `${path}/`) {
         return true;
       }
-      
+
       // Check for nested paths under workspace and tools-inventory
       if (path === '/workspace') {
         return pathname.startsWith('/workspace/');
       }
-      
+
       if (path === '/tools-inventory') {
         return pathname.startsWith('/tools-inventory/');
       }
-      
+
       return false;
     },
     [pathname]
@@ -155,9 +195,8 @@ const DesignLayoutAppSidebar: React.FC = () => {
             {nav.path && (
               <Link
                 href={nav.path}
-                className={`group flex items-center justify-center w-full p-3 transition-colors rounded-lg hover:bg-gray-50 ${
-                  isActive(nav.path) ? "bg-primary/5" : ""
-                }`}
+                className={`group flex items-center justify-center w-full p-3 transition-colors rounded-lg hover:bg-gray-50 ${isActive(nav.path) ? "bg-primary/5" : ""
+                  }`}
                 title={nav.name} // Always show tooltip for icon-only mode
               >
                 <span className="transition-all duration-200">

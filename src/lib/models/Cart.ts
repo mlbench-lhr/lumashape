@@ -8,6 +8,7 @@ export interface ICartItem {
   containerSize: string
   price: number
   snapshotUrl?: string
+  dxfUrl?: string
   quantity: number
   selected: boolean
   layoutData?: {
@@ -72,6 +73,9 @@ const CartItemSchema: Schema<ICartItem> = new mongoose.Schema(
       min: 0,
     },
     snapshotUrl: {
+      type: String,
+    },
+    dxfUrl: {
       type: String,
     },
     quantity: {

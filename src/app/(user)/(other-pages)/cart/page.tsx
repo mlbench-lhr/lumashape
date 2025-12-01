@@ -70,37 +70,16 @@ const Cart = () => {
 
   const handleSubmitOrder = async () => {
     if (!isAuthenticated()) {
-      toast.error("Please log in to submit an order");
+      toast.error("Please log in to checkout");
       return;
     }
-
     const selectedIds = cartItems.filter((item) => item.selected).map((i) => i.id);
     if (selectedIds.length === 0) {
-      toast.error("Please select at least one item to submit an order");
+      toast.error("Please select at least one item to checkout");
       return;
     }
-
-    setIsSubmitting(true);
-    try {
-      const token = localStorage.getItem("auth-token");
-      const res = await fetch("/api/cart/checkout", {
-        method: "POST",
-        headers: {
-          Authorization: token ? `Bearer ${token}` : "",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ selectedItemIds: selectedIds }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data?.url) {
-        throw new Error(data?.error || "Failed to start checkout");
-      }
-      window.location.href = data.url;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Checkout failed";
-      toast.error(msg);
-      setIsSubmitting(false);
-    }
+    const qs = encodeURIComponent(selectedIds.join(','));
+    window.location.href = `/checkout?items=${qs}`;
   };
 
   // Show loading state while checking authentication or loading cart
@@ -343,7 +322,7 @@ const Cart = () => {
                 onClick={handleSubmitOrder}
                 disabled={isSubmitting || loading || cartItems.filter(item => item.selected).length === 0}
               >
-                {isSubmitting ? 'Processing...' : 'Submit Order'}
+                {isSubmitting ? 'Redirecting...' : 'Checkout'}
               </button>
               
               {cartItems.filter(item => item.selected).length === 0 && (

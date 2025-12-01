@@ -8,7 +8,8 @@ import { calculateOrderPricing, DEFAULT_PRICING } from '@/utils/pricing'
 
 const JWT_SECRET = process.env.JWT_SECRET!
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY!
-const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN || 'https://lumashape.vercel.app'
+//const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN || 'https://lumashape.vercel.app'
+const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN || 'http://localhost:3000'
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2025-08-27.basil' })
 
@@ -39,7 +40,9 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Cart not found' }, { status: 404 })
         }
 
-        const { selectedItemIds } = await req.json().catch(() => ({ selectedItemIds: [] as string[] }))
+        const body = await req.json().catch(() => ({} as any))
+        const selectedItemIds: string[] = Array.isArray(body.selectedItemIds) ? body.selectedItemIds : []
+        const shipping = body.shipping
         const selected = cart.items.filter(i => i.selected && (selectedItemIds?.length ? selectedItemIds.includes(i.id) : true))
         if (selected.length === 0) {
             return NextResponse.json({ error: 'No selected items' }, { status: 400 })
@@ -84,9 +87,11 @@ export async function POST(req: NextRequest) {
                 quantity: i.quantity,
                 canvas: i.layoutData?.canvas,
                 hasTextEngraving: hasText(i.layoutData?.tools),
+                dxfUrl: (i as any).dxfUrl || undefined,
             })),
             totals: pricing.totals,
             parameters: pricing.parameters,
+            shipping,
             status: 'pending',
         });
 
