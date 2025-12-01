@@ -9,6 +9,7 @@ export interface IOrderItem {
   quantity: number
   canvas: { width: number; height: number; unit: Unit; thickness: number; materialColor?: string }
   hasTextEngraving: boolean
+  dxfUrl?: string
 }
 
 export interface IPricingTotals {
@@ -34,11 +35,23 @@ export interface IPricingParams {
   lumashapeMarginPct: number
 }
 
+export interface IShipping {
+  name: string
+  address1: string
+  address2?: string
+  city: string
+  state: string
+  postalCode: string
+  country: string
+  phone?: string
+}
+
 export interface IManufacturingOrder extends Document {
   buyerEmail: string
   items: IOrderItem[]
   totals: IPricingTotals
   parameters: IPricingParams
+  shipping?: IShipping
   stripeSessionId?: string | null
   stripePaymentIntentId?: string | null
   status: Status
@@ -58,6 +71,7 @@ const OrderItemSchema = new Schema<IOrderItem>({
     materialColor: { type: String, default: 'black' },
   },
   hasTextEngraving: { type: Boolean, required: true, default: false },
+  dxfUrl: { type: String },
 }, { _id: false })
 
 const ManufacturingOrderSchema = new Schema<IManufacturingOrder>({
@@ -83,6 +97,16 @@ const ManufacturingOrderSchema = new Schema<IManufacturingOrder>({
     packagingCostPerOrder: { type: Number, required: true },
     kaiserMarginPct: { type: Number, required: true },
     lumashapeMarginPct: { type: Number, required: true },
+  },
+  shipping: {
+    name: { type: String },
+    address1: { type: String },
+    address2: { type: String },
+    city: { type: String },
+    state: { type: String },
+    postalCode: { type: String },
+    country: { type: String },
+    phone: { type: String },
   },
   stripeSessionId: { type: String, default: null, index: true },
   stripePaymentIntentId: { type: String, default: null, index: true },

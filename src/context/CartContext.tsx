@@ -11,6 +11,7 @@ export interface CartItem {
   containerSize: string;
   price: number;
   snapshotUrl?: string;
+  dxfUrl?: string;
   quantity: number;
   selected: boolean;
   layoutData?: {

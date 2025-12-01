@@ -126,9 +126,10 @@ const Header: React.FC<HeaderProps> = ({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isDxfGenerating, setIsDxfGenerating] = useState(false);
-  const [isCartInfoOpen, setIsCartInfoOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const { addToCart } = useCart();
+const [isCartInfoOpen, setIsCartInfoOpen] = useState(false);
+const [isAddingToCart, setIsAddingToCart] = useState(false);
+const dropdownRef = useRef<HTMLDivElement>(null);
+const { addToCart } = useCart();
 
   const thicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
   const allowedDepthInches = Math.max(0, thicknessInches - 0.25);
@@ -154,6 +155,7 @@ const Header: React.FC<HeaderProps> = ({
 
 
     setIsSaving(true);
+    setIsAddingToCart(true);
     setSaveError(null);
 
     try {
@@ -233,6 +235,7 @@ const Header: React.FC<HeaderProps> = ({
         tools: cartTools,
       };
       const calculatedPrice = calculatePriceFromLayoutData(cartLayoutData);
+      const dxfUrl = await composeDxfForLayout().catch(() => null);
       await addToCart({
         id: savedLayoutId,
         name: layoutName,
@@ -240,6 +243,7 @@ const Header: React.FC<HeaderProps> = ({
         price: calculatedPrice,
         snapshotUrl,
         layoutData: cartLayoutData,
+        dxfUrl: dxfUrl || undefined,
       });
       toast.success("Layout saved and added to cart successfully!");
     } catch (error) {
@@ -249,6 +253,7 @@ const Header: React.FC<HeaderProps> = ({
       );
     } finally {
       setIsSaving(false);
+      setIsAddingToCart(false);
     }
   };
 
@@ -815,6 +820,142 @@ const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  const composeDxfForLayout = async (): Promise<string | null> => {
+    if (droppedTools.length === 0) return null;
+    try {
+      let layoutName = "Tool Layout";
+      const sessionData = sessionStorage.getItem("layoutForm");
+      if (sessionData) {
+        try {
+          const layoutForm = JSON.parse(sessionData) as LayoutFormData;
+          layoutName = layoutForm.layoutName || layoutName;
+        } catch {}
+      }
+      const canvasWidthInches = unit === "mm" ? mmToInches(canvasWidth) : canvasWidth;
+      const canvasHeightInches = unit === "mm" ? mmToInches(canvasHeight) : canvasHeight;
+      const canvasThicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
+      const authToken = localStorage.getItem("auth-token");
+      if (!authToken) return null;
+      const tools: ToolPayload[] = [];
+      const shapes: ShapePayload[] = [];
+      for (const droppedTool of droppedTools) {
+        const { toolHeight, toolWidth } = getToolDimensions(droppedTool);
+        const xInches = convertPositionToInches(droppedTool.x, canvasWidth, true);
+        const yInches = convertPositionToInches(droppedTool.y + toolHeight, canvasHeight, false);
+        const isFingerCut = droppedTool.toolBrand === "FINGERCUT" || droppedTool.metadata?.isFingerCut;
+        const isTextTool = droppedTool.toolBrand === "TEXT" || droppedTool.toolType === "text";
+        if (isTextTool) {
+          const DPI = 96;
+          const widthInches = Number((toolWidth / DPI).toFixed(3));
+          const heightInches = Number((toolHeight / DPI).toFixed(3));
+          shapes.push({
+            tool_id: droppedTool.id,
+            name: droppedTool.name || "Text",
+            brand: "Text",
+            is_custom_shape: true,
+            shape_type: "text",
+            shape_data: {
+              width_inches: widthInches,
+              height_inches: heightInches,
+              content: droppedTool.textContent ?? "",
+              font_size_px: droppedTool.textFontSizePx ?? 24,
+              align: droppedTool.textAlign ?? "center",
+              color: droppedTool.textColor || "#000000",
+            },
+            position_inches: { x: xInches, y: yInches, z: 0 },
+            rotation_degrees: normalizeRotationDeg(droppedTool.rotation),
+            cut_depth_inches: await computeDepthInches(droppedTool),
+            flip_horizontal: droppedTool.flipHorizontal || false,
+            flip_vertical: droppedTool.flipVertical || false,
+          });
+          continue;
+        }
+        if (droppedTool.toolBrand === "SHAPE" || isFingerCut) {
+          let shapeType: "rectangle" | "circle" | "polygon" | "fingercut" = "rectangle";
+          let shapeData;
+          if (isFingerCut || droppedTool.name.toLowerCase().includes("finger")) {
+            const widthInches = unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
+            const heightInches = unit === "mm" ? mmToInches(droppedTool.length) : droppedTool.length;
+            shapeData = { width_inches: widthInches, height_inches: heightInches };
+            shapeType = "fingercut";
+          } else if (droppedTool.name.toLowerCase().includes("circle") || (droppedTool.image || "").includes("circle.svg")) {
+            shapeType = "circle";
+            const diameter = Math.max(droppedTool.width, droppedTool.length);
+            const radiusInches = unit === "mm" ? mmToInches(diameter / 2) : diameter / 2;
+            shapeData = { radius_inches: radiusInches };
+          } else if (droppedTool.name.toLowerCase().includes("polygon")) {
+            shapeType = "polygon";
+            const widthInches = unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
+            const heightInches = unit === "mm" ? mmToInches(droppedTool.length) : droppedTool.length;
+            shapeData = { points: [ { x: 0, y: 0 }, { x: widthInches, y: 0 }, { x: widthInches, y: heightInches }, { x: 0, y: heightInches } ] };
+          } else {
+            const widthInches = unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
+            const heightInches = unit === "mm" ? mmToInches(droppedTool.length) : droppedTool.length;
+            shapeData = { width_inches: widthInches, height_inches: heightInches };
+            shapeType = "rectangle";
+          }
+          shapes.push({
+            tool_id: droppedTool.id,
+            name: droppedTool.name,
+            brand: "Custom",
+            is_custom_shape: true,
+            shape_type: shapeType,
+            shape_data: shapeData,
+            position_inches: { x: xInches, y: yInches, z: 0 },
+            rotation_degrees: normalizeRotationDeg(droppedTool.rotation),
+            cut_depth_inches: droppedTool.depth ?? 0.2,
+            flip_horizontal: droppedTool.flipHorizontal || false,
+            flip_vertical: droppedTool.flipVertical || false,
+          });
+          continue;
+        }
+        const toolId = droppedTool.metadata?.originalId || droppedTool.id.split("-").slice(0, -1).join("-");
+        const toolRes = await fetch(`/api/user/tool/getTool?toolId=${toolId}`, { headers: { Authorization: `Bearer ${authToken}` } });
+        if (!toolRes.ok) continue;
+        const { tool } = await toolRes.json();
+        if (!tool?.cvResponse?.dxf_url) continue;
+        tools.push({
+          tool_id: toolId,
+          name: droppedTool.name,
+          brand: tool.toolBrand || "Brand",
+          dxf_link: (tool.cvResponse.dxf_url || "").trim(),
+          position_inches: { x: xInches, y: yInches, z: 0 },
+          rotation_degrees: normalizeRotationDeg(droppedTool.rotation),
+          height_diagonal_inches: computeLengthInches(droppedTool, tool),
+          depth_inches: await computeDepthInches(droppedTool, tool),
+          cut_depth_inches: await computeDepthInches(droppedTool, tool),
+          flip_horizontal: droppedTool.flipHorizontal || false,
+          flip_vertical: droppedTool.flipVertical || false,
+          opacity: droppedTool.opacity || 100,
+          smooth: droppedTool.smooth || 0,
+        });
+      }
+      const requestData = {
+        canvas_information: {
+          width_inches: canvasWidthInches,
+          height_inches: canvasHeightInches,
+          thickness_inches: canvasThicknessInches,
+          has_overlaps: hasOverlaps,
+          canvas_color: materialColor,
+        },
+        layout_metadata: {
+          layout_name: layoutName,
+          brand: "CustomBrand",
+          container_type: "Drawer",
+        },
+        tools: [...tools, ...shapes],
+        output_filename: `${layoutName.replace(/\s+/g, "_")}-layout.dxf`,
+        upload_to_s3: true,
+      };
+      const response = await fetch("/api/dxf-proxy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(requestData) });
+      if (!response.ok) return null;
+      const data = await response.json().catch(() => null);
+      return (data && (data.s3_url || data.s3Url)) ? (data.s3_url || data.s3Url) : null;
+    } catch {
+      return null;
+    }
+  };
+
   // Generate comprehensive text file data (always in inches + diagonal height + position in inches)
   const generateTextFileData = (): string => {
     const timestamp = new Date().toISOString();
@@ -1334,6 +1475,7 @@ const Header: React.FC<HeaderProps> = ({
       label: "Add to cart",
       action: handleAddToCart,
       disabled:
+        isAddingToCart ||
         hasOverlaps ||
         droppedTools.length === 0 ||
         !(
@@ -1350,6 +1492,7 @@ const Header: React.FC<HeaderProps> = ({
             })())
         ) ||
         floorViolationCount > 0,
+      loading: isAddingToCart,
     },
   ];
 
@@ -1449,7 +1592,9 @@ const Header: React.FC<HeaderProps> = ({
                           <option.icon className="w-4 h-4" />
                         )}
                         <span>
-                          {option.loading ? "Downloading DXF..." : option.label}
+                          {option.loading
+                            ? (option.label === "Add to cart" ? "Adding to cart..." : "Downloading DXF...")
+                            : option.label}
                         </span>
                         {option.label === "Add to cart" && option.disabled && floorViolationCount > 0 && (
                           <div className="relative flex-shrink-0">
