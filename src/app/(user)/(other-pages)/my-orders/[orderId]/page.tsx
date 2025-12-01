@@ -97,7 +97,7 @@ export default function OrderDetails() {
               <Package className="w-12 h-12 text-gray-400" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Order Not Found</h2>
-            <p className="text-gray-600 mb-6">The order you're looking for does not exist or you don't have access to view it.</p>
+            <p className="text-gray-600 mb-6">{`The order you're looking for does not exist or you don't have access to view it.`}</p>
             <Link href="/my-orders" className="inline-flex items-center gap-2 px-6 py-3 bg-[#2E6C99] text-white rounded-lg hover:bg-[#235478] transition-colors font-medium">
               <ArrowLeft className="w-4 h-4" />
               Return to My Orders
@@ -207,7 +207,7 @@ export default function OrderDetails() {
                               <div className="text-sm">
                                 <span className="text-gray-600">Thickness:</span>
                                 <span className="ml-2 font-medium text-gray-900">
-                                  {item.canvas.thickness}"
+                                  {`${item.canvas.thickness}"`}
                                 </span>
                               </div>
                               {item.canvas.materialColor && (

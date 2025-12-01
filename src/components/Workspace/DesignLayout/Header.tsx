@@ -872,7 +872,7 @@ const { addToCart } = useCart();
         }
         if (droppedTool.toolBrand === "SHAPE" || isFingerCut) {
           let shapeType: "rectangle" | "circle" | "polygon" | "fingercut" = "rectangle";
-          let shapeData: any;
+          let shapeData;
           if (isFingerCut || droppedTool.name.toLowerCase().includes("finger")) {
             const widthInches = unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
             const heightInches = unit === "mm" ? mmToInches(droppedTool.length) : droppedTool.length;

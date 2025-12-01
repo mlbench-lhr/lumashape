@@ -8,13 +8,18 @@ import { calculateOrderPricing, DEFAULT_PRICING } from '@/utils/pricing'
 
 const JWT_SECRET = process.env.JWT_SECRET!
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY!
-//const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN || 'https://lumashape.vercel.app'
-const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN || 'http://localhost:3000'
+//const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN || 'http://localhost:3000'
+const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN || 'https://lumashape.vercel.app'
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2025-08-27.basil' })
 
 interface MiniTool {
     isText: boolean;
+}
+
+interface CheckoutRequestBody {
+    selectedItemIds?: string[];
+    shipping?: unknown;
 }
 
 function toMiniTools(tools: { name: string }[] | undefined): MiniTool[] | undefined {
@@ -24,13 +29,14 @@ function toMiniTools(tools: { name: string }[] | undefined): MiniTool[] | undefi
     }));
 }
 
-
 export async function POST(req: NextRequest) {
     try {
         await dbConnect()
 
         const token = req.headers.get('Authorization')?.split(' ')[1]
-        if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        if (!token) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
 
         const decoded = jwt.verify(token, JWT_SECRET) as { email: string }
         const buyerEmail = decoded.email
@@ -40,14 +46,21 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Cart not found' }, { status: 404 })
         }
 
-        const body = await req.json().catch(() => ({} as any))
-        const selectedItemIds: string[] = Array.isArray(body.selectedItemIds) ? body.selectedItemIds : []
+        // Parse body safely
+        const body = (await req.json()) as CheckoutRequestBody
+        const selectedItemIds = Array.isArray(body.selectedItemIds) ? body.selectedItemIds : []
         const shipping = body.shipping
-        const selected = cart.items.filter(i => i.selected && (selectedItemIds?.length ? selectedItemIds.includes(i.id) : true))
+
+        // Selected items
+        const selected = cart.items.filter(i =>
+            i.selected && (selectedItemIds.length ? selectedItemIds.includes(i.id) : true)
+        )
+
         if (selected.length === 0) {
             return NextResponse.json({ error: 'No selected items' }, { status: 400 })
         }
 
+        // Type-safe mapping for pricing items
         const itemsForPricing = selected.map(i => {
             const canvas = i.layoutData?.canvas
                 ? {
@@ -57,28 +70,27 @@ export async function POST(req: NextRequest) {
                     thickness: i.layoutData.canvas.thickness,
                     materialColor: i.layoutData.canvas.materialColor,
                 }
-                : undefined;
+                : undefined
 
-            const toolsMini = toMiniTools(i.layoutData?.tools);
+            const toolsMini = toMiniTools(i.layoutData?.tools)
 
             return {
                 id: i.id,
                 name: i.name,
                 quantity: i.quantity,
                 layoutData: canvas ? { canvas, tools: toolsMini } : undefined
-            };
-        });
-
+            }
+        })
 
         const pricing = calculateOrderPricing(itemsForPricing, DEFAULT_PRICING)
 
         const totalQty = selected.reduce((s, i) => s + i.quantity, 0)
 
-        const hasText = (tools: { name: string }[] | undefined): boolean => {
-            if (!Array.isArray(tools)) return false;
-            return tools.some(t => t.name.trim().toLowerCase() === 'text');
-        };
+        const hasText = (tools: { name: string }[] | undefined): boolean =>
+            Array.isArray(tools) &&
+            tools.some(t => t.name.trim().toLowerCase() === 'text')
 
+        // Create order
         const order = await ManufacturingOrder.create({
             buyerEmail,
             items: selected.map(i => ({
@@ -87,15 +99,15 @@ export async function POST(req: NextRequest) {
                 quantity: i.quantity,
                 canvas: i.layoutData?.canvas,
                 hasTextEngraving: hasText(i.layoutData?.tools),
-                dxfUrl: (i as any).dxfUrl || undefined,
+                dxfUrl: (i as Record<string, unknown>).dxfUrl as string | undefined,
             })),
             totals: pricing.totals,
             parameters: pricing.parameters,
             shipping,
             status: 'pending',
-        });
+        })
 
-
+        // Stripe session
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
             line_items: [{

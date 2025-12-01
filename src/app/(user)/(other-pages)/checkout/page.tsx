@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
@@ -73,7 +73,7 @@ const US_STATES = [
     { code: 'WY', name: 'Wyoming' }
 ];
 
-export default function CheckoutPage() {
+function CheckoutContent() {
     const search = useSearchParams();
     const { cartItems } = useCart();
     const { user } = useUser();
@@ -257,7 +257,7 @@ export default function CheckoutPage() {
                         {/* Contact Information */}
                         <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
                             <h2 className="text-xl font-bold text-gray-900 mb-1">Contact Information</h2>
-                            <p className="text-sm text-gray-600 mb-6">We'll use this information to send order updates</p>
+                            <p className="text-sm text-gray-600 mb-6">{`We'll use this information to send order updates`}</p>
 
                             <div className="space-y-4">
                                 <div>
@@ -438,10 +438,10 @@ export default function CheckoutPage() {
                                                 <div className="flex-1 min-w-0">
                                                     <h3 className="font-semibold text-gray-900 text-sm truncate">{item.name}</h3>
                                                     <p className="text-xs text-gray-600 mt-1">
-                                                        Size: {item.containerSize} x {item.layoutData?.canvas.thickness}"
+                                                        {`Size: ${item.containerSize} x ${item.layoutData?.canvas.thickness}"`}
                                                     </p>
                                                     <p className="text-xs text-gray-600">
-                                                        Color: {item.layoutData?.canvas.materialColor}
+                                                        {`Color: ${item.layoutData?.canvas.materialColor || 'Not specified'}`}
                                                     </p>
                                                     <div className="flex items-center justify-between mt-2">
                                                         <span className="text-xs text-gray-600">Qty: {item.quantity}</span>
@@ -503,4 +503,12 @@ export default function CheckoutPage() {
             </div>
         </div>
     );
+}
+
+export default function CheckoutPage() {
+    return (
+        <Suspense fallback={<div className="container mx-auto py-8 px-4"><h1 className="text-2xl font-bold mb-8">Checkout</h1><div className="text-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div><p className="text-gray-600">Loading checkout...</p></div></div>}>
+            <CheckoutContent />
+        </Suspense>
+    )
 }
