@@ -87,9 +87,12 @@ const convertUnits = (value: number, from: Unit, to: Unit) =>
 // px -> units helper
 const pxToUnits = (px: number, unit: Unit) => unit === 'mm' ? (px / 96) * 25.4 : (px / 96);
 
-function getAuthToken(): string | null {
+function getAnyToken(): string | null {
   try {
-    return typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+    if (typeof window === 'undefined') return null;
+    const user = localStorage.getItem('auth-token');
+    const admin = localStorage.getItem('admin-token');
+    return user || admin || null;
   } catch {
     return null;
   }
@@ -107,12 +110,12 @@ export default function InspectLayoutPage({
 
   useEffect(() => {
     async function loadLayout() {
-      const token = getAuthToken();
-      if (!token) return;
+      const token = getAnyToken();
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
 
       const res = await fetch(`/api/layouts?id=${layoutId}`, {
         method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
+        headers,
       });
 
       const json = await res.json();

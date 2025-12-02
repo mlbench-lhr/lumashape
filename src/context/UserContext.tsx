@@ -37,6 +37,7 @@ interface UserContextType {
   refreshSubscription: () => Promise<void>;
   isSubscribed: () => boolean;
   isPremium: () => boolean;
+  isLoading: boolean;
 }
 
 // Create context
@@ -158,6 +159,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     refreshSubscription,
     isSubscribed,
     isPremium,
+    isLoading: false,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
