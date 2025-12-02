@@ -66,7 +66,9 @@ interface LayoutRequestBody extends LayoutData {
 // JWT payload interface
 interface JWTPayload {
   email: string;
-  [key: string]: unknown;
+  role?: string;
+  iat?: number;
+  exp?: number;
 }
 
 // Search query interface for MongoDB
@@ -276,20 +278,29 @@ export async function GET(req: NextRequest) {
         );
       }
 
-      // Optional auth: if present, use to determine ownership/purchase
-      const token = req.headers.get("Authorization")?.split(" ")[1];
+      // Optional auth: accept user token or admin token
+      const authHeader = req.headers.get("Authorization");
+      const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.substring(7) : undefined;
+      const cookieAdminToken = req.cookies.get("admin-token")?.value;
+      const token = bearerToken || cookieAdminToken;
       let requesterEmail: string | null = null;
+      let isAdmin = false;
 
       if (token) {
         try {
-          const decoded = jwt.verify(token, JWT_SECRET);
+          const decoded = jwt.verify(token, JWT_SECRET) as unknown;
+
           if (isValidJWTPayload(decoded)) {
+            // now TypeScript knows decoded is JWTPayload
             requesterEmail = decoded.email.toLowerCase().trim();
+            isAdmin = decoded.role === "admin";
           }
+
         } catch {
           // Ignore token errors for public published access
         }
       }
+
 
       const layout = await Layout.findById(id).lean();
       if (!layout) {
@@ -308,7 +319,7 @@ export async function GET(req: NextRequest) {
         layout.downloadedByUsers.includes(requesterEmail);
       const isPublished = Boolean(layout.published);
 
-      if (isOwner || isPublished || isBuyer) {
+      if (isAdmin || isOwner || isPublished || isBuyer) {
         return NextResponse.json({ success: true, data: layout });
       }
 

@@ -30,6 +30,14 @@ interface Tool {
   depth?: number;
 }
 
+interface ILayout {
+  _id: string;
+  snapshotUrl?: string | null;
+  canvas: Record<string, unknown>; // Or your proper canvas type
+  name: string;
+}
+
+
 interface Canvas {
   width: number;
   height: number;
