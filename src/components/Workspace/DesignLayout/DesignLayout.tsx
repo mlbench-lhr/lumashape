@@ -14,7 +14,7 @@ function DesignLayout({
   readOnly,
 }: {
   initialDroppedTools?: DroppedTool[];
-  initialCanvas?: { width: number; height: number; unit: 'mm' | 'inches'; thickness: number };
+  initialCanvas?: { width: number; height: number; unit: 'mm' | 'inches'; thickness: number; materialColor?: string };
   editingLayoutId?: string;
   readOnly?: boolean;
 }) {
@@ -36,7 +36,7 @@ function DesignLayout({
   const [canvasHeight, setCanvasHeight] = useState<number>(initialCanvas?.height ?? 300);
   const [thickness, setThickness] = useState<number>(initialCanvas?.thickness ?? 12.7);
   const [unit, setUnit] = useState<'mm' | 'inches'>(initialCanvas?.unit ?? 'mm');
-  const [materialColor, setMaterialColor] = useState<string>('');
+  const [materialColor, setMaterialColor] = useState<string>(initialCanvas?.materialColor ?? '');
 
   useEffect(() => {
     if (editingLayoutId) {
@@ -68,19 +68,7 @@ function DesignLayout({
       : value * 25.4;
   };
 
-  // Handle unit change - convert canvas dimensions only; tools keep native units
-  const handleUnitChange = useCallback((newUnit: 'mm' | 'inches') => {
-    if (newUnit === unit) return;
 
-    const convertedCanvasWidth = parseFloat(convertValue(canvasWidth, unit, newUnit).toFixed(3));
-    const convertedCanvasHeight = parseFloat(convertValue(canvasHeight, unit, newUnit).toFixed(3));
-    const convertedThickness = parseFloat(convertValue(thickness, unit, newUnit).toFixed(3));
-
-    setCanvasWidth(convertedCanvasWidth);
-    setCanvasHeight(convertedCanvasHeight);
-    setThickness(convertedThickness);
-    setUnit(newUnit);
-  }, [unit, canvasWidth, canvasHeight, thickness]);
 
   // Batch history while an interaction is in progress
   const [isHistoryBatching, setIsHistoryBatching] = useState(false);
@@ -100,6 +88,36 @@ function DesignLayout({
   const beginHistoryBatch = useCallback(() => {
     setIsHistoryBatching(true);
   }, []);
+
+
+  // Handle unit change - convert canvas and normalize tool units for shapes/finger cuts/text
+  const handleUnitChange = useCallback((newUnit: 'mm' | 'inches') => {
+    if (newUnit === unit) return;
+
+    const convertedCanvasWidth = parseFloat(convertValue(canvasWidth, unit, newUnit).toFixed(3));
+    const convertedCanvasHeight = parseFloat(convertValue(canvasHeight, unit, newUnit).toFixed(3));
+    const convertedThickness = parseFloat(convertValue(thickness, unit, newUnit).toFixed(3));
+
+    setCanvasWidth(convertedCanvasWidth);
+    setCanvasHeight(convertedCanvasHeight);
+    setThickness(convertedThickness);
+    setUnit(newUnit);
+
+    updateDroppedTools(prev =>
+      prev.map(tool => {
+        const isShape = tool.toolBrand === 'SHAPE';
+        const isFinger = tool.metadata?.isFingerCut || tool.toolBrand === 'FINGERCUT';
+        const isText = tool.toolBrand === 'TEXT' || tool.toolType === 'text';
+        if (!isShape && !isFinger && !isText) return tool;
+
+        const width = parseFloat(convertValue(tool.width, tool.unit, newUnit).toFixed(2));
+        const length = parseFloat(convertValue(tool.length, tool.unit, newUnit).toFixed(2));
+        const depth = parseFloat(convertValue(tool.depth, tool.unit, newUnit).toFixed(2));
+
+        return { ...tool, width, length, depth, unit: newUnit };
+      })
+    );
+  }, [unit, canvasWidth, canvasHeight, thickness, updateDroppedTools]);
 
   const endHistoryBatch = useCallback(() => {
     setIsHistoryBatching(false);

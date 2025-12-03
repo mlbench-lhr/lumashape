@@ -197,8 +197,10 @@ export async function POST(req: NextRequest) {
     }
     const existingItemIndex = cart.items.findIndex(item => item.id === itemData.id)
     if (existingItemIndex !== -1) {
-      cart.items[existingItemIndex].quantity += 1
-      cart.items[existingItemIndex].updatedAt = new Date()
+      return NextResponse.json(
+        { message: 'Layout already exists in cart' },
+        { status: 409 }
+      )
     } else {
       const newItem: ICartItem = {
         ...itemData,

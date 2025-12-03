@@ -195,12 +195,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     // Validation flags for depth inputs
     const shapeDepthInvalid = (() => {
         const v = parseFloat(shapeSettingsDraft.depth);
-        return isShapeSelected && !isNaN(v) && v < 0.25;
+        const min = selectedToolObject?.unit === 'mm' ? 6.35 : 0.25;
+        return isShapeSelected && !isNaN(v) && v < min;
     })();
 
     const fingerDepthInvalid = (() => {
         const v = parseFloat(fingerCutDraftDepth);
-        return isFingerCutSelected && !isNaN(v) && v < 0.25;
+        const min = selectedToolObject?.unit === 'mm' ? 6.35 : 0.25;
+        return isFingerCutSelected && !isNaN(v) && v < min;
     })();
 
     const applyShapeSettings = useCallback(() => {
@@ -214,9 +216,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                 const diameter = parseFloat(diameterRaw.toFixed(2));
                 updateShapeDimensions(selectedTool, droppedTools, setDroppedTools, diameter, diameter);
             }
-            if (!isNaN(depthRaw) && depthRaw >= 0.25) {
-                const depth = parseFloat(depthRaw.toFixed(2));
-                updateShapeDepth(selectedTool, droppedTools, setDroppedTools, depth);
+            if (!isNaN(depthRaw)) {
+                const min = selectedToolObject.unit === 'mm' ? 6.35 : 0.25;
+                if (depthRaw >= min) {
+                    const depth = parseFloat(depthRaw.toFixed(2));
+                    updateShapeDepth(selectedTool, droppedTools, setDroppedTools, depth);
+                }
             }
         } else {
             const widthRaw = parseFloat(shapeSettingsDraft.width);
@@ -230,9 +235,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                 const l = lengthArg !== undefined ? lengthArg : selectedToolObject.length;
                 updateShapeDimensions(selectedTool, droppedTools, setDroppedTools, w, l);
             }
-            if (!isNaN(depthRaw) && depthRaw >= 0.25) {
-                const depth = parseFloat(depthRaw.toFixed(2));
-                updateShapeDepth(selectedTool, droppedTools, setDroppedTools, depth);
+            if (!isNaN(depthRaw)) {
+                const min = selectedToolObject.unit === 'mm' ? 6.35 : 0.25;
+                if (depthRaw >= min) {
+                    const depth = parseFloat(depthRaw.toFixed(2));
+                    updateShapeDepth(selectedTool, droppedTools, setDroppedTools, depth);
+                }
             }
         }
 
@@ -243,10 +251,13 @@ const Sidebar: React.FC<SidebarProps> = ({
     const applyFingerCutSettings = useCallback(() => {
         if (!selectedTool || !isFingerCutSelected) return;
         const depthRaw = parseFloat(fingerCutDraftDepth);
-        if (!isNaN(depthRaw) && depthRaw >= 0.25) {
-            const depth = parseFloat(depthRaw.toFixed(2));
-            updateFingerCutDepth(selectedTool, droppedTools, setDroppedTools, depth);
-            onHistoryChange?.();
+        if (!isNaN(depthRaw)) {
+            const min = selectedToolObject?.unit === 'mm' ? 6.35 : 0.25;
+            if (depthRaw >= min) {
+                const depth = parseFloat(depthRaw.toFixed(2));
+                updateFingerCutDepth(selectedTool, droppedTools, setDroppedTools, depth);
+                onHistoryChange?.();
+            }
         }
     }, [selectedTool, isFingerCutSelected, fingerCutDraftDepth, droppedTools, setDroppedTools, onHistoryChange]);
 
@@ -1129,18 +1140,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <div className="space-y-3">
                         <div>
                             <label className="block text-xs font-medium text-primary mb-1">
-                                Depth (inches)
+                                Depth ({selectedToolObject.unit})
                             </label>
                             <input
                                 type="number"
                                 value={fingerCutDraftDepth}
                                 onChange={(e) => setFingerCutDraftDepth(sanitizeTwoDecimals(e.target.value))}
                                 className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
-                                min="0.25"
+                                min={selectedToolObject.unit === 'mm' ? 6.35 : 0.25}
                                 step="0.01"
                             />
                             {fingerDepthInvalid && (
-                                <p className="text-xs text-red-600 mt-1">Minimum depth is 0.25 inches.</p>
+                                <p className="text-xs text-red-600 mt-1">Minimum depth is {selectedToolObject.unit === 'mm' ? '6.35 mm' : '0.25 inches'}.</p>
                             )}
                         </div>
                     </div>
@@ -1165,7 +1176,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <div className="space-y-3">
                             <div>
                                 <label className="block text-xs font-medium text-primary mb-1">
-                                    Diameter ({unit})
+                                    Diameter ({selectedToolObject.unit})
                                 </label>
                                 <input
                                     type="number"
@@ -1178,18 +1189,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-primary mb-1">
-                                    Depth (inches)
+                                    Depth ({selectedToolObject.unit})
                                 </label>
                                 <input
                                     type="number"
                                     value={shapeSettingsDraft.depth}
                                     onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, depth: sanitizeTwoDecimals(e.target.value) }))}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
-                                    min="0.25"
+                                    min={selectedToolObject.unit === 'mm' ? 6.35 : 0.25}
                                     step="0.01"
                                 />
                                 {shapeDepthInvalid && (
-                                    <p className="text-xs text-red-600 mt-1">Minimum depth is 0.25 inches.</p>
+                                    <p className="text-xs text-red-600 mt-1">Minimum depth is {selectedToolObject.unit === 'mm' ? '6.35 mm' : '0.25 inches'}.</p>
                                 )}
                             </div>
                         </div>
@@ -1197,7 +1208,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <div className="space-y-3">
                             <div>
                                 <label className="block text-xs font-medium text-primary mb-1">
-                                    Width ({unit})
+                                    Width ({selectedToolObject.unit})
                                 </label>
                                 <input
                                     type="number"
@@ -1210,7 +1221,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-primary mb-1">
-                                    Length ({unit})
+                                    Length ({selectedToolObject.unit})
                                 </label>
                                 <input
                                     type="number"
@@ -1223,18 +1234,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-primary mb-1">
-                                    Depth (inches)
+                                    Depth ({selectedToolObject.unit})
                                 </label>
                                 <input
                                     type="number"
                                     value={shapeSettingsDraft.depth}
                                     onChange={(e) => setShapeSettingsDraft(prev => ({ ...prev, depth: sanitizeTwoDecimals(e.target.value) }))}
                                     className="w-full px-2 py-1 text-sm border border-blue-200 rounded focus:ring-1 focus:ring-blue-500"
-                                    min="0.25"
+                                    min={selectedToolObject.unit === 'mm' ? 6.35 : 0.25}
                                     step="0.01"
                                 />
                                 {shapeDepthInvalid && (
-                                    <p className="text-xs text-red-600 mt-1">Minimum depth is 0.25 inches.</p>
+                                    <p className="text-xs text-red-600 mt-1">Minimum depth is {selectedToolObject.unit === 'mm' ? '6.35 mm' : '0.25 inches'}.</p>
                                 )}
                             </div>
                         </div>

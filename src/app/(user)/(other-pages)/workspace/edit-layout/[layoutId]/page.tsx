@@ -11,6 +11,7 @@ interface CanvasInit {
   height: number;
   unit: Unit;
   thickness: number;
+  materialColor?: string;
 }
 
 interface ShapeData {
@@ -68,6 +69,7 @@ interface LayoutData {
     height: number;
     unit: Unit;
     thickness: number;
+    materialColor?: string;
   };
   tools: LayoutTool[];
 }
@@ -257,6 +259,7 @@ export default function EditLayoutPage({
         height: layout.canvas.height,
         unit: layout.canvas.unit,
         thickness: layout.canvas.thickness,
+        materialColor: layout.canvas.materialColor,
       });
 
       setInitialTools(mapped);
@@ -269,6 +272,7 @@ export default function EditLayoutPage({
           canvasHeight: layout.canvas.height,
           units: layout.canvas.unit,
           thickness: layout.canvas.thickness,
+          materialColor: layout.canvas.materialColor || '',
         })
       );
       sessionStorage.setItem('editingLayoutId', layoutId);
