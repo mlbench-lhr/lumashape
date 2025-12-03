@@ -11,6 +11,7 @@ interface CanvasInit {
   height: number;
   unit: Unit;
   thickness: number;
+  materialColor?: string;
 }
 
 interface ShapePoint {
@@ -76,6 +77,7 @@ interface LayoutData {
     height: number;
     unit: Unit;
     thickness: number;
+    materialColor?: string;
   };
   tools: LayoutTool[];
 }
@@ -285,6 +287,7 @@ export default function InspectLayoutPage({
         height: layout.canvas.height,
         unit: layout.canvas.unit,
         thickness: layout.canvas.thickness,
+        materialColor: layout.canvas.materialColor,
       });
 
       setInitialTools(mapped);
@@ -298,6 +301,7 @@ export default function InspectLayoutPage({
             canvasHeight: layout.canvas.height,
             units: layout.canvas.unit,
             thickness: layout.canvas.thickness,
+            materialColor: layout.canvas.materialColor || '',
           })
         );
       } catch {

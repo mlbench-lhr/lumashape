@@ -130,7 +130,7 @@ const [isCartInfoOpen, setIsCartInfoOpen] = useState(false);
 const [isAddingToCart, setIsAddingToCart] = useState(false);
 const dropdownRef = useRef<HTMLDivElement>(null);
 const [dxfFailed, setDxfFailed] = useState(false);
-const { addToCart } = useCart();
+const { addToCart, cartItems } = useCart();
 
   const thicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
   const allowedDepthInches = Math.max(0, thicknessInches - 0.25);
@@ -201,6 +201,16 @@ const { addToCart } = useCart();
         throw new Error("Failed to save layout");
       }
       const savedLayoutId = saveResult.id;
+
+      if (cartItems.some(i => i.id === savedLayoutId)) {
+        const msg = "Layout already exists in cart";
+        setSaveError(msg);
+        toast.error(msg);
+        setIsSaving(false);
+        setIsAddingToCart(false);
+        return;
+      }
+
       const snapshotUrl = saveResult.snapshotUrl || undefined;
       const cartTools = await Promise.all(
         droppedTools.map(async (tool) => {
@@ -407,12 +417,12 @@ const { addToCart } = useCart();
       return parseFloat(dbDepthInches.toFixed(3));
     }
 
-    // Treat droppedTool.depth as inches regardless of tool.unit
-    const dtDepthInches = droppedTool.depth;
-    if (typeof dtDepthInches === "number" && dtDepthInches > 0)
-      return parseFloat(dtDepthInches.toFixed(3));
-
-    return 0.25; // final fallback
+    const rawDepth = droppedTool.depth;
+    if (typeof rawDepth === "number" && rawDepth > 0) {
+      const inches = droppedTool.unit === "mm" ? mmToInches(rawDepth) : rawDepth;
+      return parseFloat(inches.toFixed(3));
+    }
+    return 0.25;
   };
 
   const convertPositionToInches = (

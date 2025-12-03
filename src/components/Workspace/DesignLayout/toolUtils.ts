@@ -489,7 +489,7 @@ export const createShape = (
     flipVertical: false,
     width: width,
     length: length,
-    depth: 0.25,
+    depth: (targetUnit === 'mm' ? 6.35 : 0.25),
     unit: targetUnit,
     opacity: 100,
     smooth: 0,
@@ -529,7 +529,7 @@ export const createFingerCut = (
     flipVertical: false,
     width: 50,
     length: 30,
-    depth: 0.25,
+    depth: (((unit || 'mm') === 'mm') ? 6.35 : 0.25),
     unit: unit || 'mm',
     opacity: 100,
     smooth: 0,
@@ -598,39 +598,45 @@ export const updateShapeDimensions = (
   );
 }
 
-// Update shape depth (in inches)
+// Update shape depth (UI units -> store in tool.unit with inches-based clamp)
 export const updateShapeDepth = (
   toolId: string,
   droppedTools: DroppedTool[],
   updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
-  depthInches: number
+  depthValue: number
 ): void => {
-  if (isNaN(depthInches)) return;
-  const clamped = Math.max(0.25, parseFloat(depthInches.toFixed(2)));
+  if (isNaN(depthValue)) return;
   updateDroppedTools(prev =>
-    prev.map(tool =>
-      tool.id === toolId && tool.toolBrand === 'SHAPE'
-        ? { ...tool, depth: clamped }
-        : tool
-    )
+    prev.map(tool => {
+      if (tool.id === toolId && tool.toolBrand === 'SHAPE') {
+        const inches = tool.unit === 'mm' ? depthValue / 25.4 : depthValue;
+        const clampedInches = Math.max(0.25, parseFloat(inches.toFixed(2)));
+        const stored = tool.unit === 'mm' ? parseFloat((clampedInches * 25.4).toFixed(2)) : clampedInches;
+        return { ...tool, depth: stored };
+      }
+      return tool;
+    })
   );
 }
 
-// Update finger cut depth (in inches)
+// Update finger cut depth (UI units -> store in tool.unit with inches-based clamp)
 export const updateFingerCutDepth = (
   toolId: string,
   droppedTools: DroppedTool[],
   updateDroppedTools: (updater: React.SetStateAction<DroppedTool[]>) => void,
-  depthInches: number
+  depthValue: number
 ): void => {
-  if (isNaN(depthInches)) return;
-  const clamped = Math.max(0.25, parseFloat(depthInches.toFixed(2)));
+  if (isNaN(depthValue)) return;
   updateDroppedTools(prev =>
-    prev.map(tool =>
-      tool.id === toolId && (tool.metadata?.isFingerCut || tool.toolBrand === 'FINGERCUT')
-        ? { ...tool, depth: clamped }
-        : tool
-    )
+    prev.map(tool => {
+      if (tool.id === toolId && (tool.metadata?.isFingerCut || tool.toolBrand === 'FINGERCUT')) {
+        const inches = tool.unit === 'mm' ? depthValue / 25.4 : depthValue;
+        const clampedInches = Math.max(0.25, parseFloat(inches.toFixed(2)));
+        const stored = tool.unit === 'mm' ? parseFloat((clampedInches * 25.4).toFixed(2)) : clampedInches;
+        return { ...tool, depth: stored };
+      }
+      return tool;
+    })
   );
 }
 
