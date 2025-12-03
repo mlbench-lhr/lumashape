@@ -445,7 +445,7 @@ function CheckoutContent() {
                                                     </p>
                                                     <div className="flex items-center justify-between mt-2">
                                                         <span className="text-xs text-gray-600">Qty: {item.quantity}</span>
-                                                        <span className="font-semibold text-gray-900">${(item.price * item.quantity).toFixed(2)}</span>
+                                                        {/* <span className="font-semibold text-gray-900">${(item.price * item.quantity).toFixed(2)}</span> */}
                                                     </div>
                                                 </div>
                                             </div>
