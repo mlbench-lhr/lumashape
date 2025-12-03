@@ -31,6 +31,14 @@ export async function PUT(request: NextRequest) {
 
         const userEmail = decoded.email;
 
+        interface UpdateData {
+            toolBrand: string;
+            toolType: string;
+            depth: number | string;
+            updatedAt: Date;
+            SKUorPartNumber?: string;
+        }
+
         // Parse request body
         const body = await request.json();
         const {
@@ -57,7 +65,7 @@ export async function PUT(request: NextRequest) {
         }
 
         // Prepare update data
-        const updateData: any = {
+        const updateData: UpdateData = {
             toolBrand,
             toolType,
             depth,
