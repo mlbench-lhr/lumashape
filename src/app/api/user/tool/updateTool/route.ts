@@ -49,12 +49,25 @@ export async function PUT(request: NextRequest) {
             );
         }
 
-        if (!toolBrand || !toolType || !SKUorPartNumber || !depth) {
+        if (!toolBrand || !toolType || !depth) {
             return NextResponse.json(
-                { error: 'Brand, tool type, SKU/Part Number, and depth are required' },
+                { error: 'Brand, tool type, and depth are required' },
                 { status: 400 }
             );
         }
+
+        // Prepare update data
+        const updateData: any = {
+            toolBrand,
+            toolType,
+            depth,
+            updatedAt: new Date()
+        };
+
+        if (SKUorPartNumber) {
+            updateData.SKUorPartNumber = SKUorPartNumber;
+        }
+
 
         // Connect to database
         await dbConnect();
@@ -77,15 +90,6 @@ export async function PUT(request: NextRequest) {
                 { status: 404 }
             );
         }
-
-        // Prepare update data
-        const updateData = {
-            toolBrand,
-            toolType,
-            SKUorPartNumber,
-            depth,
-            updatedAt: new Date()
-        };
 
         // Update the tool
         const updatedTool = await Tool.findByIdAndUpdate(

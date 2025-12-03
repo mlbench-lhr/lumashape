@@ -49,6 +49,7 @@ interface ToolPayload {
   tool_id: string;
   name: string;
   brand: string;
+  unit: "mm" | "inches";
   dxf_link?: string;
   position_inches: { x: number; y: number; z: number };
   rotation_degrees: number;
@@ -65,6 +66,7 @@ interface ShapePayload {
   tool_id: string;
   name: string;
   brand: string;
+  unit: "mm" | "inches";
   is_custom_shape: true;
   shape_type: "rectangle" | "circle" | "polygon" | "fingercut" | "text";
   shape_data:
@@ -636,6 +638,7 @@ const { addToCart, cartItems } = useCart();
             tool_id: droppedTool.id,
             name: droppedTool.name || "Text",
             brand: "Text",
+            unit: droppedTool.unit,
             is_custom_shape: true,
             shape_type: "text",
             shape_data: {
@@ -729,6 +732,7 @@ const { addToCart, cartItems } = useCart();
             tool_id: droppedTool.id,
             name: droppedTool.name,
             brand: "Custom",
+            unit: droppedTool.unit,
             is_custom_shape: true,
             shape_type: shapeType,
             shape_data: shapeData,
@@ -764,6 +768,7 @@ const { addToCart, cartItems } = useCart();
           tool_id: toolId,
           name: droppedTool.name,
           brand: tool.toolBrand || "Brand",
+          unit: droppedTool.unit,
           dxf_link: (tool.cvResponse.dxf_url || "").trim(),
           position_inches: { x: xInches, y: yInches, z: 0 },
           rotation_degrees: normalizeRotationDeg(droppedTool.rotation),
@@ -873,6 +878,7 @@ const { addToCart, cartItems } = useCart();
             tool_id: droppedTool.id,
             name: droppedTool.name || "Text",
             brand: "Text",
+            unit: droppedTool.unit,
             is_custom_shape: true,
             shape_type: "text",
             shape_data: {
@@ -919,6 +925,7 @@ const { addToCart, cartItems } = useCart();
             tool_id: droppedTool.id,
             name: droppedTool.name,
             brand: "Custom",
+            unit: droppedTool.unit,
             is_custom_shape: true,
             shape_type: shapeType,
             shape_data: shapeData,
@@ -939,6 +946,7 @@ const { addToCart, cartItems } = useCart();
           tool_id: toolId,
           name: droppedTool.name,
           brand: tool.toolBrand || "Brand",
+          unit: droppedTool.unit,
           dxf_link: (tool.cvResponse.dxf_url || "").trim(),
           position_inches: { x: xInches, y: yInches, z: 0 },
           rotation_degrees: normalizeRotationDeg(droppedTool.rotation),
