@@ -293,7 +293,7 @@ const Cart = () => {
                         <p className="font-medium text-sm">{item.name}</p>
                         <p className="text-xs text-gray-600">{`Container Size : ${item.containerSize} x ${item.layoutData?.canvas.thickness}"`}</p>
                         <p className="text-xs text-gray-600">{`Foam Color : ${item.layoutData?.canvas.materialColor}`}</p>
-                        <p className="text-xs text-gray-500">Qty: {item.quantity} × ${item.price}</p>
+                        {/* <p className="text-xs text-gray-500">Qty: {item.quantity} × ${item.price}</p> */}
                       </div>
                     </div>
                   ))
