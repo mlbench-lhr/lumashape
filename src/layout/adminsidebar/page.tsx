@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useSidebar } from "@/context/SidebarContext";
 import { useUser } from '@/context/UserContext';
 import CloseButton from "@/components/ui/CloseButton"; // Adjust path as needed
+import { Settings, User, ShoppingCart, Layout } from "lucide-react";
 
 type NavItem = {
     name: string;
@@ -17,26 +18,26 @@ type NavItem = {
 
 const navItems: NavItem[] = [
     {
-        icon: <Image src="/images/icons/sidebar/workspace.svg" alt="Dashboard" width={24} height={24} />,
-        iconActive: <Image src="/images/icons/sidebar/active/workspace.svg" alt="Dashboard Active" width={24} height={24} />,
+        icon: <Layout className="w-5 h-5 text-gray-600" />,
+        iconActive: <Layout className="w-5 h-5 text-white" />,
         name: "Dashboard",
         path: "/admin/dashboard",
     },
     {
-        icon: <Image src="/images/icons/sidebar/profile.svg" alt="Users" width={24} height={24} />,
-        iconActive: <Image src="/images/icons/sidebar/active/profile.svg" alt="Users Active" width={24} height={24} />,
+        icon: <User className="w-5 h-5 text-gray-600" />,
+        iconActive: <User className="w-5 h-5 text-white" />,
         name: "All Users",
         path: "/admin/users"
     },
     {
-        icon: <Image src="/images/icons/sidebar/cart.svg" alt="Orders" width={24} height={24} />,
-        iconActive: <Image src="/images/icons/sidebar/active/cart.svg" alt="Orders Active" width={24} height={24} />,
+        icon: <ShoppingCart className="w-5 h-5 text-gray-600" />,
+        iconActive: <ShoppingCart className="w-5 h-5 text-white" />,
         name: "All Orders",
         path: "/admin/orders"
     },
     {
-        icon: <Image src="/images/icons/menu.svg" alt="Settings" width={24} height={24} />,
-        iconActive: <Image src="/images/icons/menu.svg" alt="Settings Active" width={24} height={24} />,
+        icon: <Settings className="w-5 h-5 text-gray-600" />,
+        iconActive: <Settings className="w-5 h-5 text-white" />,
         name: "Settings",
         path: "/admin/settings",
     },

@@ -120,6 +120,12 @@ function Footer() {
               >
                 Contact Us
               </Link>
+              <Link 
+                href="/privacy-policy"
+                className="hover:text-primary cursor-pointer transition-colors"
+              >
+                Privacy Policy
+              </Link>
             </div>
           </div>
         </div>

@@ -11,6 +11,7 @@ import { usePathname } from "next/navigation";
 import { useSidebar } from "@/context/SidebarContext";
 import { useUser, User } from "@/context/UserContext";
 import CloseButton from "@/components/ui/CloseButton";
+import { PackageOpen } from "lucide-react";
 
 type NavItem = {
   name: string;
@@ -123,20 +124,10 @@ const navItems: NavItem[] = [
   },
   {
     icon: (
-      <Image
-        src="/images/icons/sidebar/cart.svg"
-        alt="My Orders"
-        width={24}
-        height={24}
-      />
+      <PackageOpen className="w-5 h-5 text-gray-600" />
     ),
     iconActive: (
-      <Image
-        src="/images/icons/sidebar/active/cart.svg"
-        alt="My Orders Active"
-        width={24}
-        height={24}
-      />
+      <PackageOpen className="w-5 h-5 text-primary" />
     ),
     name: "My Orders",
     path: "/my-orders",

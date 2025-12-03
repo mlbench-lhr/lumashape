@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useUser } from "@/context/UserContext";
+import { PackageOpen } from "lucide-react";
 
 type NavItem = {
   name: string;
@@ -101,26 +102,6 @@ const navItems: NavItem[] = [
   {
     icon: (
       <Image
-        src="/images/icons/sidebar/cart.svg"
-        alt="My Orders"
-        width={24}
-        height={24}
-      />
-    ),
-    iconActive: (
-      <Image
-        src="/images/icons/sidebar/active/cart.svg"
-        alt="My Orders Active"
-        width={24}
-        height={24}
-      />
-    ),
-    name: "My Orders",
-    path: "/my-orders",
-  },
-  {
-    icon: (
-      <Image
         src="/images/icons/sidebar/profile.svg"
         alt="Profile"
         width={24}
@@ -140,20 +121,10 @@ const navItems: NavItem[] = [
   },
   {
     icon: (
-      <Image
-        src="/images/icons/sidebar/cart.svg"
-        alt="My Orders"
-        width={24}
-        height={24}
-      />
+      <PackageOpen className="w-5 h-5 text-gray-600" />
     ),
     iconActive: (
-      <Image
-        src="/images/icons/sidebar/active/cart.svg"
-        alt="My Orders Active"
-        width={24}
-        height={24}
-      />
+      <PackageOpen className="w-5 h-5 text-gray-600" />
     ),
     name: "My Orders",
     path: "/my-orders",

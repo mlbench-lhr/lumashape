@@ -116,10 +116,7 @@ export default function OrderDetails() {
     hour: '2-digit',
     minute: '2-digit'
   })
-  const subtotal = order.totals.customerTotal
-  const estimatedTax = subtotal * 0.08
-  const shipping = 15.00
-  const total = subtotal + estimatedTax + shipping
+  const total = order.totals.customerTotal
 
   return (
     <div className="min-h-screen bg-gray-50">

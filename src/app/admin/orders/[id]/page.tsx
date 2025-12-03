@@ -130,7 +130,7 @@ export default function AdminOrderDetails() {
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
           <div className="flex items-center justify-between">
             <div className="font-semibold text-lg">Order {shortId}</div>
-            <div className="text-gray-900 font-semibold">${totalTop.toFixed(1)}</div>
+            <div className="text-gray-900 font-semibold">${totalTop.toFixed(2)}</div>
           </div>
           <div className="mt-2 text-gray-600">Date Ordered: {dateOrdered}</div>
           <div className="mt-4 grid grid-cols-2 gap-4">
@@ -151,7 +151,7 @@ export default function AdminOrderDetails() {
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Line Item</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Layout name</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Qty</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Amount</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Cost</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Action</th>
                 </tr>
               </thead>
@@ -164,7 +164,7 @@ export default function AdminOrderDetails() {
                       <td className="px-6 py-4 text-sm text-gray-900">{line}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{layouts[item.layoutId]?.name || item.name}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{item.quantity}</td>
-                      <td className="px-6 py-4 text-sm text-gray-900">${amount.toFixed(0)}</td>
+                      <td className="px-6 py-4 text-sm text-gray-900">${amount.toFixed(2)}</td>
                       <td className="px-6 py-4 text-sm">
                         {item.dxfUrl ? (
                           <a href={item.dxfUrl} download={`${item.name || 'layout'}.dxf`} className="text-[#2E6C99] underline">Download DXF</a>
