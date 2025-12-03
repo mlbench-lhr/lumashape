@@ -77,7 +77,7 @@ const WhyChoose = () => {
                             as="p1"
                             className="text-center text-secondary-light mx-auto max-w-[80%]"
                         >
-                            Publish your layout designs to the Lumashape ecosystem. When others import them, you earn 50% profit sharing on the import cost.                        </Text>
+                            Publish your layout designs to the Lumashape ecosystem. When others import them, you earn profit sharing on the import cost.                        </Text>
                     </motion.div>
                     {/* access Anytime */}
                     <motion.div

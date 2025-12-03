@@ -37,6 +37,7 @@ export interface IPricingParams {
 
 export interface IShipping {
   name: string
+  email?: string
   address1: string
   address2?: string
   city: string
@@ -100,6 +101,7 @@ const ManufacturingOrderSchema = new Schema<IManufacturingOrder>({
   },
   shipping: {
     name: { type: String },
+    email: { type: String },
     address1: { type: String },
     address2: { type: String },
     city: { type: String },

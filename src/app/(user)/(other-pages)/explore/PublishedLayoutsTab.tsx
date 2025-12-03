@@ -77,8 +77,89 @@ const PublishedLayoutsTab = () => {
     const [availableToolTypes, setAvailableToolTypes] = useState<string[]>([]);
     const [availableToolBrands, setAvailableToolBrands] = useState<string[]>([]);
 
-    const STATIC_TOOL_BRANDS = ['Bosch', 'Milwaukee', 'Makita'];
-    const STATIC_TOOL_TYPES = ['Wrench', 'Pliers', 'Hammer'];
+    const STATIC_TOOL_BRANDS = [
+        'Bahco',
+        'Bosch',
+        'Brown & Sharpe',
+        'Channellock',
+        'Cornwell',
+        'Craftsman',
+        'DeWalt',
+        'Fein',
+        'Festool',
+        'Gearwrench',
+        'Grizzly',
+        'Hilti',
+        'Husky',
+        'iGaging',
+        'Irwin',
+        'Jet',
+        'Klein Tools',
+        'Knipex',
+        'Mac Tools',
+        'Makita',
+        'Matco',
+        'Metabo',
+        'Milwaukee',
+        'Mitutoyo',
+        'Porter-Cable',
+        'Powermatic',
+        'Proto',
+        'Ridgid',
+        'Ryobi',
+        'SawStop',
+        'Snap-on',
+        'Stanley',
+        'Starrett',
+        'Tekton',
+        'Wera',
+        'Wiha'
+    ];
+
+    const STATIC_TOOL_TYPES = [
+        'Allen Key / Hex Key',
+        'Caliper',
+        'Chisel',
+        'Clamp',
+        'Countersink',
+        'Drill Bit',
+        'End Mill',
+        'File',
+        'Hammer',
+        'Indicator, Dial',
+        'Indicator, Test',
+        'Level',
+        'Marker / Scribe',
+        'Measuring Tape',
+        'Micrometer, Inside',
+        'Micrometer, Outside',
+        'Micrometer, Depth',
+        'Pliers, Adjustable',
+        'Pliers, Needle Nose',
+        'Pliers, Slip Joint',
+        'Pliers, Wire Cutting',
+        'Punch, Center',
+        'Router Bit',
+        'Saw, Hand',
+        'Saw, Hole',
+        'Screwdriver, Flat',
+        'Screwdriver, Phillips',
+        'Socket',
+        'Square, Combination',
+        'Square, Engineer',
+        'Tap',
+        'Torque Wrench',
+        'Utility Knife',
+        'Vise Grip / Locking Pliers',
+        'Wrench, Adjustable',
+        'Wrench, Box',
+        'Wrench, Combination',
+        'Wrench, Open End',
+        'Wrench, Ratcheting',
+        'Wrench',
+        'Pliers'
+    ];
+
 
     const { user } = useUser();
 
@@ -699,8 +780,8 @@ const PublishedLayoutsTab = () => {
                                                         <Image src="/images/icons/edit.svg" width={16} height={16} alt="add" />
                                                     )}
                                                     <span className={`text-sm font-medium ${isSelfOwnedLayout(layout) ? 'text-gray-400'
-                                                            : isLayoutDownloaded(layout) ? 'text-green-500'
-                                                                : 'text-[#266ca8]'
+                                                        : isLayoutDownloaded(layout) ? 'text-green-500'
+                                                            : 'text-[#266ca8]'
                                                         }`}>
                                                         {actionLoading === layout._id
                                                             ? "Adding..."

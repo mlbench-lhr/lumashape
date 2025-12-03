@@ -7,6 +7,7 @@ import { useCart } from '@/context/CartContext';
 import { useUser } from '@/context/UserContext';
 import { Trash2, Plus, Minus } from 'lucide-react';
 import { toast } from 'react-toastify';
+import Modal from '@/components/ui/Modal';
 
 const Cart = () => {
   const { 
@@ -23,6 +24,9 @@ const Cart = () => {
   const { user } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUserLoading, setIsUserLoading] = useState(true);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [pendingCheckoutItems, setPendingCheckoutItems] = useState<string[]>([]);
+  const DISCLAIMER_TEXT = 'By completing this order, you acknowledge that all tool lengths, cut depths, and layout dimensions were provided or confirmed by you. Lumashape generates layout files and foam inserts based solely on the information you enter. Lumashape is not responsible for incorrect sizing, scaling errors, inaccurate tool dimensions, or cut depths that result from user input. Any manufacturing issues arising from incorrect or incomplete data provided by the user are fully the user’s responsibility.';
 
   // Check if user is authenticated (either user object exists or token exists)
   const isAuthenticated = () => {
@@ -78,8 +82,8 @@ const Cart = () => {
       toast.error("Please select at least one item to checkout");
       return;
     }
-    const qs = encodeURIComponent(selectedIds.join(','));
-    window.location.href = `/checkout?items=${qs}`;
+    setPendingCheckoutItems(selectedIds);
+    setShowDisclaimer(true);
   };
 
   // Show loading state while checking authentication or loading cart
@@ -333,6 +337,21 @@ const Cart = () => {
             </div>
           </div>
         </div>
+      )}
+      {showDisclaimer && (
+        <Modal
+          isOpen={showDisclaimer}
+          title="Disclaimer"
+          description={DISCLAIMER_TEXT}
+          onCancel={() => { setShowDisclaimer(false); setPendingCheckoutItems([]); }}
+          onConfirm={() => {
+            const qs = encodeURIComponent(pendingCheckoutItems.join(','));
+            window.location.href = `/checkout?items=${qs}`;
+          }}
+          cancelText="Cancel"
+          confirmText="Proceed"
+          hideImage
+        />
       )}
     </div>
   );

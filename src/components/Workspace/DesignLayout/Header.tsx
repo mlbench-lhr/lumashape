@@ -129,6 +129,7 @@ const Header: React.FC<HeaderProps> = ({
 const [isCartInfoOpen, setIsCartInfoOpen] = useState(false);
 const [isAddingToCart, setIsAddingToCart] = useState(false);
 const dropdownRef = useRef<HTMLDivElement>(null);
+const [dxfFailed, setDxfFailed] = useState(false);
 const { addToCart } = useCart();
 
   const thicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
@@ -236,6 +237,16 @@ const { addToCart } = useCart();
       };
       const calculatedPrice = calculatePriceFromLayoutData(cartLayoutData);
       const dxfUrl = await composeDxfForLayout().catch(() => null);
+      if (!dxfUrl) {
+        const msg = "DXF generation failed. Try again.";
+        setSaveError(msg);
+        toast.error(msg);
+        setIsSaving(false);
+        setIsAddingToCart(false);
+        setDxfFailed(true);
+        return;
+      }
+      setDxfFailed(false);
       await addToCart({
         id: savedLayoutId,
         name: layoutName,
@@ -243,7 +254,7 @@ const { addToCart } = useCart();
         price: calculatedPrice,
         snapshotUrl,
         layoutData: cartLayoutData,
-        dxfUrl: dxfUrl || undefined,
+        dxfUrl,
       });
       toast.success("Layout saved and added to cart successfully!");
     } catch (error) {
@@ -1472,7 +1483,7 @@ const { addToCart } = useCart();
     },
     {
       icon: ShoppingCart,
-      label: "Add to cart",
+      label: dxfFailed ? "Try again" : "Add to cart",
       action: handleAddToCart,
       disabled:
         isAddingToCart ||
@@ -1593,10 +1604,10 @@ const { addToCart } = useCart();
                         )}
                         <span>
                           {option.loading
-                            ? (option.label === "Add to cart" ? "Adding to cart..." : "Downloading DXF...")
+                            ? (option.action === handleAddToCart ? "Adding to cart..." : "Downloading DXF...")
                             : option.label}
                         </span>
-                        {option.label === "Add to cart" && option.disabled && floorViolationCount > 0 && (
+                        {option.action === handleAddToCart && option.disabled && floorViolationCount > 0 && (
                           <div className="relative flex-shrink-0">
                             <button
                               type="button"

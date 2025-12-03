@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, LogOut } from "lucide-react";
 
 type AdminProfile = {
   _id?: string;
@@ -132,7 +132,7 @@ export default function AdminSettingsPage() {
                     className="flex items-center font-semibold justify-between w-full p-3 text-gray-600"
                   >
                     <span className="flex items-center gap-3">
-                      <img src="/images/icons/profile/logout.svg" alt="Logout" className="w-5 h-5" />
+                      <LogOut className="w-5 h-5 text-red" />
                       Logout
                     </span>
                   </button>
@@ -193,10 +193,10 @@ export default function AdminSettingsPage() {
 
               <button
                 onClick={() => setShowLogoutModal(true)}
-                className="flex items-center justify-between font-semibold w-full text-sm sm:text-base md:text-lg text-gray-600 hover:text-primary"
+                className="flex items-center justify-between font-semibold w-full text-sm sm:text-base md:text-lg text-gray-600"
               >
                 <span className="flex items-center gap-3" >
-                  <img src="/images/icons/profile/logout.svg" alt="Logout" className="w-5 h-5" />
+                  <LogOut className="w-5 h-5 text-red" />
                   Logout
                 </span>
               </button>

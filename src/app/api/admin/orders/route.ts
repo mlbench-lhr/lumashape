@@ -69,9 +69,9 @@ export async function GET(req: NextRequest) {
         buyerEmail: string;
         status: string;
         createdAt: Date;
-        totals?: { customerTotal: number };
+        totals?: { customerTotal: number; kaiserPayout?: number; lumashapePayout?: number };
         items?: { quantity?: number }[];
-      }>>(); // <-- Array type
+      }>>();
 
     const mapped = orders.map((o) => ({
       _id: o._id.toString(),
@@ -79,6 +79,8 @@ export async function GET(req: NextRequest) {
       status: o.status,
       createdAt: o.createdAt,
       total: o.totals?.customerTotal ?? 0,
+      kaiser: o.totals?.kaiserPayout ?? 0,
+      lumashape: o.totals?.lumashapePayout ?? 0,
       itemsCount: Array.isArray(o.items)
         ? o.items.reduce((s, i) => s + (i.quantity ?? 0), 0)
         : 0,

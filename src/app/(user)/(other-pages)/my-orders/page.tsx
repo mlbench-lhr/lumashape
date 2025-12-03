@@ -112,7 +112,6 @@ export default function MyOrders() {
                 <tr>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Order</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Inserts</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">Total</th>
                   <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700">Action</th>
@@ -132,9 +131,6 @@ export default function MyOrders() {
                     <tr key={order._id}>
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">{shortId}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{date}</td>
-                      <td className="px-6 py-4 text-sm">
-                        <span className={`inline-flex items-center px-2 py-1 rounded ${statusColor}`}>{order.status}</span>
-                      </td>
                       <td className="px-6 py-4 text-sm text-gray-700">{totalQty}</td>
                       <td className="px-6 py-4 text-sm text-gray-900">{total}</td>
                       <td className="px-6 py-4 text-right">

@@ -35,9 +35,85 @@ type ToolData = {
 
 const Tools: Tool[] = [
   { id: 0, type: "Custom" },
-  { id: 1, type: "Wrench" },
-  { id: 2, type: "Pliers" },
-  { id: 3, type: "Hammer" },
+  { id: 1, type: "Allen Key / Hex Key" },
+  { id: 2, type: "Caliper" },
+  { id: 3, type: "Chisel" },
+  { id: 4, type: "Clamp" },
+  { id: 5, type: "Countersink" },
+  { id: 6, type: "Drill Bit" },
+  { id: 7, type: "End Mill" },
+  { id: 8, type: "File" },
+  { id: 9, type: "Hammer" },
+  { id: 10, type: "Indicator, Dial" },
+  { id: 11, type: "Indicator, Test" },
+  { id: 12, type: "Level" },
+  { id: 13, type: "Marker / Scribe" },
+  { id: 14, type: "Measuring Tape" },
+  { id: 15, type: "Micrometer, Inside" },
+  { id: 16, type: "Micrometer, Outside" },
+  { id: 17, type: "Micrometer, Depth" },
+  { id: 18, type: "Pliers, Adjustable" },
+  { id: 19, type: "Pliers, Needle Nose" },
+  { id: 20, type: "Pliers, Slip Joint" },
+  { id: 21, type: "Pliers, Wire Cutting" },
+  { id: 22, type: "Punch, Center" },
+  { id: 23, type: "Router Bit" },
+  { id: 24, type: "Saw, Hand" },
+  { id: 25, type: "Saw, Hole" },
+  { id: 26, type: "Screwdriver, Flat" },
+  { id: 27, type: "Screwdriver, Phillips" },
+  { id: 28, type: "Socket" },
+  { id: 29, type: "Square, Combination" },
+  { id: 30, type: "Square, Engineer" },
+  { id: 31, type: "Tap" },
+  { id: 32, type: "Torque Wrench" },
+  { id: 33, type: "Utility Knife" },
+  { id: 34, type: "Vise Grip / Locking Pliers" },
+  { id: 35, type: "Wrench, Adjustable" },
+  { id: 36, type: "Wrench, Box" },
+  { id: 37, type: "Wrench, Combination" },
+  { id: 38, type: "Wrench, Open End" },
+  { id: 39, type: "Wrench, Ratcheting" },
+];
+
+const BRANDS: string[] = [
+  "Custom",
+  "Bahco",
+  "Bosch",
+  "Brown & Sharpe",
+  "Channellock",
+  "Cornwell",
+  "Craftsman",
+  "DeWalt",
+  "Fein",
+  "Festool",
+  "Gearwrench",
+  "Grizzly",
+  "Hilti",
+  "Husky",
+  "iGaging",
+  "Irwin",
+  "Jet",
+  "Klein Tools",
+  "Knipex",
+  "Mac Tools",
+  "Makita",
+  "Matco",
+  "Metabo",
+  "Milwaukee",
+  "Mitutoyo",
+  "Porter-Cable",
+  "Powermatic",
+  "Proto",
+  "Ridgid",
+  "Ryobi",
+  "SawStop",
+  "Snap-on",
+  "Stanley",
+  "Starrett",
+  "Tekton",
+  "Wera",
+  "Wiha",
 ];
 
 const PAPERS: Paper[] = [
@@ -640,6 +716,41 @@ const EditTool = () => {
                       Selected: {toolData.brand}
                     </span>
                   )}
+
+                  <div className="mt-[16px]">
+                    <Listbox value={toolData.brand} onChange={(brand: string) => setToolData({ ...toolData, brand })}>
+                      <div className="relative w-full">
+                        <Listbox.Button className="relative w-full h-[50px] p-2 border rounded-lg border-[#e6e6e6] text-left focus:outline-none">
+                          <span className="flex items-center gap-2">
+                            {toolData.brand ? (
+                              <span className="text-sm">{toolData.brand}</span>
+                            ) : (
+                              <span className="text-gray-400">Select a Brand</span>
+                            )}
+                          </span>
+                          <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                            <Image src="/images/icons/arrow_down.svg" width={20} height={20} alt="chevron down" />
+                          </span>
+                        </Listbox.Button>
+                        <Listbox.Options className="absolute z-[10] mt-1 max-h-60 w-full left-0 top-[50px] overflow-auto rounded-[10px] bg-white p-4 text-base shadow-lg focus:outline-none sm:text-sm">
+                          {BRANDS.map((brand) => (
+                            <Listbox.Option
+                              key={brand}
+                              value={brand}
+                              className={({ active }) => `relative cursor-pointer select-none py-2 pl-3 pr-9 ${active ? "bg-blue-100 text-blue-900" : "text-gray-900"}`}
+                            >
+                              {({ selected }) => (
+                                <div className="flex items-center gap-2">
+                                  <input type="radio" readOnly checked={selected} className="w-4 h-4" />
+                                  <span className="text-sm">{brand}</span>
+                                </div>
+                              )}
+                            </Listbox.Option>
+                          ))}
+                        </Listbox.Options>
+                      </div>
+                    </Listbox>
+                  </div>
 
                   <div className="my-[30px]">
                     <Text className="font-bold" as="p1">
