@@ -9,7 +9,7 @@ import Layout from '@/lib/models/layout'
 // Env vars
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY!
 const JWT_SECRET = process.env.JWT_SECRET!
-const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN || 'https://lumashape.vercel.app'
+const DOMAIN = process.env.NEXT_PUBLIC_DOMAIN || 'https://lumashape.com'
 
 // Stripe init
 const stripe = new Stripe(STRIPE_SECRET_KEY, {
