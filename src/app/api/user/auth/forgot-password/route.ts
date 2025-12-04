@@ -1,20 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import User from "@/lib/models/User";
 import dbConnect from "@/utils/dbConnect";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-// Email configuration
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: process.env.SMTP_USER, // your email
-      pass: process.env.SMTP_PASS, // your email password or app password
-    },
-  });
-};
+const resend = new Resend(process.env.RESEND_API_KEY!);
 
 // Generate 5-digit OTP
 const generateOTP = (): string => {
@@ -67,10 +56,9 @@ export async function POST(req: NextRequest) {
 
     // Send email with OTP
     try {
-      const transporter = createTransporter();
-
-      const mailOptions = {
-        from: `"Lumashape" <${process.env.SMTP_USER}>`,
+      const from = `"Lumashape" <${process.env.EMAIL_FROM || "no-reply@lumashape.com"}>`;
+      await resend.emails.send({
+        from,
         to: email,
         subject: "Password Reset OTP - Lumashape",
         html: `
@@ -110,9 +98,7 @@ export async function POST(req: NextRequest) {
             
             If you didn't request this password reset, please ignore this email.
             `,
-      };
-
-      await transporter.sendMail(mailOptions);
+      });
       console.log("OTP email sent successfully to:", email);
     } catch (emailError) {
       console.error("Error sending email:", emailError);
