@@ -50,38 +50,60 @@ export async function POST(req: NextRequest) {
       const totalQty = Array.isArray(order.items) ? order.items.reduce((s, x) => s + x.quantity, 0) : 0
       const total = order.totals?.customerTotal || 0
       const html = `
-        <div style="font-family: Arial, sans-serif; max-width: 680px; margin: 0 auto; color: #000;">
-          <div style="text-align:center;margin-bottom:16px;">
-            <img src="${logoUrl}" alt="Lumashape" width="200" style="pointer-events:none; user-drag:none; -webkit-user-drag:none;" />
-          </div>
-          <h2 style="text-align:center;color:#2E6C99;margin:0 0 8px;">Order Confirmation</h2>
-          <p style="text-align:center;margin:0 0 24px;">Thank you for your order. Please review your shipping details and items below.</p>
-          <h3 style="margin:16px 0 8px;">Shipping Address</h3>
-          <div style="border:1px solid #eee;border-radius:8px;padding:12px;">
-            <div>${ship.name || ''}</div>
-            <div>${ship.address1 || ''}${ship.address2 ? ', ' + ship.address2 : ''}</div>
-            <div>${ship.city || ''}${ship.state ? ', ' + ship.state : ''} ${ship.postalCode || ''}</div>
-            <div>${ship.country || ''}</div>
-            <div>${ship.phone ? 'Phone: ' + ship.phone : ''}</div>
-            <div>${ship.email ? 'Email: ' + ship.email : ''}</div>
-          </div>
-          <h3 style="margin:16px 0 8px;">Items</h3>
-          <table style="width:100%;border-collapse:collapse;">
-            <thead>
-              <tr>
-                <th style="text-align:left;padding:8px;border:1px solid #eee;">Item</th>
-                <th style="text-align:left;padding:8px;border:1px solid #eee;">Qty</th>
-                <th style="text-align:left;padding:8px;border:1px solid #eee;">Dimensions</th>
-              </tr>
-            </thead>
-            <tbody>${itemsHtml}</tbody>
-          </table>
-          <div style="margin-top:16px;">
-            <div style="font-weight:600;">Total Inserts: ${totalQty}</div>
-            <div style="font-weight:600;">Order Total: ${Number(total).toFixed(2)}</div>
-          </div>
-        </div>
-      `
+  <div style="font-family: Arial, sans-serif; max-width: 680px; margin: 0 auto; color: #000;">
+    <div style="text-align:center;margin-bottom:16px;">
+      <img src="${logoUrl}" alt="Lumashape" width="200" style="pointer-events:none; user-drag:none; -webkit-user-drag:none;" />
+    </div>
+
+    <h2 style="text-align:center;color:#2E6C99;margin:0 0 8px;">Order Confirmation</h2>
+    <p style="text-align:center;margin:0 0 24px;">Thank you for your order. Please review your shipping details and items below.</p>
+
+    <h3 style="margin:16px 0 8px;">Shipping Address</h3>
+    <div style="border:1px solid #eee;border-radius:8px;padding:12px;">
+      <div>${ship.name || ''}</div>
+      <div>${ship.address1 || ''}${ship.address2 ? ', ' + ship.address2 : ''}</div>
+      <div>${ship.city || ''}${ship.state ? ', ' + ship.state : ''} ${ship.postalCode || ''}</div>
+      <div>${ship.country || ''}</div>
+      <div>${ship.phone ? 'Phone: ' + ship.phone : ''}</div>
+      <div>${ship.email ? 'Email: ' + ship.email : ''}</div>
+    </div>
+
+    <h3 style="margin:16px 0 8px;">Items</h3>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:8px;border:1px solid #eee;">Item</th>
+          <th style="text-align:left;padding:8px;border:1px solid #eee;">Qty</th>
+          <th style="text-align:left;padding:8px;border:1px solid:#eee;">Dimensions</th>
+        </tr>
+      </thead>
+      <tbody>${itemsHtml}</tbody>
+    </table>
+
+    <div style="margin-top:16px;">
+      <div style="font-weight:600;">Total Inserts: ${totalQty}</div>
+      <div style="font-weight:600;">Order Total: ${Number(total).toFixed(2)}</div>
+    </div>
+
+    <div style="margin-top:28px;padding-top:16px;border-top:1px solid #eee;text-align:center;color:#555;font-size:14px;">
+      <div>
+        <a href="https://www.lumashape.com" style="color:#2E6C99;text-decoration:none;">www.lumashape.com</a>
+        &nbsp;|&nbsp;
+        <a href="mailto:support@lumashape.com" style="color:#2E6C99;text-decoration:none;">support@lumashape.com</a>
+      </div>
+
+      <div style="margin-top:10px;">
+        <a href="https://www.linkedin.com/company/lumashape" style="margin-right:12px;display:inline-block;">
+          <img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="20" height="20" alt="">
+        </a>
+        <a href="https://www.youtube.com/@Lumashape?app=desktop" style="display:inline-block;">
+          <img src="https://cdn-icons-png.flaticon.com/512/1384/1384060.png" width="20" height="20" alt="">
+        </a>
+      </div>
+    </div>
+  </div>
+`;
+
       const text = `Order Confirmation\n\nShipping:\n${ship.name || ''}\n${ship.address1 || ''}${ship.address2 ? ', ' + ship.address2 : ''}\n${ship.city || ''}${ship.state ? ', ' + ship.state : ''} ${ship.postalCode || ''}\n${ship.country || ''}\n${ship.phone ? 'Phone: ' + ship.phone : ''}\n${ship.email ? 'Email: ' + ship.email : ''}\n\nItems:\n${Array.isArray(order.items) ? order.items.map(i => `- ${i.name} x${i.quantity}`).join('\n') : ''}\n\nTotal Inserts: ${totalQty}\nOrder Total: ${Number(total).toFixed(2)}`
       await transporter.sendMail({
         from: `"Lumashape" <${process.env.SMTP_USER}>`,
@@ -90,7 +112,7 @@ export async function POST(req: NextRequest) {
         html,
         text,
       })
-    } catch {}
+    } catch { }
 
     try {
       const cart = await Cart.findOne({ userEmail: order.buyerEmail })
@@ -99,7 +121,7 @@ export async function POST(req: NextRequest) {
         cart.items = cart.items.filter(item => !removeIds.includes(item.id))
         await cart.save()
       }
-    } catch {}
+    } catch { }
 
     return NextResponse.json({ verified: true })
   } catch (err) {
