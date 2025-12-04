@@ -4,12 +4,14 @@ import jwt from 'jsonwebtoken'
 import dbConnect from '@/utils/dbConnect'
 import ManufacturingOrder, { IShipping } from '@/lib/models/ManufacturingOrder'
 import Cart from '@/lib/models/Cart'
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY!
 const JWT_SECRET = process.env.JWT_SECRET!
 
 const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2025-08-27.basil' })
+
+const resend = new Resend(process.env.RESEND_API_KEY!)
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,12 +38,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const logoUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? ''}mailLogo.jpg`
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: false,
-        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-      })
+      const from = `"Lumashape" <${process.env.EMAIL_FROM || 'no-reply@lumashape.com'}>`;
       const ship: Partial<IShipping> = (order.shipping || {}) as Partial<IShipping>
       const itemsHtml = Array.isArray(order.items) ? order.items.map(i => {
         const dims = i.canvas ? `${i.canvas.width} x ${i.canvas.height} ${i.canvas.unit}, ${i.canvas.thickness}"` : ''
@@ -105,8 +102,8 @@ export async function POST(req: NextRequest) {
 `;
 
       const text = `Order Confirmation\n\nShipping:\n${ship.name || ''}\n${ship.address1 || ''}${ship.address2 ? ', ' + ship.address2 : ''}\n${ship.city || ''}${ship.state ? ', ' + ship.state : ''} ${ship.postalCode || ''}\n${ship.country || ''}\n${ship.phone ? 'Phone: ' + ship.phone : ''}\n${ship.email ? 'Email: ' + ship.email : ''}\n\nItems:\n${Array.isArray(order.items) ? order.items.map(i => `- ${i.name} x${i.quantity}`).join('\n') : ''}\n\nTotal Inserts: ${totalQty}\nOrder Total: ${Number(total).toFixed(2)}`
-      await transporter.sendMail({
-        from: `"Lumashape" <${process.env.SMTP_USER}>`,
+      await resend.emails.send({
+        from,
         to: order.buyerEmail,
         subject: 'Order Confirmation - Lumashape',
         html,

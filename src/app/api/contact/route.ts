@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
+
+const resend = new Resend(process.env.RESEND_API_KEY!)
 
 export async function POST(req: NextRequest) {
   const logoUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? ''}mailLogo.jpg`
@@ -18,27 +20,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Validate SMTP configuration
-    if (
-      !process.env.SMTP_HOST ||
-      !process.env.SMTP_PORT ||
-      !process.env.SMTP_USER ||
-      !process.env.SMTP_PASS ||
-      !process.env.EMAIL_TO
-    ) {
-      return NextResponse.json({ message: 'Missing SMTP configuration.' }, { status: 500 })
+    if (!process.env.EMAIL_TO) {
+      return NextResponse.json({ message: 'Missing email configuration.' }, { status: 500 })
     }
-
-    // Create nodemailer transporter
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    })
 
     function formatDateUTC(date: Date) {
       const options: Intl.DateTimeFormatOptions = {
@@ -172,17 +156,17 @@ export async function POST(req: NextRequest) {
     </div>`
 
     // Send email to the user
-    await transporter.sendMail({
-      from: `"Contact Form" <${process.env.SMTP_USER}>`,
+    await resend.emails.send({
+      from: `"Contact Form" <${process.env.EMAIL_FROM || 'no-reply@lumashape.com'}>`,
       to: data.email,
       subject: 'Thank you for contacting us!',
       html: userEmailTemplate,
     })
 
     // Send internal email
-    await transporter.sendMail({
-      from: `"Contact Form" <${process.env.SMTP_USER}>`,
-      to: process.env.EMAIL_TO,
+    await resend.emails.send({
+      from: `"Contact Form" <${process.env.EMAIL_FROM || 'no-reply@lumashape.com'}>`,
+      to: process.env.EMAIL_TO!,
       subject: 'New Inquiry Received',
       html: internalEmailTemplate,
     })

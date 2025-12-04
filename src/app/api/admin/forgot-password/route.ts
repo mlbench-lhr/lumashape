@@ -1,15 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/utils/dbConnect";
 import Admin from "@/lib/models/Admin";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-const createTransporter = () =>
-  nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: parseInt(process.env.SMTP_PORT || "587"),
-    secure: false,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  });
+const resend = new Resend(process.env.RESEND_API_KEY!);
 
 const generateOTP = (): string => Math.floor(10000 + Math.random() * 90000).toString();
 
@@ -27,9 +21,8 @@ export async function POST(req: NextRequest) {
 
   await Admin.findByIdAndUpdate(admin._id, { resetPasswordOTP: otp, resetPasswordExpires: otpExpiry });
 
-  const transporter = createTransporter();
   const mailOptions = {
-    from: `"Lumashape" <${process.env.SMTP_USER}>`,
+    from: `"Lumashape" <${process.env.EMAIL_FROM || "no-reply@lumashape.com"}>`,
     to: email,
     subject: "Admin Password Reset OTP - Lumashape",
     html: `
@@ -82,6 +75,6 @@ export async function POST(req: NextRequest) {
     text: `Your OTP is: ${otp}. It expires in 10 minutes.`,
   };
 
-  await transporter.sendMail(mailOptions);
+  await resend.emails.send(mailOptions);
   return NextResponse.json({ message: "OTP sent to your email", otpSent: true }, { status: 200 });
 }
