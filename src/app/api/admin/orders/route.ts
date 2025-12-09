@@ -45,8 +45,14 @@ export async function GET(req: NextRequest) {
       Math.min(50, parseInt(searchParams.get("limit") || "10", 10))
     );
     const search = (searchParams.get("search") || "").trim();
+    const statusParam = (searchParams.get("status") || "").trim();
 
     const query: FilterQuery<IManufacturingOrder> = {};
+    if (statusParam && ["pending", "paid", "failed"].includes(statusParam)) {
+      query.status = statusParam as IManufacturingOrder["status"];
+    } else {
+      query.status = "paid";
+    }
     if (search) {
       const rx = new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
       query.$or = [
