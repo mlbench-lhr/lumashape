@@ -13,6 +13,8 @@ const generateOTP = (): string => {
 // Send OTP endpoint
 export async function POST(req: NextRequest) {
   const logoUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? ""}mailLogo.jpg`;
+  const linkedinUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? ""}linkedin.jpg`;
+  const youtubeUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? ""}youtube.jpg`;
 
   try {
     await dbConnect();
@@ -70,7 +72,7 @@ export async function POST(req: NextRequest) {
       </div>
       </div>
 
-      <p style="font-size: 30.59px; font-weight: 600; text-align: center;">Welcome to <span style="color: #266CA8;">Lumashape!</span></p>
+
 
             <h2 style="color: #333; text-align: center;">Password Reset Request</h2>
             <p>Hello ${user.username},</p>
@@ -82,7 +84,20 @@ export async function POST(req: NextRequest) {
             <p><strong>This OTP will expire in 10 minutes.</strong></p>
             <p>If you didn't request this password reset, please ignore this email.</p>
             <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-            <p style="font-size: 12px; color: #666; text-align: center;">
+            <p style="margin-top: 30px; text-align: center;">
+              <a href="https://www.lumashape.com" style="color: #000; text-decoration: none;">www.lumashape.com</a>
+              <span style="color: #000;"> | </span>
+              <a href="mailto:support@lumashape.com" style="color: #000;">support@lumashape.com</a>
+            </p>
+            <div style="text-align: center; margin-top: 10px;">
+              <a href="https://www.linkedin.com/company/lumashape/" style="text-decoration: none;">
+                <img src="${linkedinUrl}" alt="LinkedIn" width="20" />
+              </a>
+              <a href="https://www.youtube.com/@Lumashape?app=desktop" style="text-decoration: none; margin-left: 20px;">
+                <img src="${youtubeUrl}" alt="YouTube" width="20" />
+              </a>
+            </div>
+            <p style="font-size: 12px; color: #666; text-align: center; margin-top: 16px;">
             This is an automated message from Lumashape. Please do not reply to this email.
             </p>
             </div>

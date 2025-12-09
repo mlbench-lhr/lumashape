@@ -29,9 +29,9 @@ const raleway = Raleway({
 
 export const metadata: Metadata = {
   title: "Lumashape",
-  description: "Lumashape",
+  description: "One connected ecosystem for tool organization. Scan your tools, build and share layouts, and download cut-ready DXF files — or order professionally cut 5S tool control foam inserts.",
   icons: {
-    icon: "/images/icons/lumashape.svg",
+    icon: "/images/logo/lumashape_logo.svg",
   },
 };
 

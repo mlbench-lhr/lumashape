@@ -274,7 +274,7 @@ export default function ProfitSharing() {
                     <div className="text-xl font-semibold">${earnedDollar}</div>
                     <div className="text-xs text-gray-500">Avg per sale: ${avgPerSale}</div>
                 </div>
-                <div className="border rounded-lg p-4">
+                {/* <div className="border rounded-lg p-4">
                     <div className="text-sm text-gray-600">Total Owed</div>
                     <div className="text-xl font-semibold">${(owedCents / 100).toFixed(2)}</div>
                     <div className="text-xs text-gray-500">
@@ -285,7 +285,7 @@ export default function ProfitSharing() {
                                 : "Unpaid earnings"
                         }
                     </div>
-                </div>
+                </div> */}
                 <div className="border rounded-lg p-4">
                     <div className="text-sm text-gray-600">Total Spent</div>
                     <div className="text-xl font-semibold">${spentDollar}</div>
@@ -306,7 +306,6 @@ export default function ProfitSharing() {
                                 <th className="py-2 pr-3">Date</th>
                                 <th className="py-2 pr-3">Item</th>
                                 <th className="py-2 pr-3">Amount</th>
-                                <th className="py-2 pr-3">Status</th>
                             </tr>
                         </thead>
                         <tbody className="align-top">
@@ -318,11 +317,6 @@ export default function ProfitSharing() {
                                         <td className="py-2 pr-3">{new Date(tx.createdAt).toLocaleDateString()}</td>
                                         <td className="py-2 pr-3">{tx.itemName || tx.itemId}</td>
                                         <td className="py-2 pr-3">${(tx.sellerShareCents / 100).toFixed(2)}</td>
-                                        <td className="py-2 pr-3">
-                                            <span className={`px-2 py-0.5 rounded text-xs ${tx.paidToSeller ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                                                {tx.paidToSeller ? 'Paid' : 'Owed'}
-                                            </span>
-                                        </td>
                                     </tr>
                                 ))
                             )}
@@ -344,7 +338,6 @@ export default function ProfitSharing() {
                                 <th className="py-2 pr-3">Date</th>
                                 <th className="py-2 pr-3">Item</th>
                                 <th className="py-2 pr-3">Amount</th>
-                                <th className="py-2 pr-3">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -356,11 +349,6 @@ export default function ProfitSharing() {
                                         <td className="py-2 pr-3">{new Date(tx.createdAt).toLocaleDateString()}</td>
                                         <td className="py-2 pr-3">{tx.itemName || tx.itemId}</td>
                                         <td className="py-2 pr-3">-${(tx.amountCents / 100).toFixed(2)}</td>
-                                        <td className="py-2 pr-3">
-                                            <span className={`px-2 py-0.5 rounded text-xs ${tx.status === 'paid' ? 'bg-green-100 text-green-700' : tx.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-700'}`}>
-                                                {tx.status}
-                                            </span>
-                                        </td>
                                     </tr>
                                 ))
                             )}

@@ -155,12 +155,15 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     const cx = tool.x + toolWidth / 2;
     const cy = tool.y + toolHeight / 2;
 
+    const DPI = 96;
+    const gapPx = (unit === 'mm' ? 0.5 * 25.4 : 0.5) * DPI;
+
     const left = cx - rotW / 2;
     const top = cy - rotH / 2;
     const right = cx + rotW / 2;
     const bottom = cy + rotH / 2;
 
-    return left >= 0 && top >= 0 && right <= canvasWidthPx && bottom <= canvasHeightPx;
+    return left >= gapPx && top >= gapPx && right <= canvasWidthPx - gapPx && bottom <= canvasHeightPx - gapPx;
   }, [getToolDimensions, getCanvasStyle]);
 
   // handleResize function used by old resize handles (also round to 2 decimals)
@@ -294,17 +297,30 @@ const Canvas: React.FC<CanvasProps> = (props) => {
       >
         {/* Canvas with viewport transform */}
         <div
-          ref={canvasRef}
-          data-canvas="true"
-          className="absolute border-2 border-dashed border-gray-300 bg-white rounded-lg shadow-lg"
-          style={{
-            ...getCanvasStyle(),
-            ...getViewportTransform(),
-          }}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onClick={handleCanvasClick}
-        >
+            ref={canvasRef}
+            data-canvas="true"
+            className="absolute bg-white rounded-lg shadow-lg"
+            style={{
+              ...getCanvasStyle(),
+              ...getViewportTransform(),
+              border: '4px solid #2E6C99'
+            }}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onClick={handleCanvasClick}
+          >
+            {(() => {
+              const inchesToPx = (inches: number) => inches * 96;
+              const mmToPx = (mm: number) => (mm / 25.4) * 96;
+              const GAP_INCHES = 0.5;
+              const gapPx = unit === 'mm' ? mmToPx(GAP_INCHES * 25.4) : inchesToPx(GAP_INCHES);
+              return (
+                <div
+                  className="pointer-events-none absolute inset-0 rounded-lg"
+                  style={{ boxShadow: `inset 0 0 0 ${gapPx}px #c2c2c2` }}
+                />
+              );
+            })()}
 
           {/* Preview line for finger cut: first click → live endpoint */}
           {activeTool === 'fingercut' && fingerCutStart && fingerCutPreviewEnd && (

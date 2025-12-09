@@ -743,7 +743,7 @@ const TrendingTab = () => {
                                                     </button>
                                                     <button
                                                         onClick={() => handleLayoutMenuClick("Inspect", layout)}
-                                                        className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-50"
+                                                        className="hidden sm:flex w-full px-3 py-2 text-left items-center gap-2 hover:bg-gray-50"
                                                     >
                                                         <Image
                                                             src="/images/icons/share.svg"

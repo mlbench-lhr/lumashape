@@ -554,8 +554,8 @@ function MobileToolsInventory() {
 
       {/* Show footer only when no tools */}
       {filteredTools.length === 0 && (
-        <footer className="w-full text-center py-6 mt-auto absolute bottom-4 left-0">
-          <div className="flex flex-col justify-center items-center gap-[6px] mx-auto lg:ml-[300px] lg:mb-[40px]">
+        <footer className="w-full text-center py-6 mt-8">
+          <div className="flex flex-col justify-center items-center gap-[6px] mx-auto">
             <p className="text-gray-500 text-sm sm:text-base">
               Download the LUMASHAPE mobile app to get started
             </p>

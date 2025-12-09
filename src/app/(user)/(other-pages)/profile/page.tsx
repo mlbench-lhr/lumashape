@@ -301,7 +301,7 @@ const Profile = () => {
               </div>
               <h2 className="text-2xl font-bold mb-4">Logout?</h2>
               <p className="text-gray-600 text-center mb-6">
-                Are you sure you want to logout? You’ll need to log in again to access your account.
+                Are you sure you want to logout?
               </p>
               <div className="flex w-full gap-4">
                 <button
