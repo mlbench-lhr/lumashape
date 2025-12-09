@@ -382,7 +382,7 @@ const MyLayouts = () => {
                                     e.stopPropagation();
                                     handleMenuClick("Edit", layout);
                                   }}
-                                  className="w-full px-1 py-1 sm:px-3 sm:py-2 text-left flex items-center gap-[5px] hover:bg-gray-50"
+                                  className="hidden sm:flex w-full px-1 py-1 sm:px-3 sm:py-2 text-left items-center gap-[5px] hover:bg-gray-50"
                                 >
                                   <Image src="/images/icons/edit.svg" width={16} height={16} alt="edit" />
                                   <span className="text-[#266ca8] text-[10px] sm:text-[14px] font-medium">Edit</span>
@@ -485,14 +485,14 @@ const MyLayouts = () => {
       </div >
 
       {/* Floating Add Button */}
-      < div className="fixed bottom-6 right-6 sm:hidden" >
+      <div className="hidden">
         <button
           className="w-14 h-14 bg-primary rounded-full flex items-center justify-center shadow-lg transition-colors"
           onClick={() => router.push("/workspace/create-new-layout")}
         >
           <Plus className="w-6 h-6 text-white" />
         </button>
-      </div >
+      </div>
     </div >
   );
 };

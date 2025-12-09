@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { useUser } from "@/context/UserContext";
 
 interface ForgotPasswordResponse {
   message: string;
@@ -13,6 +14,12 @@ interface VerifyOTPResponse {
   message: string;
   resetToken?: string;
   verified?: boolean;
+  token?: string;
+  user?: {
+    _id: string;
+    username: string;
+    email: string;
+  };
 }
 
 interface ResetPasswordResponse {
@@ -22,6 +29,7 @@ interface ResetPasswordResponse {
 
 export default function EmailVerificationScreen() {
   const router = useRouter();
+  const { login } = useUser();
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", ""]);
   const [newPassword, setNewPassword] = useState("");
@@ -139,9 +147,12 @@ export default function EmailVerificationScreen() {
 
       if (response.ok && data.verified) {
         setSuccess("OTP verified successfully!");
-        // localStorage.setItem('stelomic_reset_email',  '');
         setResetToken(data.resetToken || "");
         setIsOtpVerified(true);
+        if (data.token) {
+          login(data.token);
+          router.push("/workspace");
+        }
       } else {
         setError(data.message || "Invalid OTP");
       }
@@ -175,9 +186,7 @@ export default function EmailVerificationScreen() {
   };
 
   useEffect(() => {
-    if (isOtpVerified) {
-      router.push("/auth/login");
-    }
+    // Redirect is handled upon successful verification
   }, [isOtpVerified]);
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">

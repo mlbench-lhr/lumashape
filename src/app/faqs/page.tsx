@@ -71,7 +71,7 @@ export default function FAQSection() {
                         <span className='text-primary'> Frequently</span> Asked Questions
                     </h1>
                     <p className="text-secondary-light text-lg animate-slide-up-delay">
-                        Have Queries?? WE have got answers, find quick answers to all of your questions!!
+                        Find quick, clear answers to the most common questions about Lumashape.
                     </p>
                 </div>
 

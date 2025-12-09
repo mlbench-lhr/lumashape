@@ -60,7 +60,7 @@ const CreateNewLayout = () => {
         if (!layoutName) {
             newErrors.layoutName = 'Layout name is required.';
         } else if (/\s/.test(layoutName)) {
-            newErrors.layoutName = 'Layout name must not contain spaces.';
+            newErrors.layoutName = 'Layout Name must not contain spaces';
         }
 
         if (!units) {
@@ -155,6 +155,23 @@ const CreateNewLayout = () => {
                             readOnly={!isEditingName}
                             onClick={() => setIsEditingName(true)}
                             onChange={(e) => setLayoutName(e.target.value)}
+                            onBlur={() => {
+                                setIsEditingName(false);
+                                const msg = !layoutName
+                                  ? 'Layout name is required.'
+                                  : /\s/.test(layoutName)
+                                  ? 'Layout Name must not contain spaces'
+                                  : '';
+                                setErrors(prev => {
+                                  const next = { ...prev };
+                                  if (msg) {
+                                    next.layoutName = msg;
+                                  } else {
+                                    delete next.layoutName;
+                                  }
+                                  return next;
+                                });
+                              }}
                             className={`px-6 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 
                                 ${errors.layoutName ? 'border-red-500' : 'border-gray-300'} 
                                 ${!isEditingName ? 'cursor-pointer bg-gray-50' : ''}`}

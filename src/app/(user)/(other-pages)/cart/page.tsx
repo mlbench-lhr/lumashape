@@ -238,7 +238,7 @@ const Cart = () => {
                     </div>
 
                     {/* Inspect Layout moved to far right */}
-                    <div className="flex justify-end">
+                    <div className="hidden sm:flex justify-end">
                       <Link
                         href={`/inspect-layout/${item.id}`}
                         className="text-[#2E6C99] text-base underline whitespace-nowrap"

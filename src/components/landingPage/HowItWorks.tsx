@@ -63,7 +63,7 @@ const data: { left: DataItem[]; right: DataItem[] } = {
     },
     {
       id: 4,
-      image: '/images/landing/canvas_image.svg',
+      image: '/images/landing/canvas_image.png',
     },
     {
       id: 6,

@@ -3,7 +3,7 @@ import User from '@/lib/models/User'
 import dbConnect from '@/utils/dbConnect'
 import jwt from 'jsonwebtoken'
 
-const JWT_SECRET = process.env.JWT_SECRET as string
+const JWT_SECRET = process.env.JWT_SECRET as jwt.Secret
 
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required')
@@ -42,24 +42,42 @@ export async function POST(req: NextRequest) {
         purpose: 'password-reset'
       },
       JWT_SECRET,
-      { expiresIn: '15m' } // 15 minutes to reset password
+      { expiresIn: '15m' } as jwt.SignOptions
     )
 
-    // Clear OTP fields
+    // Generate auth token and mark verified
+    const authToken = jwt.sign(
+      {
+        userId: user._id?.toString(),
+        email: user.email,
+        username: user.username,
+      },
+      JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as jwt.SignOptions
+    )
+
     await User.findByIdAndUpdate(user._id, {
       $unset: {
         resetPasswordOTP: 1,
         resetPasswordExpires: 1
       },
-       $set: {
-    isVerified: true
-  }
+      $set: {
+        isVerified: true
+      }
     })
+
+    const userResponse = {
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+    }
 
     return NextResponse.json({ 
       message: 'OTP verified successfully',
       resetToken,
-      verified: true
+      verified: true,
+      token: authToken,
+      user: userResponse
     }, { status: 200 })
 
   } catch (error) {

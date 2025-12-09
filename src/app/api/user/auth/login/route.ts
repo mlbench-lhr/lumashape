@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
       profilePic: user.profilePic,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
+      bio: user.bio,
     };
 
     // METHOD 1: Using HTTP-only cookies (Recommended for security)

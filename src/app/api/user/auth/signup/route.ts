@@ -53,9 +53,21 @@ export async function POST(req: NextRequest) {
     // Save the new user to the database
     await newUser.save();
 
-    // Send response
+    // Shape response like login (exclude password and internal fields)
+    const userResponse = {
+      _id: newUser._id,
+      firstName: newUser.firstName,
+      lastName: newUser.lastName,
+      username: newUser.username,
+      email: newUser.email,
+      profilePic: newUser.profilePic,
+      createdAt: newUser.createdAt,
+      updatedAt: newUser.updatedAt,
+      bio: newUser.bio,
+    };
+
     return NextResponse.json(
-      { message: "User created successfully", user: newUser },
+      { message: "User created successfully", user: userResponse, success: true },
       { status: 201 }
     );
   } catch (error) {

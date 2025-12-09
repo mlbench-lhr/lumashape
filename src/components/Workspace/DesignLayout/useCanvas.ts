@@ -313,16 +313,20 @@ export const useCanvas = ({
 
 
 
-  // Constrain tool position to canvas boundaries (rotation-aware)
+  // Constrain tool position to inner canvas (exclude 0.5" gray buffer)
   const constrainToCanvas = useCallback((tool: DroppedTool, x: number, y: number) => {
     const { toolWidth: w, toolHeight: h } = getToolDimensions(tool);
     const { width: canvasWidthPx, height: canvasHeightPx } = getCanvasBounds();
+
+    const GAP_INCHES = 0.5;
+    const gapPx = unit === 'mm' ? mmToPx(GAP_INCHES * 25.4) : inchesToPx(GAP_INCHES);
+    const innerWidth = Math.max(0, canvasWidthPx - 2 * gapPx);
+    const innerHeight = Math.max(0, canvasHeightPx - 2 * gapPx);
 
     const angle = ((tool.rotation || 0) * Math.PI) / 180;
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
 
-    // Use conservative rectangle AABB extents for all tools
     const rotW = Math.abs(w * cos) + Math.abs(h * sin);
     const rotH = Math.abs(w * sin) + Math.abs(h * cos);
 
@@ -331,35 +335,31 @@ export const useCanvas = ({
     const rotWHalf = rotW / 2;
     const rotHHalf = rotH / 2;
 
-    // Small epsilon to avoid sub-pixel slip outside the canvas
     const epsilon = 1; // px
 
-    // Allowed ranges ensuring rotated bounds stay inside
-    const minX = rotWHalf - wHalf + epsilon;                   // left edge at 0
-    const maxX = canvasWidthPx - (wHalf + rotWHalf) - epsilon; // right edge at canvasWidth
-    const minY = rotHHalf - hHalf + epsilon;                   // top edge at 0
-    const maxY = canvasHeightPx - (hHalf + rotHHalf) - epsilon;// bottom edge at canvasHeight
+    // Boundaries: left/top at gapPx, right/bottom at canvas - gapPx
+    const minX = gapPx + (rotWHalf - wHalf) + epsilon;
+    const maxX = (canvasWidthPx - gapPx) - (wHalf + rotWHalf) - epsilon;
+    const minY = gapPx + (rotHHalf - hHalf) + epsilon;
+    const maxY = (canvasHeightPx - gapPx) - (hHalf + rotHHalf) - epsilon;
 
     let constrainedX: number;
     let constrainedY: number;
 
-    // Horizontal
-    if (rotW <= canvasWidthPx) {
+    if (rotW <= innerWidth) {
       constrainedX = Math.min(Math.max(x, minX), Math.max(minX, maxX));
     } else {
-      // If the rotated bounds cannot fit, keep centered so it doesn't clip unevenly
-      constrainedX = canvasWidthPx / 2 - wHalf;
+      constrainedX = gapPx + innerWidth / 2 - wHalf;
     }
 
-    // Vertical
-    if (rotH <= canvasHeightPx) {
+    if (rotH <= innerHeight) {
       constrainedY = Math.min(Math.max(y, minY), Math.max(minY, maxY));
     } else {
-      constrainedY = canvasHeightPx / 2 - hHalf;
+      constrainedY = gapPx + innerHeight / 2 - hHalf;
     }
 
     return { x: constrainedX, y: constrainedY };
-  }, [getToolDimensions, getCanvasBounds]);
+  }, [getToolDimensions, getCanvasBounds, unit, mmToPx, inchesToPx]);
 
   // Check if two tools overlap (AABB sync, used elsewhere)
   const doToolsOverlap = useCallback((tool1: DroppedTool, tool2: DroppedTool) => {
@@ -549,11 +549,15 @@ export const useCanvas = ({
 
     const { toolWidth, toolHeight } = getToolDimensions(tool);
     const { width: canvasWidthPx, height: canvasHeightPx } = getCanvasBounds();
-    const maxCanvasWidth = canvasWidthPx - toolWidth;
-    const maxCanvasHeight = canvasHeightPx - toolHeight;
+    const GAP_INCHES = 0.5;
+    const gapPx = unit === 'mm' ? mmToPx(GAP_INCHES * 25.4) : inchesToPx(GAP_INCHES);
+    const innerWidth = Math.max(0, canvasWidthPx - 2 * gapPx);
+    const innerHeight = Math.max(0, canvasHeightPx - 2 * gapPx);
+    const maxCanvasWidth = gapPx + Math.max(0, innerWidth - toolWidth);
+    const maxCanvasHeight = gapPx + Math.max(0, innerHeight - toolHeight);
 
-    let x = Math.max(0, Math.min(startX ?? tool.x, maxCanvasWidth));
-    let y = Math.max(0, Math.min(startY ?? tool.y, maxCanvasHeight));
+    let x = Math.max(gapPx, Math.min(startX ?? tool.x, maxCanvasWidth));
+    let y = Math.max(gapPx, Math.min(startY ?? tool.y, maxCanvasHeight));
 
     const step = 20; // Grid step for positioning
     const maxAttempts = 100;
