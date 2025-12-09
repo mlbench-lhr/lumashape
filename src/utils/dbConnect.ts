@@ -1,76 +1,65 @@
-// // utils/dbConnect.ts
-// import mongoose, { Mongoose } from 'mongoose'
-
-// const MONGODB_URI = process.env.MONGODB_URI!
-
-// if (!MONGODB_URI) {
-//   throw new Error('Please define the MONGODB_URI environment variable inside .env.local')
-// }
-
-// interface GlobalMongoose {
-//   conn: Mongoose | null
-//   promise: Promise<Mongoose> | null
-// }
-
-// declare global {
-//   // eslint-disable-next-line no-var
-//   var mongoose: GlobalMongoose | undefined
-// }
-
-// const cached: GlobalMongoose = global.mongoose || { conn: null, promise: null }
-
-// global.mongoose = cached
-
-// async function dbConnect(): Promise<Mongoose> {
-//   if (cached.conn) return cached.conn
-
-//   if (!cached.promise) {
-//     const opts = {
-//       bufferCommands: false,
-//     }
-
-//     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-//       console.log('✅ Connected to MongoDB')
-//       return mongoose
-//     })
-//   }
-
-//   try {
-//     cached.conn = await cached.promise
-//   } catch (e) {
-//     cached.promise = null
-//     throw e
-//   }
-
-//   return cached.conn
-// }
-
-// export default dbConnect
-
-
 // utils/dbConnect.ts
-import mongoose from "mongoose";
+import mongoose, { ConnectOptions } from 'mongoose'
 
-const MONGODB_URI = process.env.MONGODB_URI!;
+declare global {
+  var mongoose: {
+    conn: typeof mongoose | null
+    promise: Promise<typeof mongoose> | null
+  } | undefined
+}
+
+const MONGODB_URI = process.env.MONGODB_URI as string
 
 if (!MONGODB_URI) {
-  throw new Error("Please define the MONGODB_URI environment variable inside .env.local");
+  throw new Error('Please define the MONGODB_URI environment variable inside .env')
 }
 
-let isConnected = false;
+mongoose.set('bufferCommands', false)
 
-export default async function dbConnect() {
-  if (isConnected) return;
+const globalForMongoose = globalThis as unknown as {
+  mongoose?: { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null }
+}
 
-  if (mongoose.connection.readyState >= 1) {
-    isConnected = true;
-    return;
+globalForMongoose.mongoose = globalForMongoose.mongoose || { conn: null, promise: null }
+
+const cached = globalForMongoose.mongoose!
+
+async function dbConnect() {
+  if (cached.conn) {
+    return cached.conn
   }
 
-  await mongoose.connect(MONGODB_URI, {
-    bufferCommands: false,
-  });
+  if (!cached.promise) {
+    const opts: ConnectOptions = {
+      maxPoolSize: 3,
+      minPoolSize: 1,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 30000,
+      connectTimeoutMS: 10000,
+      maxIdleTimeMS: 30000,
+      maxConnecting: 1,
+      retryWrites: false,
+      readPreference: 'primary',
+    }
 
-  isConnected = true;
-  console.log("✅ MongoDB connected");
+    cached.promise = mongoose.connect(MONGODB_URI, opts as ConnectOptions).then((mongoose) => {
+      console.log('✅ Connected to MongoDB')
+      return mongoose
+    }).catch((error) => {
+      console.error('❌ MongoDB error:', error.message)
+      cached.promise = null
+      throw error
+    })
+  }
+
+  try {
+    cached.conn = await cached.promise
+  } catch (e) {
+    cached.promise = null
+    throw e
+  }
+
+  return cached.conn
 }
+
+export default dbConnect
