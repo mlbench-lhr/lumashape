@@ -1176,10 +1176,8 @@ const { addToCart, cartItems } = useCart();
       const dataUrl = await htmlToImage.toPng(layoutElement, {
         backgroundColor: "#ffffff",
         cacheBust: true,
-        pixelRatio: 1, // Adjust for quality vs file size
-        quality: 0.9,
-        width: layoutElement.offsetWidth,
-        height: layoutElement.offsetHeight,
+        pixelRatio: 1,
+        quality: 0.9
       });
 
       // Convert base64 to Blob
