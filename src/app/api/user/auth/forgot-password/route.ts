@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       {
-        message: "OTP has been sent to your email addrex",
+        message: "OTP has been sent to your email address",
         otpSent: true,
       },
       { status: 200 }

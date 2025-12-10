@@ -303,24 +303,20 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             style={{
               ...getCanvasStyle(),
               ...getViewportTransform(),
-              border: '4px solid #2E6C99'
+              border: '4px solid #2E6C99',
+              boxShadow: (() => {
+                const inchesToPx = (inches: number) => inches * 96;
+                const mmToPx = (mm: number) => (mm / 25.4) * 96;
+                const GAP_INCHES = 0.5;
+                const gapPx = unit === 'mm' ? mmToPx(GAP_INCHES * 25.4) : inchesToPx(GAP_INCHES);
+                return `inset 0 0 0 ${gapPx}px #c2c2c2`;
+              })()
             }}
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             onClick={handleCanvasClick}
           >
-            {(() => {
-              const inchesToPx = (inches: number) => inches * 96;
-              const mmToPx = (mm: number) => (mm / 25.4) * 96;
-              const GAP_INCHES = 0.5;
-              const gapPx = unit === 'mm' ? mmToPx(GAP_INCHES * 25.4) : inchesToPx(GAP_INCHES);
-              return (
-                <div
-                  className="pointer-events-none absolute inset-0 rounded-lg"
-                  style={{ boxShadow: `inset 0 0 0 ${gapPx}px #c2c2c2` }}
-                />
-              );
-            })()}
+
 
           {/* Preview line for finger cut: first click → live endpoint */}
           {activeTool === 'fingercut' && fingerCutStart && fingerCutPreviewEnd && (
@@ -377,9 +373,11 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           )}
 
           {/* Canvas dimensions indicator */}
-          <div className="absolute -top-8 left-0 text-sm text-gray-600 font-medium bg-white px-2 py-1 rounded shadow-sm">
-            Canvas: {canvasWidth} × {canvasHeight} {unit}
-          </div>
+          {!props.suppressSelectionUI && (
+            <div className="absolute -top-8 left-0 text-sm text-gray-600 font-medium bg-white px-2 py-1 rounded shadow-sm">
+              Canvas: {canvasWidth} × {canvasHeight} {unit}
+            </div>
+          )}
 
           {/* UPDATED: Clean Tool Rendering - No Borders */}
           {droppedTools.map(tool => {
