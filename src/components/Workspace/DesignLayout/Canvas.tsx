@@ -1,10 +1,18 @@
 // Updated Canvas.tsx - Clean tool rendering without borders
-import React from 'react';
-import { useCallback } from 'react';
-import { DroppedTool, Tool } from './types';
-import { RefreshCw, X, Move, Maximize, AlertTriangle, Check, Hand } from 'lucide-react';
-import { useCanvas } from './useCanvas';
-import RotationWheel from './RotationWheel';
+import React from "react";
+import { useCallback } from "react";
+import { DroppedTool, Tool } from "./types";
+import {
+  RefreshCw,
+  X,
+  Move,
+  Maximize,
+  AlertTriangle,
+  Check,
+  Hand,
+} from "lucide-react";
+import { useCanvas } from "./useCanvas";
+import RotationWheel from "./RotationWheel";
 
 // conversion helper
 const mmToInches = (mm: number) => mm / 25.4;
@@ -19,10 +27,10 @@ interface CanvasProps {
   onSave?: (tools: DroppedTool[]) => void;
   canvasWidth: number;
   canvasHeight: number;
-  unit: 'mm' | 'inches';
+  unit: "mm" | "inches";
   thickness: number;
-  activeTool: 'cursor' | 'hand' | 'box' | 'fingercut';
-  setActiveTool: (tool: 'cursor' | 'hand' | 'box' | 'fingercut') => void;
+  activeTool: "cursor" | "hand" | "box" | "fingercut";
+  setActiveTool: (tool: "cursor" | "hand" | "box" | "fingercut") => void;
   onOverlapChange?: (hasOverlaps: boolean) => void;
   readOnly?: boolean;
   // NEW: mark gesture boundaries to batch history
@@ -95,8 +103,10 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     isX: boolean = true
   ): number => {
     // Choose logical canvas size in inches for axis
-    const canvasInchesX = props.unit === 'mm' ? mmToInches(props.canvasWidth) : props.canvasWidth;
-    const canvasInchesY = props.unit === 'mm' ? mmToInches(props.canvasHeight) : props.canvasHeight;
+    const canvasInchesX =
+      props.unit === "mm" ? mmToInches(props.canvasWidth) : props.canvasWidth;
+    const canvasInchesY =
+      props.unit === "mm" ? mmToInches(props.canvasHeight) : props.canvasHeight;
 
     // Read actual rendered canvas size and remove zoom to get base CSS pixels
     const el = canvasRef.current;
@@ -128,54 +138,73 @@ const Canvas: React.FC<CanvasProps> = (props) => {
   };
 
   // Convert thickness to inches for comparison
-  const thicknessInches = unit === 'mm' ? mmToInches(thickness) : thickness;
+  const thicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
   const depthInchesFor = (t: DroppedTool) =>
-    typeof t.depth === 'number'
-      ? (t.unit === 'mm' ? mmToInches(t.depth) : t.depth)
+    typeof t.depth === "number"
+      ? t.unit === "mm"
+        ? mmToInches(t.depth)
+        : t.depth
       : 0;
   const allowedDepthInches = Math.max(0, thicknessInches - 0.25);
-  const tooDeepCount = droppedTools.filter(t => depthInchesFor(t) > allowedDepthInches).length;
+  const tooDeepCount = droppedTools.filter(
+    (t) => depthInchesFor(t) > allowedDepthInches
+  ).length;
   const isLayoutInvalid = hasOverlaps;
 
   // Rotation guard: block rotation if the rotated bounds would exceed the canvas
-  const canRotateWithinCanvas = useCallback((tool: DroppedTool, rotation: number) => {
-    const { toolWidth, toolHeight } = getToolDimensions(tool);
-    const style = getCanvasStyle();
-    const canvasWidthPx = parseFloat(style.width);
-    const canvasHeightPx = parseFloat(style.height);
+  const canRotateWithinCanvas = useCallback(
+    (tool: DroppedTool, rotation: number) => {
+      const { toolWidth, toolHeight } = getToolDimensions(tool);
+      const style = getCanvasStyle();
+      const canvasWidthPx = parseFloat(style.width);
+      const canvasHeightPx = parseFloat(style.height);
 
-    const angle = (rotation * Math.PI) / 180;
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
+      const angle = (rotation * Math.PI) / 180;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
 
-    // Conservative rectangle AABB extents for safety
-    const rotW = Math.abs(toolWidth * cos) + Math.abs(toolHeight * sin);
-    const rotH = Math.abs(toolWidth * sin) + Math.abs(toolHeight * cos);
+      // Conservative rectangle AABB extents for safety
+      const rotW = Math.abs(toolWidth * cos) + Math.abs(toolHeight * sin);
+      const rotH = Math.abs(toolWidth * sin) + Math.abs(toolHeight * cos);
 
-    const cx = tool.x + toolWidth / 2;
-    const cy = tool.y + toolHeight / 2;
+      const cx = tool.x + toolWidth / 2;
+      const cy = tool.y + toolHeight / 2;
 
-    const DPI = 96;
-    const gapPx = (unit === 'mm' ? 0.5 * 25.4 : 0.5) * DPI;
+      const DPI = 96;
+      const gapPx = (unit === "mm" ? 0.5 * 25.4 : 0.5) * DPI;
 
-    const left = cx - rotW / 2;
-    const top = cy - rotH / 2;
-    const right = cx + rotW / 2;
-    const bottom = cy + rotH / 2;
+      const left = cx - rotW / 2;
+      const top = cy - rotH / 2;
+      const right = cx + rotW / 2;
+      const bottom = cy + rotH / 2;
 
-    return left >= gapPx && top >= gapPx && right <= canvasWidthPx - gapPx && bottom <= canvasHeightPx - gapPx;
-  }, [getToolDimensions, getCanvasStyle]);
+      return (
+        left >= gapPx &&
+        top >= gapPx &&
+        right <= canvasWidthPx - gapPx &&
+        bottom <= canvasHeightPx - gapPx
+      );
+    },
+    [getToolDimensions, getCanvasStyle]
+  );
 
   // handleResize function used by old resize handles (also round to 2 decimals)
-  const handleResize = useCallback((toolId: string, newWidth: number, newHeight: number) => {
-    props.setDroppedTools(prevTools =>
-      prevTools.map(tool =>
-        tool.id === toolId
-          ? { ...tool, width: Number(newWidth.toFixed(2)), length: Number(newHeight.toFixed(2)) }
-          : tool
-      )
-    );
-  }, [props.setDroppedTools]);
+  const handleResize = useCallback(
+    (toolId: string, newWidth: number, newHeight: number) => {
+      props.setDroppedTools((prevTools) =>
+        prevTools.map((tool) =>
+          tool.id === toolId
+            ? {
+                ...tool,
+                width: Number(newWidth.toFixed(2)),
+                length: Number(newHeight.toFixed(2)),
+              }
+            : tool
+        )
+      );
+    },
+    [props.setDroppedTools]
+  );
 
   // Render selection box
   const renderSelectionBox = () => {
@@ -228,30 +257,38 @@ const Canvas: React.FC<CanvasProps> = (props) => {
       const target = e.target as HTMLElement | null;
       const active = document.activeElement as HTMLElement | null;
       const isEditable =
-        (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) ||
-        (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT' || active.isContentEditable));
+        (target &&
+          (target.tagName === "INPUT" ||
+            target.tagName === "TEXTAREA" ||
+            target.tagName === "SELECT" ||
+            target.isContentEditable)) ||
+        (active &&
+          (active.tagName === "INPUT" ||
+            active.tagName === "TEXTAREA" ||
+            active.tagName === "SELECT" ||
+            active.isContentEditable));
 
       if (isEditable) {
         // Let inputs handle all keys (typing stays continuous)
         return;
       }
 
-      if ((e.ctrlKey || e.metaKey) && e.code === 'KeyA') {
+      if ((e.ctrlKey || e.metaKey) && e.code === "KeyA") {
         e.preventDefault();
-        props.setSelectedTools(droppedTools.map(tool => tool.id));
-      } else if (e.code === 'Delete' || e.code === 'Backspace') {
+        props.setSelectedTools(droppedTools.map((tool) => tool.id));
+      } else if (e.code === "Delete" || e.code === "Backspace") {
         e.preventDefault();
         if (selectedTools.length > 0) {
           handleDeleteSelectedTools();
         }
       }
-      if (e.code === 'Space' && e.target === document.body) {
+      if (e.code === "Space" && e.target === document.body) {
         e.preventDefault();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedTools, handleDeleteSelectedTools, props.readOnly, droppedTools]);
 
   const [hoveredToolId, setHoveredToolId] = React.useState<string | null>(null);
@@ -287,7 +324,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
         ref={canvasContainerRef}
         className="absolute inset-0"
         style={{
-          cursor: getCanvasCursor()
+          cursor: getCanvasCursor(),
         }}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -297,29 +334,32 @@ const Canvas: React.FC<CanvasProps> = (props) => {
       >
         {/* Canvas with viewport transform */}
         <div
-            ref={canvasRef}
-            data-canvas="true"
-            className="absolute bg-white rounded-lg shadow-lg"
-            style={{
-              ...getCanvasStyle(),
-              ...getViewportTransform(),
-              border: '4px solid #2E6C99',
-              boxShadow: (() => {
-                const inchesToPx = (inches: number) => inches * 96;
-                const mmToPx = (mm: number) => (mm / 25.4) * 96;
-                const GAP_INCHES = 0.5;
-                const gapPx = unit === 'mm' ? mmToPx(GAP_INCHES * 25.4) : inchesToPx(GAP_INCHES);
-                return `inset 0 0 0 ${gapPx}px #c2c2c2`;
-              })()
-            }}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-            onClick={handleCanvasClick}
-          >
-
-
+          ref={canvasRef}
+          data-canvas="true"
+          className="absolute bg-white rounded-lg shadow-lg"
+          style={{
+            ...getCanvasStyle(),
+            ...getViewportTransform(),
+            border: "4px solid #2E6C99",
+            boxShadow: (() => {
+              const inchesToPx = (inches: number) => inches * 96;
+              const mmToPx = (mm: number) => (mm / 25.4) * 96;
+              const GAP_INCHES = 0.5;
+              const gapPx =
+                unit === "mm"
+                  ? mmToPx(GAP_INCHES * 25.4)
+                  : inchesToPx(GAP_INCHES);
+              return `inset 0 0 0 ${gapPx}px #c2c2c2`;
+            })(),
+          }}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          onClick={handleCanvasClick}
+        >
           {/* Preview line for finger cut: first click → live endpoint */}
-          {activeTool === 'fingercut' && fingerCutStart && fingerCutPreviewEnd && (
+          {activeTool === "fingercut" &&
+            fingerCutStart &&
+            fingerCutPreviewEnd &&
             (() => {
               const dx = fingerCutPreviewEnd.x - fingerCutStart.x;
               const dy = fingerCutPreviewEnd.y - fingerCutStart.y;
@@ -341,36 +381,35 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 >
                   <div
                     style={{
-                      borderTop: '2px dashed var(--primary)',
+                      borderTop: "2px dashed var(--primary)",
                     }}
                   />
                   {/* Endpoints */}
                   <div
                     style={{
-                      position: 'absolute',
+                      position: "absolute",
                       left: -4,
                       top: -4,
                       width: 8,
                       height: 8,
                       borderRadius: 9999,
-                      background: 'var(--primary)',
+                      background: "var(--primary)",
                     }}
                   />
                   <div
                     style={{
-                      position: 'absolute',
+                      position: "absolute",
                       right: -4,
                       top: -4,
                       width: 8,
                       height: 8,
                       borderRadius: 9999,
-                      background: 'var(--primary)',
+                      background: "var(--primary)",
                     }}
                   />
                 </div>
               );
-            })()
-          )}
+            })()}
 
           {/* Canvas dimensions indicator */}
           {!props.suppressSelectionUI && (
@@ -380,13 +419,14 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           )}
 
           {/* UPDATED: Clean Tool Rendering - No Borders */}
-          {droppedTools.map(tool => {
+          {droppedTools.map((tool) => {
             const { toolWidth, toolHeight } = getToolDimensions(tool);
             const isSelected = selectedTools.includes(tool.id);
             const isPrimarySelection = selectedTool === tool.id;
-            const isShape = tool.toolBrand === 'SHAPE';
+            const isShape = tool.toolBrand === "SHAPE";
             const isFingerCut = tool.metadata?.isFingerCut;
-            const isText = tool.toolType === 'text' || tool.toolBrand === 'TEXT';
+            const isText =
+              tool.toolType === "text" || tool.toolBrand === "TEXT";
             // NEW: Never treat text as overlapping in UI
             const isOverlapping = overlappingTools.includes(tool.id) && !isText;
             const isTooDeep = depthInchesFor(tool) > allowedDepthInches;
@@ -400,9 +440,24 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             const blurAmount = (tool.smooth || 0) / 10;
 
             // Maintain a physical 0.25 inch gap between outer and inner vectors
-            const GAP_INCHES = typeof tool.metadata?.gapInches === 'number' ? tool.metadata.gapInches : 0.25;
-            const gapPx = tool.unit === 'mm' ? mmToPx(GAP_INCHES * 25.4) : inchesToPx(GAP_INCHES);
+            const GAP_INCHES =
+              typeof tool.metadata?.gapInches === "number"
+                ? tool.metadata.gapInches
+                : 0.25;
+            const gapPx =
+              tool.unit === "mm"
+                ? mmToPx(GAP_INCHES * 25.4)
+                : inchesToPx(GAP_INCHES);
 
+            const rawUrl =
+              tool.metadata?.contour_image_url ||
+              tool.metadata?.outlinesImg ||
+              tool.metadata?.imageUrl ||
+              tool.image;
+            const imgSrc =
+              rawUrl && /^https?:\/\//i.test(rawUrl)
+                ? `/api/image-proxy?url=${encodeURIComponent(rawUrl)}`
+                : rawUrl || "";
 
             return (
               // Inside the Canvas component, in the map over tools
@@ -412,15 +467,26 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 style={{
                   left: tool.x,
                   top: tool.y,
-                  transform: `rotate(${tool.rotation}deg) scaleX(${tool.flipHorizontal ? -1 : 1}) scaleY(${tool.flipVertical ? -1 : 1})`,
+                  transform: `rotate(${tool.rotation}deg) scaleX(${
+                    tool.flipHorizontal ? -1 : 1
+                  }) scaleY(${tool.flipVertical ? -1 : 1})`,
                   width: `${toolWidth}px`,
                   height: `${toolHeight}px`,
                   cursor: getToolCursor(tool.id),
-                  zIndex: hoveredToolId === tool.id ? 9999 : (isFingerCut ? 0 : (isSelected ? 20 : 10)),
+                  zIndex:
+                    hoveredToolId === tool.id
+                      ? 9999
+                      : isFingerCut
+                      ? 0
+                      : isSelected
+                      ? 20
+                      : 10,
                 }}
                 // REMOVED: onMouseDown on wrapper so empty rectangle doesn't grab clicks
                 onMouseEnter={() => setHoveredToolId(tool.id)}
-                onMouseLeave={() => setHoveredToolId(prev => (prev === tool.id ? null : prev))}
+                onMouseLeave={() =>
+                  setHoveredToolId((prev) => (prev === tool.id ? null : prev))
+                }
               >
                 {/* Finger Cut Rendering */}
                 {isFingerCut ? (
@@ -429,7 +495,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     <div
                       className="absolute inset-0"
                       style={{
-                        backgroundColor: 'var(--primary)',
+                        backgroundColor: "var(--primary)",
                         borderRadius: `${toolHeight / 2}px`,
                         opacity: (tool.opacity || 100) / 100,
                         filter: `blur(${(tool.smooth || 0) / 10}px)`,
@@ -448,10 +514,12 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                             top: toolHeight / 2 - 6,
                             width: 12,
                             height: 12,
-                            boxShadow: '0 0 2px rgba(0,0,0,0.3)',
-                            cursor: 'ew-resize',
+                            boxShadow: "0 0 2px rgba(0,0,0,0.3)",
+                            cursor: "ew-resize",
                           }}
-                          onMouseDown={(e) => handleFingerCutEndpointDown(e, tool.id, 'left')}
+                          onMouseDown={(e) =>
+                            handleFingerCutEndpointDown(e, tool.id, "left")
+                          }
                         />
                         {/* Right end */}
                         <div
@@ -462,160 +530,304 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                             top: toolHeight / 2 - 6,
                             width: 12,
                             height: 12,
-                            boxShadow: '0 0 2px rgba(0,0,0,0.3)',
-                            cursor: 'ew-resize',
+                            boxShadow: "0 0 2px rgba(0,0,0,0.3)",
+                            cursor: "ew-resize",
                           }}
-                          onMouseDown={(e) => handleFingerCutEndpointDown(e, tool.id, 'right')}
+                          onMouseDown={(e) =>
+                            handleFingerCutEndpointDown(e, tool.id, "right")
+                          }
+                        />
+                      </>
+                    )}
+                  </div>
+                ) : // Vector double-outline for shapes
+                isShape ? (
+                  <svg
+                    width="100%"
+                    height="100%"
+                    viewBox={`0 0 ${toolWidth} ${toolHeight}`}
+                    className="absolute inset-0"
+                    style={{ opacity, filter: `blur(${blurAmount}px)` }}
+                    onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
+                  >
+                    {tool.toolType === "circle" ? (
+                      <>
+                        {/* Gray gap ring (fills the 0.25" annulus) */}
+                        <circle
+                          cx={toolWidth / 2}
+                          cy={toolHeight / 2}
+                          r={Math.max(
+                            0,
+                            Math.min(toolWidth, toolHeight) / 2 - gapPx / 2 - 1
+                          )}
+                          fill="none"
+                          stroke="#c2c2c2"
+                          strokeWidth={gapPx}
+                        />
+                        {/* Inner circle (solid fill shape) */}
+                        <circle
+                          cx={toolWidth / 2}
+                          cy={toolHeight / 2}
+                          r={Math.max(
+                            0,
+                            Math.min(toolWidth, toolHeight) / 2 - gapPx - 1
+                          )}
+                          fill={isOverlapping ? "#f87171" : "#266ca8"}
+                          stroke="none"
+                        />
+                      </>
+                    ) : (
+                      <>
+                        {/* Gray gap fill region (outer rect) */}
+                        <rect
+                          x={1}
+                          y={1}
+                          width={Math.max(0, toolWidth - 2)}
+                          height={Math.max(0, toolHeight - 2)}
+                          fill="#c2c2c2"
+                          stroke="none"
+                        />
+                        {/* Inner rectangle (solid fill shape, overlays center) */}
+                        <rect
+                          x={gapPx + 1}
+                          y={gapPx + 1}
+                          width={Math.max(0, toolWidth - 2 * (gapPx + 1))}
+                          height={Math.max(0, toolHeight - 2 * (gapPx + 1))}
+                          fill={isOverlapping ? "#f87171" : "#266ca8"}
+                          stroke="none"
+                        />
+                      </>
+                    )}
+                  </svg>
+                ) : isText ? (
+                  <div
+                    className="relative w-full h-full border border-gray-300 rounded"
+                    style={{ overflow: "hidden" }}
+                  >
+                    <div
+                      className="absolute inset-0 flex items-center"
+                      style={{
+                        opacity,
+                        filter: `blur(${blurAmount}px)`,
+                        display: "flex",
+                        justifyContent:
+                          (tool.textAlign || "center") === "left"
+                            ? "flex-start"
+                            : (tool.textAlign || "center") === "right"
+                            ? "flex-end"
+                            : "center",
+                      }}
+                      onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
+                    >
+                      <span
+                        style={{
+                          fontFamily:
+                            tool.textFontFamily || "Raleway, sans-serif",
+                          fontWeight: tool.textFontWeight || 500,
+                          fontSize: `${tool.textFontSizePx ?? 18}px`,
+                          color: tool.textColor || "#266ca8",
+                          whiteSpace: "pre-wrap",
+                          textAlign: tool.textAlign || "center",
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {tool.textContent || "Text"}
+                      </span>
+                    </div>
+
+                    {/* Resize handles for text tools */}
+                    {isSelected && !props.readOnly && (
+                      <>
+                        <div
+                          className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
+                          style={{
+                            top: -6,
+                            left: -6,
+                            width: 12,
+                            height: 12,
+                            cursor: "nw-resize",
+                          }}
+                          onMouseDown={(e) =>
+                            handleResizeStart(e, tool.id, "nw")
+                          }
+                        />
+                        <div
+                          className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
+                          style={{
+                            top: -6,
+                            right: -6,
+                            width: 12,
+                            height: 12,
+                            cursor: "ne-resize",
+                          }}
+                          onMouseDown={(e) =>
+                            handleResizeStart(e, tool.id, "ne")
+                          }
+                        />
+                        <div
+                          className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
+                          style={{
+                            bottom: -6,
+                            left: -6,
+                            width: 12,
+                            height: 12,
+                            cursor: "sw-resize",
+                          }}
+                          onMouseDown={(e) =>
+                            handleResizeStart(e, tool.id, "sw")
+                          }
+                        />
+                        <div
+                          className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
+                          style={{
+                            bottom: -6,
+                            right: -6,
+                            width: 12,
+                            height: 12,
+                            cursor: "se-resize",
+                          }}
+                          onMouseDown={(e) =>
+                            handleResizeStart(e, tool.id, "se")
+                          }
                         />
                       </>
                     )}
                   </div>
                 ) : (
-                  // Vector double-outline for shapes
-                  isShape ? (
-                    <svg
-                      width="100%"
-                      height="100%"
-                      viewBox={`0 0 ${toolWidth} ${toolHeight}`}
-                      className="absolute inset-0"
-                      style={{ opacity, filter: `blur(${blurAmount}px)` }}
-                      onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
-                    >
-                      {tool.toolType === 'circle' ? (
-                        <>
-                          {/* Gray gap ring (fills the 0.25" annulus) */}
-                          <circle
-                            cx={toolWidth / 2}
-                            cy={toolHeight / 2}
-                            r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - gapPx / 2 - 1)}
-                            fill="none"
-                            stroke="#c2c2c2"
-                            strokeWidth={gapPx}
-                          />
-                          {/* Inner circle (solid fill shape) */}
-                          <circle
-                            cx={toolWidth / 2}
-                            cy={toolHeight / 2}
-                            r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - gapPx - 1)}
-                            fill={isOverlapping ? '#f87171' : '#266ca8'}
-                            stroke="none"
-                          />
-                        </>
-                      ) : (
-                        <>
-                          {/* Gray gap fill region (outer rect) */}
-                          <rect
-                            x={1}
-                            y={1}
-                            width={Math.max(0, toolWidth - 2)}
-                            height={Math.max(0, toolHeight - 2)}
-                            fill="#c2c2c2"
-                            stroke="none"
-                          />
-                          {/* Inner rectangle (solid fill shape, overlays center) */}
-                          <rect
-                            x={gapPx + 1}
-                            y={gapPx + 1}
-                            width={Math.max(0, toolWidth - 2 * (gapPx + 1))}
-                            height={Math.max(0, toolHeight - 2 * (gapPx + 1))}
-                            fill={isOverlapping ? '#f87171' : '#266ca8'}
-                            stroke="none"
-                          />
-                        </>
-                      )}
-                    </svg>
-                  ) : (
-                    isText ? (
-                      <div className="relative w-full h-full border border-gray-300 rounded" style={{ overflow: 'hidden' }}>
-                        <div
-                          className="absolute inset-0 flex items-center"
-                          style={{
-                            opacity,
-                            filter: `blur(${blurAmount}px)`,
-                            display: 'flex',
-                            justifyContent:
-                              (tool.textAlign || 'center') === 'left'
-                                ? 'flex-start'
-                                : (tool.textAlign || 'center') === 'right'
-                                  ? 'flex-end'
-                                  : 'center',
-                          }}
-                          onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
-                        >
-                          <span
-                            style={{
-                              fontFamily: tool.textFontFamily || 'Raleway, sans-serif',
-                              fontWeight: tool.textFontWeight || 500,
-                              fontSize: `${tool.textFontSizePx ?? 18}px`,
-                              color: tool.textColor || '#266ca8',
-                              whiteSpace: 'pre-wrap',
-                              textAlign: tool.textAlign || 'center',
-                              wordBreak: 'break-word',
-                            }}
-                          >
-                            {tool.textContent || 'Text'}
-                          </span>
-                        </div>
-
-                        {/* Resize handles for text tools */}
-                        {isSelected && !props.readOnly && (
-                          <>
-                            <div
-                              className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
-                              style={{ top: -6, left: -6, width: 12, height: 12, cursor: 'nw-resize' }}
-                              onMouseDown={(e) => handleResizeStart(e, tool.id, 'nw')}
-                            />
-                            <div
-                              className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
-                              style={{ top: -6, right: -6, width: 12, height: 12, cursor: 'ne-resize' }}
-                              onMouseDown={(e) => handleResizeStart(e, tool.id, 'ne')}
-                            />
-                            <div
-                              className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
-                              style={{ bottom: -6, left: -6, width: 12, height: 12, cursor: 'sw-resize' }}
-                              onMouseDown={(e) => handleResizeStart(e, tool.id, 'sw')}
-                            />
-                            <div
-                              className="resize-handle absolute bg-white border border-blue-500 rounded-sm"
-                              style={{ bottom: -6, right: -6, width: 12, height: 12, cursor: 'se-resize' }}
-                              onMouseDown={(e) => handleResizeStart(e, tool.id, 'se')}
-                            />
-                          </>
-                        )}
-                      </div>
-                    ) : (
-                      // Regular tool rendering (image)
-                      tool.image && (
-                        <div className="relative w-full h-full">
-                          <img
-                            src={tool.image}
-                            alt={tool.name}
-                            onLoad={(e) => {
-                              const img = e.currentTarget;
-                              props.setDroppedTools(prev =>
-                                prev.map(t =>
-                                  t.id === tool.id
-                                    ? {
-                                      ...t,
-                                      metadata: {
-                                        ...t.metadata,
-                                        naturalWidth: img.naturalWidth,
-                                        naturalHeight: img.naturalHeight,
-                                      },
-                                    }
-                                    : t
-                                )
+                  // Regular tool rendering (image)
+                  tool.image && (
+                    <div className="relative w-full h-full">
+                      <img
+                        src={imgSrc}
+                        crossOrigin="anonymous"
+                        alt={tool.name}
+                        onLoad={(e) => {
+                          const img = e.currentTarget;
+                          let opaqueBounds:
+                            | {
+                                left: number;
+                                top: number;
+                                right: number;
+                                bottom: number;
+                              }
+                            | undefined;
+                          let opaquePoints:
+                            | { x: number; y: number }[]
+                            | undefined;
+                          try {
+                            const c = document.createElement("canvas");
+                            c.width = img.naturalWidth;
+                            c.height = img.naturalHeight;
+                            const ctx = c.getContext("2d", {
+                              willReadFrequently: true,
+                            });
+                            if (ctx) {
+                              ctx.drawImage(img, 0, 0);
+                              const data = ctx.getImageData(
+                                0,
+                                0,
+                                c.width,
+                                c.height
+                              ).data;
+                              let minX = c.width,
+                                minY = c.height,
+                                maxX = -1,
+                                maxY = -1;
+                              for (let y = 0; y < c.height; y++) {
+                                for (let x = 0; x < c.width; x++) {
+                                  const a = data[(y * c.width + x) * 4 + 3];
+                                  if (a > 10) {
+                                    if (x < minX) minX = x;
+                                    if (y < minY) minY = y;
+                                    if (x > maxX) maxX = x;
+                                    if (y > maxY) maxY = y;
+                                  }
+                                }
+                              }
+                              if (maxX >= 0 && maxY >= 0) {
+                                opaqueBounds = {
+                                  left: minX / c.width,
+                                  top: minY / c.height,
+                                  right: maxX / c.width,
+                                  bottom: maxY / c.height,
+                                };
+                              }
+                              // Sample sparse edge points along the silhouette for precise clamping
+                              const step = Math.max(
+                                1,
+                                Math.floor(Math.max(c.width, c.height) / 80)
                               );
-                            }}
-                            className={`relative w-full h-full object-contain transition-all duration-200 ${isOverlapping ? 'brightness-75 saturate-150' : ''}`}
-                            style={{ opacity, filter: `blur(${blurAmount}px)` }}
-                            draggable={false}
-                            // Click only when an opaque pixel is hit
-                            onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
-                          />
-                        </div>
-                      )
-                    )
+                              const pts: { x: number; y: number }[] = [];
+                              for (let y = 0; y < c.height; y += step) {
+                                for (let x = 0; x < c.width; x += step) {
+                                  const idx = (y * c.width + x) * 4;
+                                  const a = data[idx + 3];
+                                  if (a > 10) {
+                                    let edge = false;
+                                    for (let dy = -1; dy <= 1 && !edge; dy++) {
+                                      for (
+                                        let dx = -1;
+                                        dx <= 1 && !edge;
+                                        dx++
+                                      ) {
+                                        if (dx === 0 && dy === 0) continue;
+                                        const nx = x + dx * step;
+                                        const ny = y + dy * step;
+                                        if (
+                                          nx < 0 ||
+                                          ny < 0 ||
+                                          nx >= c.width ||
+                                          ny >= c.height
+                                        ) {
+                                          edge = true;
+                                          continue;
+                                        }
+                                        const nidx = (ny * c.width + nx) * 4;
+                                        const na = data[nidx + 3];
+                                        if (na <= 10) edge = true;
+                                      }
+                                    }
+                                    if (edge) {
+                                      pts.push({
+                                        x: x / c.width,
+                                        y: y / c.height,
+                                      });
+                                      if (pts.length >= 600) break;
+                                    }
+                                  }
+                                }
+                                if (pts.length >= 600) break;
+                              }
+                              if (pts.length > 0) {
+                                opaquePoints = pts;
+                              }
+                            }
+                          } catch {}
+                          props.setDroppedTools((prev) =>
+                            prev.map((t) =>
+                              t.id === tool.id
+                                ? {
+                                    ...t,
+                                    metadata: {
+                                      ...t.metadata,
+                                      naturalWidth: img.naturalWidth,
+                                      naturalHeight: img.naturalHeight,
+                                      opaqueBounds,
+                                      opaquePoints,
+                                    },
+                                  }
+                                : t
+                            )
+                          );
+                        }}
+                        className={`relative w-full h-full object-contain transition-all duration-200 ${
+                          isOverlapping ? "brightness-75 saturate-150" : ""
+                        }`}
+                        style={{ opacity, filter: `blur(${blurAmount}px)` }}
+                        draggable={false}
+                        onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
+                      />
+                    </div>
                   )
                 )}
 
@@ -623,10 +835,14 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 {isSelected && null}
 
                 {/* Minimal hazard indicator (overlap or too-deep) */}
-                {(isOverlapping) && (
+                {isOverlapping && (
                   <div
                     className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center z-30"
-                    title={isTooDeep ? 'Depth exceeds allowed cut depth (thickness - 0.25 in)' : 'Overlapping'}
+                    title={
+                      isTooDeep
+                        ? "Depth exceeds allowed cut depth (thickness - 0.25 in)"
+                        : "Overlapping"
+                    }
                   >
                     <AlertTriangle className="w-2.5 h-2.5" />
                   </div>
@@ -646,32 +862,38 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 )} */}
 
                 {/* Rotation Wheel - show only for primary selected tool */}
-                {!props.readOnly && !props.suppressSelectionUI && isPrimarySelection && tool.toolType !== 'circle' && (
-                  <RotationWheel
-                    toolId={tool.id}
-                    currentRotation={tool.rotation}
-                    onRotationChange={(toolId, rotation) => {
-                      // Smooth rotation: apply rotation and keep the tool inside the canvas
-                      props.setDroppedTools(prevTools =>
-                        prevTools.map(t => {
-                          if (t.id !== toolId) return t;
-                          const rotated = { ...t, rotation };
-                          const nextPos = constrainToCanvas(rotated, t.x, t.y);
-                          return { ...rotated, x: nextPos.x, y: nextPos.y };
-                        })
-                      );
-                    }}
-                    toolWidth={toolWidth}
-                    toolHeight={toolHeight}
-                    viewportZoom={viewport.zoom}
-                    flipHorizontal={tool.flipHorizontal}
-                    flipVertical={tool.flipVertical}
-                    // NEW: batch rotation updates into single history entry
-                    onRotateStart={props.beginInteraction}
-                    onRotateEnd={props.endInteraction}
-                  />
-                )}
-
+                {!props.readOnly &&
+                  !props.suppressSelectionUI &&
+                  isPrimarySelection &&
+                  tool.toolType !== "circle" && (
+                    <RotationWheel
+                      toolId={tool.id}
+                      currentRotation={tool.rotation}
+                      onRotationChange={(toolId, rotation) => {
+                        // Smooth rotation: apply rotation and keep the tool inside the canvas
+                        props.setDroppedTools((prevTools) =>
+                          prevTools.map((t) => {
+                            if (t.id !== toolId) return t;
+                            const rotated = { ...t, rotation };
+                            const nextPos = constrainToCanvas(
+                              rotated,
+                              t.x,
+                              t.y
+                            );
+                            return { ...rotated, x: nextPos.x, y: nextPos.y };
+                          })
+                        );
+                      }}
+                      toolWidth={toolWidth}
+                      toolHeight={toolHeight}
+                      viewportZoom={viewport.zoom}
+                      flipHorizontal={tool.flipHorizontal}
+                      flipVertical={tool.flipVertical}
+                      // NEW: batch rotation updates into single history entry
+                      onRotateStart={props.beginInteraction}
+                      onRotateEnd={props.endInteraction}
+                    />
+                  )}
 
                 {/* ENHANCED: Tool info tooltip */}
                 {/* <div
@@ -732,8 +954,8 @@ const Canvas: React.FC<CanvasProps> = (props) => {
               <RefreshCw className="w-8 h-8 text-gray-400 mx-auto mb-2" />
               <p className="text-gray-500 text-sm">
                 {props.readOnly
-                  ? 'No tools to display in this layout'
-                  : 'Drag tools from the sidebar to start designing'}
+                  ? "No tools to display in this layout"
+                  : "Drag tools from the sidebar to start designing"}
               </p>
               <p className="text-gray-400 text-xs mt-1">
                 {`Canvas Size: ${canvasWidth} × ${canvasHeight} ${unit}`}
@@ -741,10 +963,14 @@ const Canvas: React.FC<CanvasProps> = (props) => {
               {!props.readOnly && (
                 <>
                   <p className="text-gray-400 text-xs mt-1">
-                    Use <span className="font-semibold">Cursor</span> to select • <span className="font-semibold">Hand</span> to pan • <span className="font-semibold">Middle Mouse</span> to pan
+                    Use <span className="font-semibold">Cursor</span> to select
+                    • <span className="font-semibold">Hand</span> to pan •{" "}
+                    <span className="font-semibold">Middle Mouse</span> to pan
                   </p>
                   <p className="text-gray-400 text-xs mt-1">
-                    Hold <span className="font-semibold">Ctrl/Cmd</span> to multi-select • <span className="font-semibold">Scroll</span> to zoom
+                    Hold <span className="font-semibold">Ctrl/Cmd</span> to
+                    multi-select • <span className="font-semibold">Scroll</span>{" "}
+                    to zoom
                   </p>
                 </>
               )}
@@ -755,7 +981,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
         {/* Zoom indicator */}
         <div className="absolute bottom-4 left-4 bg-white bg-opacity-90 rounded-lg px-3 py-2 text-sm text-gray-600 shadow-lg">
           {`Zoom: ${Math.round(viewport.zoom * 100)}%`}
-          {activeTool === 'hand' && (
+          {activeTool === "hand" && (
             <div className="text-xs text-gray-500 mt-1">
               {`Drag to pan • Scroll to zoom`}
             </div>
@@ -764,7 +990,11 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 
         {/* Layout Status Indicator */}
         <div className="absolute bottom-4 right-4 bg-white bg-opacity-90 rounded-lg px-3 py-2 text-sm shadow-lg">
-          <div className={`flex items-center space-x-2 ${isLayoutInvalid ? 'text-red-600' : 'text-green-600'}`}>
+          <div
+            className={`flex items-center space-x-2 ${
+              isLayoutInvalid ? "text-red-600" : "text-green-600"
+            }`}
+          >
             {isLayoutInvalid ? (
               <>
                 <AlertTriangle className="w-4 h-4" />
@@ -779,10 +1009,10 @@ const Canvas: React.FC<CanvasProps> = (props) => {
           </div>
           {hasOverlaps && (
             <div className="text-xs text-gray-600 mt-1">
-              {overlappingTools.length} overlapping tool{overlappingTools.length > 1 ? 's' : ''}
+              {overlappingTools.length} overlapping tool
+              {overlappingTools.length > 1 ? "s" : ""}
             </div>
           )}
-
         </div>
       </div>
     </div>
