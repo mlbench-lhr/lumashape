@@ -36,7 +36,7 @@ function DesignLayout({
   const [canvasHeight, setCanvasHeight] = useState<number>(initialCanvas?.height ?? 300);
   const [thickness, setThickness] = useState<number>(initialCanvas?.thickness ?? 12.7);
   const [unit, setUnit] = useState<'mm' | 'inches'>(initialCanvas?.unit ?? 'mm');
-  const [materialColor, setMaterialColor] = useState<string>(initialCanvas?.materialColor ?? '');
+  const [materialColor, setMaterialColor] = useState<string>(initialCanvas?.materialColor ?? 'blue');
 
   useEffect(() => {
     if (editingLayoutId) {
