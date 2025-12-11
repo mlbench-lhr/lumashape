@@ -28,6 +28,9 @@ export interface Tool {
     version?: number;
     naturalWidth?: number;
     naturalHeight?: number;
+    // Normalized opaque content bounds (0–1) captured from the image alpha mask
+    opaqueBounds?: { left: number; top: number; right: number; bottom: number };
+    opaquePoints?: { x: number; y: number }[];
     thicknessInches?: number;
     originalId?: string;
     isFingerCut?: boolean;

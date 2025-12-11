@@ -313,11 +313,10 @@ export const useCanvas = ({
 
 
 
-  // Constrain tool position to inner canvas (exclude 0.5" gray buffer)
+  // Constrain tool position to inner canvas using pixel-aware rotated half-extents of opaque content (opaquePoints/opaqueBounds), fallback to full rect
   const constrainToCanvas = useCallback((tool: DroppedTool, x: number, y: number) => {
     const { toolWidth: w, toolHeight: h } = getToolDimensions(tool);
     const { width: canvasWidthPx, height: canvasHeightPx } = getCanvasBounds();
-
     const GAP_INCHES = 0.5;
     const gapPx = unit === 'mm' ? mmToPx(GAP_INCHES * 25.4) : inchesToPx(GAP_INCHES);
     const innerWidth = Math.max(0, canvasWidthPx - 2 * gapPx);
@@ -327,38 +326,84 @@ export const useCanvas = ({
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
 
-    const rotW = Math.abs(w * cos) + Math.abs(h * sin);
-    const rotH = Math.abs(w * sin) + Math.abs(h * cos);
-
     const wHalf = w / 2;
     const hHalf = h / 2;
-    const rotWHalf = rotW / 2;
-    const rotHHalf = rotH / 2;
 
-    const epsilon = 1; // px
-
-    // Boundaries: left/top at gapPx, right/bottom at canvas - gapPx
-    const minX = gapPx + (rotWHalf - wHalf) + epsilon;
-    const maxX = (canvasWidthPx - gapPx) - (wHalf + rotWHalf) - epsilon;
-    const minY = gapPx + (rotHHalf - hHalf) + epsilon;
-    const maxY = (canvasHeightPx - gapPx) - (hHalf + rotHHalf) - epsilon;
-
-    let constrainedX: number;
-    let constrainedY: number;
-
-    if (rotW <= innerWidth) {
-      constrainedX = Math.min(Math.max(x, minX), Math.max(minX, maxX));
+    // Compute letterbox-aware drawing region (object-fit: contain) for images
+    const nw = tool.metadata?.naturalWidth || 0;
+    const nh = tool.metadata?.naturalHeight || 0;
+    const ar = nw > 0 && nh > 0 ? nw / nh : w / h;
+    let drawW: number, drawH: number;
+    if (w / h >= ar) {
+      drawH = h;
+      drawW = drawH * ar;
     } else {
-      constrainedX = gapPx + innerWidth / 2 - wHalf;
+      drawW = w;
+      drawH = drawW / ar;
+    }
+    const lbx = (w - drawW) / 2;
+    const lby = (h - drawH) / 2;
+
+    let halfX: number;
+    let halfY: number;
+
+    // Prefer precise edge points if available (normalized 0..1 in content rect)
+    const pts = tool.metadata?.opaquePoints;
+    if (pts && pts.length) {
+      let maxX = 0, maxY = 0;
+      for (let i = 0; i < pts.length; i++) {
+        const px = lbx + pts[i].x * drawW - wHalf;
+        const py = lby + pts[i].y * drawH - hHalf;
+        const xr = px * cos - py * sin;
+        const yr = px * sin + py * cos;
+        const ax = Math.abs(xr);
+        const ay = Math.abs(yr);
+        if (ax > maxX) maxX = ax;
+        if (ay > maxY) maxY = ay;
+      }
+      halfX = maxX;
+      halfY = maxY;
+    } else {
+      const b = tool.metadata?.opaqueBounds;
+      if (b) {
+        // b is normalized [0..1] in content space; compute rotated half extents + offset from center
+        const left = lbx + b.left * drawW;
+        const right = lbx + b.right * drawW;
+        const top = lby + b.top * drawH;
+        const bottom = lby + b.bottom * drawH;
+        const rectHalfW = Math.max(0, (right - left) / 2);
+        const rectHalfH = Math.max(0, (bottom - top) / 2);
+        const cxContent = (left + right) / 2;
+        const cyContent = (top + bottom) / 2;
+        const dx = cxContent - wHalf;
+        const dy = cyContent - hHalf;
+        const xOff = Math.abs(dx * cos - dy * sin);
+        const yOff = Math.abs(dx * sin + dy * cos);
+        halfX = xOff + (Math.abs(rectHalfW * cos) + Math.abs(rectHalfH * sin));
+        halfY = yOff + (Math.abs(rectHalfW * sin) + Math.abs(rectHalfH * cos));
+      } else {
+        halfX = (Math.abs(w * cos) + Math.abs(h * sin)) / 2;
+        halfY = (Math.abs(w * sin) + Math.abs(h * cos)) / 2;
+      }
     }
 
-    if (rotH <= innerHeight) {
-      constrainedY = Math.min(Math.max(y, minY), Math.max(minY, maxY));
-    } else {
-      constrainedY = gapPx + innerHeight / 2 - hHalf;
+    if (halfX > innerWidth / 2) {
+      x = gapPx + innerWidth / 2 - wHalf;
+    }
+    if (halfY > innerHeight / 2) {
+      y = gapPx + innerHeight / 2 - hHalf;
     }
 
-    return { x: constrainedX, y: constrainedY };
+    const cx = x + wHalf;
+    const cy = y + hHalf;
+    const minCx = gapPx + halfX;
+    const maxCx = canvasWidthPx - gapPx - halfX;
+    const minCy = gapPx + halfY;
+    const maxCy = canvasHeightPx - gapPx - halfY;
+
+    const constrainedCx = Math.max(minCx, Math.min(cx, maxCx));
+    const constrainedCy = Math.max(minCy, Math.min(cy, maxCy));
+    return { x: constrainedCx - wHalf, y: constrainedCy - hHalf };
   }, [getToolDimensions, getCanvasBounds, unit, mmToPx, inchesToPx]);
 
   // Check if two tools overlap (AABB sync, used elsewhere)
