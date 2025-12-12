@@ -5,6 +5,7 @@ import dbConnect from '@/utils/dbConnect'
 import ManufacturingOrder, { IShipping } from '@/lib/models/ManufacturingOrder'
 import Cart from '@/lib/models/Cart'
 import { Resend } from 'resend'
+import { calculateOrderPricing, DEFAULT_PRICING } from '@/utils/pricing'
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY!
 const JWT_SECRET = process.env.JWT_SECRET!
@@ -21,20 +22,74 @@ export async function POST(req: NextRequest) {
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     jwt.verify(token, JWT_SECRET)
 
-    const { sessionId, orderId } = await req.json() as { sessionId: string; orderId: string }
-    if (!sessionId || !orderId) return NextResponse.json({ error: 'Missing parameters' }, { status: 400 })
+    const { sessionId } = await req.json() as { sessionId: string }
+    if (!sessionId) return NextResponse.json({ error: 'Missing parameters' }, { status: 400 })
 
     const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ['payment_intent'] })
     if (session.payment_status !== 'paid') {
       return NextResponse.json({ verified: false }, { status: 400 })
     }
 
-    const order = await ManufacturingOrder.findById(orderId)
-    if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+    const meta = session.metadata || {}
+    let selectedItemIds: string[] = []
+    try {
+      const parsed = JSON.parse((meta as any).selectedItemIdsJson || '[]')
+      if (Array.isArray(parsed)) selectedItemIds = parsed
+    } catch {}
+    let shipping: IShipping | undefined
+    try {
+      const parsed = JSON.parse((meta as any).shippingJson || '{}')
+      if (parsed && typeof parsed === 'object') shipping = parsed as IShipping
+    } catch {}
 
-    order.status = 'paid'
-    order.stripePaymentIntentId = (session.payment_intent as Stripe.PaymentIntent | null)?.id || null
-    await order.save()
+    const decoded = jwt.verify(token, JWT_SECRET) as { email: string }
+    const cart = await Cart.findOne({ userEmail: decoded.email }).lean()
+    const selected = Array.isArray(cart?.items)
+      ? cart!.items.filter(i => selectedItemIds.length ? selectedItemIds.includes(i.id) : i.selected)
+      : []
+
+    const itemsForPricing = selected.map(i => {
+      const canvas = i.layoutData?.canvas
+        ? {
+            width: i.layoutData.canvas.width,
+            height: i.layoutData.canvas.height,
+            unit: i.layoutData.canvas.unit,
+            thickness: i.layoutData.canvas.thickness,
+            materialColor: i.layoutData.canvas.materialColor,
+          }
+        : undefined
+      const toolsMini = Array.isArray(i.layoutData?.tools)
+        ? i.layoutData!.tools!.map(t => ({
+            isText: typeof t.name === 'string' && t.name.trim().toLowerCase() === 'text'
+          }))
+        : undefined
+      return canvas
+        ? { id: i.id, name: i.name, quantity: i.quantity, layoutData: { canvas, tools: toolsMini } }
+        : { id: i.id, name: i.name, quantity: i.quantity }
+    })
+
+    const pricing = calculateOrderPricing(itemsForPricing, DEFAULT_PRICING)
+
+    const hasText = (tools?: { name: string }[]) =>
+      Array.isArray(tools) && tools.some(t => t.name.trim().toLowerCase() === 'text')
+
+    const order = await ManufacturingOrder.create({
+      buyerEmail: decoded.email,
+      items: selected.map(i => ({
+        layoutId: i.id,
+        name: i.name,
+        quantity: i.quantity,
+        canvas: i.layoutData?.canvas,
+        hasTextEngraving: hasText(i.layoutData?.tools as unknown as { name: string }[]),
+        dxfUrl: (i as Record<string, unknown>).dxfUrl as string | undefined,
+      })),
+      totals: pricing.totals,
+      parameters: pricing.parameters,
+      shipping,
+      stripeSessionId: session.id,
+      stripePaymentIntentId: (session.payment_intent as Stripe.PaymentIntent | null)?.id || null,
+      status: 'paid',
+    })
 
     try {
       const logoUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? ''}mailLogo.jpg`

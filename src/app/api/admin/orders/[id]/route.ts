@@ -7,9 +7,9 @@ import Layout from "@/lib/models/layout";
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
-export async function GET(req: NextRequest, context: unknown) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { params } = context as { params: { id: string } };
+    const { id } = await params;
     await dbConnect();
 
     const authHeader = req.headers.get("Authorization");
@@ -24,7 +24,6 @@ export async function GET(req: NextRequest, context: unknown) {
     }
     if (!decoded || decoded.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const id = params.id;
     const order = await ManufacturingOrder.findById(id).lean();
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
 

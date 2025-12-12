@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import Stripe from 'stripe'
 import dbConnect from '@/utils/dbConnect'
 import Cart from '@/lib/models/Cart'
-import ManufacturingOrder from '@/lib/models/ManufacturingOrder'
+
 import { calculateOrderPricing, DEFAULT_PRICING } from '@/utils/pricing'
 
 const JWT_SECRET = process.env.JWT_SECRET!
@@ -90,22 +90,7 @@ export async function POST(req: NextRequest) {
             Array.isArray(tools) &&
             tools.some(t => t.name.trim().toLowerCase() === 'text')
 
-        // Create order
-        const order = await ManufacturingOrder.create({
-            buyerEmail,
-            items: selected.map(i => ({
-                layoutId: i.id,
-                name: i.name,
-                quantity: i.quantity,
-                canvas: i.layoutData?.canvas,
-                hasTextEngraving: hasText(i.layoutData?.tools),
-                dxfUrl: (i as Record<string, unknown>).dxfUrl as string | undefined,
-            })),
-            totals: pricing.totals,
-            parameters: pricing.parameters,
-            shipping,
-            status: 'pending',
-        })
+
 
         // Stripe session
         const session = await stripe.checkout.sessions.create({
@@ -118,20 +103,16 @@ export async function POST(req: NextRequest) {
                 },
                 quantity: 1,
             }],
-            success_url: `${DOMAIN}/payment/order-success?session_id={CHECKOUT_SESSION_ID}&order_id=${order._id}`,
+            success_url: `${DOMAIN}/payment/order-success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${DOMAIN}/cart`,
             metadata: {
-                orderId: String(order._id),
                 buyerEmail,
-                totalCents: String(Math.round(pricing.totals.customerTotal * 100)),
-                kaiserPayoutCents: String(Math.round(pricing.totals.kaiserPayout * 100)),
-                lumashapePayoutCents: String(Math.round(pricing.totals.lumashapePayout * 100)),
-                materialVolumeIn3: String(pricing.totals.materialVolumeIn3),
+                selectedItemIdsJson: JSON.stringify(selectedItemIds),
+                shippingJson: JSON.stringify(shipping || {}),
             },
         })
 
-        order.stripeSessionId = session.id
-        await order.save()
+
 
         return NextResponse.json({ sessionId: session.id, url: session.url })
     } catch (err) {
