@@ -30,6 +30,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
+    if (order.status !== 'paid') {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+    }
+
     return NextResponse.json({ order })
   } catch (err) {
     return NextResponse.json({ error: 'Failed to fetch order' }, { status: 500 })

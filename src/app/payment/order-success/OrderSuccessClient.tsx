@@ -14,14 +14,13 @@ export default function OrderSuccessClient() {
     let active = true
     const run = async () => {
       const sessionId = search.get('session_id')
-      const orderId = search.get('order_id')
-      if (!sessionId || !orderId) {
+      if (!sessionId) {
         if (active) setMessage('Missing payment details.')
         return
       }
       try {
         const token = localStorage.getItem('auth-token') || ''
-        const res = await axios.post('/api/orders/verify', { sessionId, orderId }, {
+        const res = await axios.post('/api/orders/verify', { sessionId }, {
           headers: { Authorization: `Bearer ${token}` }
         })
         if (res.data?.verified) {

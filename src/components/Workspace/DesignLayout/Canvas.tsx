@@ -474,7 +474,9 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                   height: `${toolHeight}px`,
                   cursor: getToolCursor(tool.id),
                   zIndex:
-                    hoveredToolId === tool.id
+                    isText
+                      ? 10000
+                      : hoveredToolId === tool.id
                       ? 9999
                       : isFingerCut
                       ? 0
