@@ -497,7 +497,7 @@ export const createShape = (
       length: sizeInInches,
       naturalWidth: 23,  // SVG viewBox dimensions
       naturalHeight: 24, // SVG viewBox dimensions
-      gapInches: 0.25 // constant physical gap between inner and outer vectors
+      gapInches: 0.5 // constant physical gap between inner and outer vectors
     }
   };
 

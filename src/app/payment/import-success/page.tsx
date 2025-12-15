@@ -55,9 +55,28 @@ function ImportSuccessContent() {
 
         // Unlock: add item to workspace / inventory
         if (itemType === 'layout') {
-          await axios.post('/api/layouts/addToWorkspace', { layoutId: itemId }, {
-            headers: { Authorization: `Bearer ${authToken}` }
-          })
+          try {
+            await axios.post('/api/layouts/addToWorkspace', { layoutId: itemId }, {
+              headers: { Authorization: `Bearer ${authToken}` }
+            })
+          } catch {}
+
+          try {
+            const layoutRes = await axios.get(`/api/layouts?id=${itemId}`, {
+              headers: { Authorization: `Bearer ${authToken}` }
+            })
+            const tools: Array<{ originalId?: string }> = Array.isArray(layoutRes.data?.data?.tools) ? layoutRes.data.data.tools : []
+            const ids = tools
+              .map(t => (t.originalId ? String(t.originalId).trim() : ''))
+              .filter((s): s is string => s.length > 0)
+            const originalIds: string[] = Array.from(new Set<string>(ids))
+
+            await Promise.all(originalIds.map(toolId =>
+              axios.post('/api/user/tool/addToInventory', { toolId }, {
+                headers: { Authorization: `Bearer ${authToken}` }
+              }).catch(() => null)
+            ))
+          } catch {}
         } else if (itemType === 'tool') {
           await axios.post('/api/user/tool/addToInventory', { toolId: itemId }, {
             headers: { Authorization: `Bearer ${authToken}` }

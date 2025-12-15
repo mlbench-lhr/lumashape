@@ -689,11 +689,9 @@ const { addToCart, cartItems } = useCart();
             droppedTool.name.toLowerCase().includes("circle") ||
             droppedTool.image?.includes("circle.svg")
           ) {
-            // Circle: radius from diameter (max of width/length)
             shapeType = "circle";
             const diameter = Math.max(droppedTool.width, droppedTool.length);
-            const radiusInches =
-              unit === "mm" ? mmToInches(diameter / 2) : diameter / 2;
+            const radiusInches = unit === "mm" ? mmToInches(diameter / 2) : diameter / 2;
             shapeData = { radius_inches: radiusInches };
           } else if (droppedTool.name.toLowerCase().includes("polygon")) {
             // Polygon: simple rectangle path (extend as needed)
@@ -713,17 +711,9 @@ const { addToCart, cartItems } = useCart();
               ],
             };
           } else {
-            // Default rectangle
-            const widthInches =
-              unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
-            const heightInches =
-              unit === "mm"
-                ? mmToInches(droppedTool.length)
-                : droppedTool.length;
-            shapeData = {
-              width_inches: widthInches,
-              height_inches: heightInches,
-            };
+            const widthInches = unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
+            const heightInches = unit === "mm" ? mmToInches(droppedTool.length) : droppedTool.length;
+            shapeData = { width_inches: widthInches, height_inches: heightInches };
             shapeType = "rectangle";
           }
 

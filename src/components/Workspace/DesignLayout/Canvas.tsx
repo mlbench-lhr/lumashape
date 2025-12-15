@@ -59,6 +59,8 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     viewport,
     hasOverlaps,
     overlappingTools,
+    hasOutOfBounds,
+    outOfBoundsTools,
     getToolDimensions,
     getCanvasStyle,
     getViewportTransform,
@@ -92,9 +94,9 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 
   React.useEffect(() => {
     if (props.onOverlapChange) {
-      props.onOverlapChange(hasOverlaps);
+      props.onOverlapChange(hasOverlaps || hasOutOfBounds);
     }
-  }, [hasOverlaps, props.onOverlapChange]);
+  }, [hasOverlaps, hasOutOfBounds, props.onOverlapChange]);
 
   // Helper function to convert pixel position to inches with bottom-left origin
   const convertPositionToInches = (
@@ -149,7 +151,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
   const tooDeepCount = droppedTools.filter(
     (t) => depthInchesFor(t) > allowedDepthInches
   ).length;
-  const isLayoutInvalid = hasOverlaps;
+  const isLayoutInvalid = hasOverlaps || hasOutOfBounds;
 
   // Rotation guard: block rotation if the rotated bounds would exceed the canvas
   const canRotateWithinCanvas = useCallback(
@@ -244,9 +246,9 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 
   React.useEffect(() => {
     if (props.onOverlapChange) {
-      props.onOverlapChange(hasOverlaps);
+      props.onOverlapChange(hasOverlaps || hasOutOfBounds);
     }
-  }, [hasOverlaps, props.onOverlapChange]);
+  }, [hasOverlaps, hasOutOfBounds, props.onOverlapChange]);
 
   // Handle keyboard shortcuts
   React.useEffect(() => {
@@ -443,7 +445,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             const GAP_INCHES =
               typeof tool.metadata?.gapInches === "number"
                 ? tool.metadata.gapInches
-                : 0.25;
+                : 0.5;
             const gapPx =
               tool.unit === "mm"
                 ? mmToPx(GAP_INCHES * 25.4)
@@ -549,52 +551,47 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                     height="100%"
                     viewBox={`0 0 ${toolWidth} ${toolHeight}`}
                     className="absolute inset-0"
-                    style={{ opacity, filter: `blur(${blurAmount}px)` }}
+                    style={{ opacity, filter: `blur(${blurAmount}px)`, overflow: 'visible' }}
                     onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
                   >
                     {tool.toolType === "circle" ? (
                       <>
-                        {/* Gray gap ring (fills the 0.25" annulus) */}
+                        {/* Gray gap ring outside the inner circle */}
                         <circle
                           cx={toolWidth / 2}
                           cy={toolHeight / 2}
-                          r={Math.max(
-                            0,
-                            Math.min(toolWidth, toolHeight) / 2 - gapPx / 2 - 1
-                          )}
+                          r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - 1)}
                           fill="none"
                           stroke="#c2c2c2"
-                          strokeWidth={gapPx}
+                          strokeWidth={gapPx * 2}
                         />
                         {/* Inner circle (solid fill shape) */}
                         <circle
                           cx={toolWidth / 2}
                           cy={toolHeight / 2}
-                          r={Math.max(
-                            0,
-                            Math.min(toolWidth, toolHeight) / 2 - gapPx - 1
-                          )}
+                          r={Math.max(0, Math.min(toolWidth, toolHeight) / 2 - 1)}
                           fill={isOverlapping ? "#f87171" : "#266ca8"}
                           stroke="none"
                         />
                       </>
                     ) : (
                       <>
-                        {/* Gray gap fill region (outer rect) */}
+                        {/* Gray gap ring outside the inner rectangle */}
                         <rect
                           x={1}
                           y={1}
                           width={Math.max(0, toolWidth - 2)}
                           height={Math.max(0, toolHeight - 2)}
-                          fill="#c2c2c2"
-                          stroke="none"
+                          fill="none"
+                          stroke="#c2c2c2"
+                          strokeWidth={gapPx * 2}
                         />
-                        {/* Inner rectangle (solid fill shape, overlays center) */}
+                        {/* Inner rectangle (solid fill) */}
                         <rect
-                          x={gapPx + 1}
-                          y={gapPx + 1}
-                          width={Math.max(0, toolWidth - 2 * (gapPx + 1))}
-                          height={Math.max(0, toolHeight - 2 * (gapPx + 1))}
+                          x={1}
+                          y={1}
+                          width={Math.max(0, toolWidth - 2)}
+                          height={Math.max(0, toolHeight - 2)}
                           fill={isOverlapping ? "#f87171" : "#266ca8"}
                           stroke="none"
                         />
@@ -738,7 +735,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                               for (let y = 0; y < c.height; y++) {
                                 for (let x = 0; x < c.width; x++) {
                                   const a = data[(y * c.width + x) * 4 + 3];
-                                  if (a > 10) {
+                                  if (a > 64) {
                                     if (x < minX) minX = x;
                                     if (y < minY) minY = y;
                                     if (x > maxX) maxX = x;
@@ -764,7 +761,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                                 for (let x = 0; x < c.width; x += step) {
                                   const idx = (y * c.width + x) * 4;
                                   const a = data[idx + 3];
-                                  if (a > 10) {
+                                  if (a > 64) {
                                     let edge = false;
                                     for (let dy = -1; dy <= 1 && !edge; dy++) {
                                       for (
@@ -786,7 +783,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                                         }
                                         const nidx = (ny * c.width + nx) * 4;
                                         const na = data[nidx + 3];
-                                        if (na <= 10) edge = true;
+                                        if (na <= 64) edge = true;
                                       }
                                     }
                                     if (edge) {
@@ -872,18 +869,8 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                       toolId={tool.id}
                       currentRotation={tool.rotation}
                       onRotationChange={(toolId, rotation) => {
-                        // Smooth rotation: apply rotation and keep the tool inside the canvas
                         props.setDroppedTools((prevTools) =>
-                          prevTools.map((t) => {
-                            if (t.id !== toolId) return t;
-                            const rotated = { ...t, rotation };
-                            const nextPos = constrainToCanvas(
-                              rotated,
-                              t.x,
-                              t.y
-                            );
-                            return { ...rotated, x: nextPos.x, y: nextPos.y };
-                          })
+                          prevTools.map((t) => (t.id === toolId ? { ...t, rotation } : t))
                         );
                       }}
                       toolWidth={toolWidth}
@@ -1009,10 +996,12 @@ const Canvas: React.FC<CanvasProps> = (props) => {
               </>
             )}
           </div>
-          {hasOverlaps && (
+          {(hasOverlaps || hasOutOfBounds) && (
             <div className="text-xs text-gray-600 mt-1">
-              {overlappingTools.length} overlapping tool
-              {overlappingTools.length > 1 ? "s" : ""}
+              {overlappingTools.length} overlapping tool{overlappingTools.length > 1 ? "s" : ""}
+              {hasOutOfBounds && (
+                <> • {outOfBoundsTools.length} outside tool{outOfBoundsTools.length > 1 ? "s" : ""}</>
+              )}
             </div>
           )}
         </div>
