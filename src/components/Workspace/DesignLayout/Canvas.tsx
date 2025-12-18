@@ -695,7 +695,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                 ) : (
                   // Regular tool rendering (image)
                   tool.image && (
-                    <div className="relative w-full h-full">
+                    <div className="relative w-full h-full" style={{ overflow: "visible" }}>
                       <img
                         src={imgSrc}
                         crossOrigin="anonymous"
@@ -751,7 +751,6 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                                   bottom: maxY / c.height,
                                 };
                               }
-                              // Sample sparse edge points along the silhouette for precise clamping
                               const step = Math.max(
                                 1,
                                 Math.floor(Math.max(c.width, c.height) / 80)
@@ -819,10 +818,18 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                             )
                           );
                         }}
-                        className={`relative w-full h-full object-contain transition-all duration-200 ${
+                        className={`absolute left-1/2 top-1/2 object-contain transition-all duration-200 ${
                           isOverlapping ? "brightness-75 saturate-150" : ""
                         }`}
-                        style={{ opacity, filter: `blur(${blurAmount}px)` }}
+                        style={{
+                          width: `${toolWidth + 96}px`,
+                          height: `${toolHeight + 96}px`,
+                          maxWidth: "none",
+                          maxHeight: "none",
+                          transform: "translate(-50%, -50%)",
+                          opacity,
+                          filter: `blur(${blurAmount}px)`,
+                        }}
                         draggable={false}
                         onMouseDown={(e) => handleToolMouseDown(e, tool.id)}
                       />
