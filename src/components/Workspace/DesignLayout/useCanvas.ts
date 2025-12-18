@@ -314,6 +314,46 @@ export const useCanvas = ({
     };
   }, [getToolDimensions]);
 
+  const getToolOverlapRect = useCallback((tool: DroppedTool) => {
+    const { toolWidth: w, toolHeight: h } = getToolDimensions(tool);
+
+    const isText = tool.toolType === 'text' || tool.toolBrand === 'TEXT';
+    const isFingerCut = tool.id.startsWith('cylinder_') || tool.name === 'Finger Cut' || tool.metadata?.isFingerCut;
+    const isShape = tool.toolBrand === 'SHAPE' && !tool.metadata?.isFingerCut;
+
+    const shouldUseVisualImageSize = Boolean(tool.image) && !isShape && !isFingerCut && !isText;
+    const padPx = shouldUseVisualImageSize ? 96 : 0;
+
+    return {
+      x: tool.x - padPx / 2,
+      y: tool.y - padPx / 2,
+      w: w + padPx,
+      h: h + padPx,
+      padPx,
+    };
+  }, [getToolDimensions]);
+
+  const getOverlapTransformedAABB = useCallback((tool: DroppedTool) => {
+    const { x, y, w, h } = getToolOverlapRect(tool);
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const angle = ((tool.rotation || 0) * Math.PI) / 180;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const rotW = Math.abs(w * cos) + Math.abs(h * sin);
+    const rotH = Math.abs(w * sin) + Math.abs(h * cos);
+    return {
+      left: cx - rotW / 2,
+      top: cy - rotH / 2,
+      right: cx + rotW / 2,
+      bottom: cy + rotH / 2,
+      width: rotW,
+      height: rotH,
+      cx,
+      cy,
+    };
+  }, [getToolOverlapRect]);
+
 
 
   // Constrain tool position to inner canvas using pixel-aware rotated half-extents of opaque content (opaquePoints/opaqueBounds), fallback to full rect
@@ -422,8 +462,8 @@ export const useCanvas = ({
       return false; // No overlap for cylinders or text
     }
 
-    const a1 = getTransformedAABB(tool1);
-    const a2 = getTransformedAABB(tool2);
+    const a1 = getOverlapTransformedAABB(tool1);
+    const a2 = getOverlapTransformedAABB(tool2);
 
     const gapInches1 = typeof tool1.metadata?.gapInches === 'number' ? tool1.metadata.gapInches : 0.5;
     const gapInches2 = typeof tool2.metadata?.gapInches === 'number' ? tool2.metadata.gapInches : 0.5;
@@ -441,7 +481,7 @@ export const useCanvas = ({
       a1e.bottom <= a2e.top + buffer ||
       a2e.bottom <= a1e.top + buffer
     );
-  }, [getTransformedAABB]);
+  }, [getOverlapTransformedAABB]);
 
   // Fast AABB pre-check (used for quick rejection and fallback)
   const doToolsAABBOverlap = useCallback((tool1: DroppedTool, tool2: DroppedTool) => {
@@ -452,8 +492,8 @@ export const useCanvas = ({
     const isTool2Text = tool2.toolType === 'text' || tool2.toolBrand === 'TEXT';
     if (isTool1Cylinder || isTool2Cylinder || isTool1Text || isTool2Text) return false;
 
-    const a1 = getTransformedAABB(tool1);
-    const a2 = getTransformedAABB(tool2);
+    const a1 = getOverlapTransformedAABB(tool1);
+    const a2 = getOverlapTransformedAABB(tool2);
 
     const gapInches1 = typeof tool1.metadata?.gapInches === 'number' ? tool1.metadata.gapInches : 0.5;
     const gapInches2 = typeof tool2.metadata?.gapInches === 'number' ? tool2.metadata.gapInches : 0.5;
@@ -470,7 +510,7 @@ export const useCanvas = ({
       a1e.bottom <= a2e.top + buffer ||
       a2e.bottom <= a1e.top + buffer
     );
-  }, [getTransformedAABB]);
+  }, [getOverlapTransformedAABB]);
 
   // Pixel-perfect overlap using alpha masks and transforms
   const doToolsOverlapPixel = useCallback(async (tool1: DroppedTool, tool2: DroppedTool) => {
@@ -500,12 +540,17 @@ export const useCanvas = ({
       return doToolsAABBOverlap(tool1, tool2);
     }
 
-    const { toolWidth: w1, toolHeight: h1 } = getToolDimensions(tool1);
-    const { toolWidth: w2, toolHeight: h2 } = getToolDimensions(tool2);
+    const r1 = getToolOverlapRect(tool1);
+    const r2 = getToolOverlapRect(tool2);
+
+    const w1 = r1.w;
+    const h1 = r1.h;
+    const w2 = r2.w;
+    const h2 = r2.h;
 
     // Compute bounding overlap region using rotated AABBs (expanded by shape gap)
-    const a1o = getTransformedAABB(tool1);
-    const a2o = getTransformedAABB(tool2);
+    const a1o = getOverlapTransformedAABB(tool1);
+    const a2o = getOverlapTransformedAABB(tool2);
     const gapInches1 = typeof tool1.metadata?.gapInches === 'number' ? tool1.metadata.gapInches : 0.5;
     const gapInches2 = typeof tool2.metadata?.gapInches === 'number' ? tool2.metadata.gapInches : 0.5;
     const gapPx1 = tool1.toolBrand === 'SHAPE' ? (tool1.unit === 'mm' ? mmToPx(gapInches1 * 25.4) : inchesToPx(gapInches1)) : 0;
@@ -531,8 +576,11 @@ export const useCanvas = ({
 
     const drawTool = (tool: DroppedTool, img: HTMLImageElement, tw: number, th: number) => {
       ctx.save();
-      const cxTool = tool.x + tw / 2;
-      const cyTool = tool.y + th / 2;
+
+      const { x, y } = getToolOverlapRect(tool);
+      const cxTool = x + tw / 2;
+      const cyTool = y + th / 2;
+
       ctx.translate(cxTool - left, cyTool - top);
       const angle = (tool.rotation || 0) * Math.PI / 180;
       ctx.rotate(angle);
@@ -558,8 +606,20 @@ export const useCanvas = ({
         return;
       }
 
+      const ar = img.naturalWidth > 0 && img.naturalHeight > 0 ? (img.naturalWidth / img.naturalHeight) : (tw / th);
+      let drawW: number, drawH: number;
+      if (tw / th >= ar) {
+        drawH = th;
+        drawW = drawH * ar;
+      } else {
+        drawW = tw;
+        drawH = drawW / ar;
+      }
+      const dx = (tw - drawW) / 2;
+      const dy = (th - drawH) / 2;
+
       ctx.globalAlpha = (tool.opacity ?? 100) / 100;
-      ctx.drawImage(img, 0, 0, tw, th);
+      ctx.drawImage(img, dx, dy, drawW, drawH);
       ctx.restore();
     };
 
@@ -581,7 +641,7 @@ export const useCanvas = ({
       // CORS-tainted canvas or other errors: fallback
       return doToolsAABBOverlap(tool1, tool2);
     }
-  }, [getTransformedAABB, getToolDimensions, doToolsAABBOverlap, getImageUrl, loadImage]);
+  }, [getOverlapTransformedAABB, getToolOverlapRect, doToolsAABBOverlap, getImageUrl, loadImage, mmToPx, inchesToPx]);
 
   // Detect overlaps (async, pixel-perfect)
   const detectOverlaps = useCallback(async (): Promise<string[]> => {
@@ -618,7 +678,9 @@ export const useCanvas = ({
     const ids: string[] = [];
     for (let i = 0; i < droppedTools.length; i++) {
       const tool = droppedTools[i];
-      const { toolWidth: w, toolHeight: h } = getToolDimensions(tool);
+      const r = getToolOverlapRect(tool);
+      const w = r.w;
+      const h = r.h;
       const wHalf = w / 2;
       const hHalf = h / 2;
 
@@ -645,7 +707,7 @@ export const useCanvas = ({
         const py = lby + localY - hHalf;
         const xr = px * cos - py * sin;
         const yr = px * sin + py * cos;
-        return { x: tool.x + wHalf + xr, y: tool.y + hHalf + yr };
+        return { x: r.x + wHalf + xr, y: r.y + hHalf + yr };
       };
 
       let outside = false;
@@ -679,7 +741,7 @@ export const useCanvas = ({
           ) { outside = true; break; }
         }
       } else {
-        const a0 = getTransformedAABB(tool);
+        const a0 = getOverlapTransformedAABB(tool);
         const gapInches = typeof tool.metadata?.gapInches === 'number' ? tool.metadata.gapInches : 0.5;
         const gapPxShape = tool.toolBrand === 'SHAPE' && !tool.metadata?.isFingerCut ? (unit === 'mm' ? mmToPx(gapInches * 25.4) : inchesToPx(gapInches)) : 0;
         const a = { left: a0.left - gapPxShape, top: a0.top - gapPxShape, right: a0.right + gapPxShape, bottom: a0.bottom + gapPxShape };
@@ -694,7 +756,7 @@ export const useCanvas = ({
       if (outside) ids.push(tool.id);
     }
     return ids;
-  }, [droppedTools, getToolDimensions, getCanvasBounds, getTransformedAABB, unit, mmToPx, inchesToPx]);
+  }, [droppedTools, getToolOverlapRect, getOverlapTransformedAABB, getCanvasBounds, unit, mmToPx, inchesToPx]);
 
   // Run overlap detection when tools change (guard against stale results)
   useEffect(() => {
