@@ -841,7 +841,7 @@ const PublishedLayoutsTab = () => {
                                                     <span>Thickness:</span>
                                                     <span className="font-semibold text-gray-800">
                                                         {(layout.canvas?.thickness ?? layout.metadata?.thickness) ?? "-"}{" "}
-                                                        {(layout.canvas?.unit ?? layout.metadata?.units) ?? ""}
+                                                        {"inches"}
                                                     </span>
                                                 </div>
                                             </div>

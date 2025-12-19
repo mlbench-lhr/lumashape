@@ -48,6 +48,11 @@ const ControlBar: React.FC<ControlBarProps> = ({
   const [isInfoColorOpen, setIsInfoColorOpen] = useState(false);
   const [isInfoThicknessOpen, setIsInfoThicknessOpen] = useState(false);
 
+  const normalizeThicknessInches = (value: number) => {
+    if (!(value > 0)) return value;
+    return value > 10 ? Number((value / 25.4).toFixed(3)) : value;
+  };
+
   // Load initial values from sessionStorage only once on first load
   useEffect(() => {
     if (!hasLoadedFromSession) {
@@ -80,7 +85,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
           }
 
           if (parsed.thickness !== undefined && !isNaN(Number(parsed.thickness))) {
-            setThickness(Number(parsed.thickness));
+            setThickness(normalizeThicknessInches(Number(parsed.thickness)));
           }
           if (typeof parsed.materialColor === 'string') {
             setMaterialColor(parsed.materialColor);

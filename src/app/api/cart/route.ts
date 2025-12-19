@@ -181,7 +181,14 @@ export async function POST(req: NextRequest) {
     if (typeof canvasThickness !== 'number' || !(canvasThickness > 0) || (canvasUnit !== 'mm' && canvasUnit !== 'inches')) {
       return NextResponse.json({ message: 'Invalid canvas thickness or unit' }, { status: 400 })
     }
-    const thicknessInches = canvasUnit === 'mm' ? mmToInches(canvasThickness) : canvasThickness
+    const normalizeThicknessInches = (value: number) => {
+      if (!(value > 0)) return value
+      return value > 10 ? mmToInches(value) : value
+    }
+    const thicknessInches = normalizeThicknessInches(canvasThickness)
+    if (itemData?.layoutData?.canvas) {
+      itemData.layoutData.canvas.thickness = thicknessInches
+    }
     const allowedDepthInches = Math.max(0, thicknessInches - 0.25)
     const offending = (itemData.layoutData.tools || []).filter((t: ToolShape) => {
       const d = typeof t.depth === 'number' ? t.depth : 0

@@ -34,7 +34,7 @@ function DesignLayout({
   // Canvas dimensions (controlled by ControlBar)
   const [canvasWidth, setCanvasWidth] = useState<number>(initialCanvas?.width ?? 400);
   const [canvasHeight, setCanvasHeight] = useState<number>(initialCanvas?.height ?? 300);
-  const [thickness, setThickness] = useState<number>(initialCanvas?.thickness ?? 12.7);
+  const [thickness, setThickness] = useState<number>(initialCanvas?.thickness ?? 1.25);
   const [unit, setUnit] = useState<'mm' | 'inches'>(initialCanvas?.unit ?? 'mm');
   const [materialColor, setMaterialColor] = useState<string>(initialCanvas?.materialColor ?? 'blue');
 
@@ -96,11 +96,9 @@ function DesignLayout({
 
     const convertedCanvasWidth = parseFloat(convertValue(canvasWidth, unit, newUnit).toFixed(3));
     const convertedCanvasHeight = parseFloat(convertValue(canvasHeight, unit, newUnit).toFixed(3));
-    const convertedThickness = parseFloat(convertValue(thickness, unit, newUnit).toFixed(3));
 
     setCanvasWidth(convertedCanvasWidth);
     setCanvasHeight(convertedCanvasHeight);
-    setThickness(convertedThickness);
     setUnit(newUnit);
 
     updateDroppedTools(prev =>
