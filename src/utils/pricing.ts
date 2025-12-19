@@ -27,10 +27,15 @@ export const DEFAULT_PRICING: PricingParameters = {
 
 const toInches = (value: number, unit: 'mm' | 'inches') => (unit === 'mm' ? value / 25.4 : value);
 
+const normalizeThicknessInches = (value: number) => {
+  if (!(value > 0)) return value;
+  return value > 10 ? value / 25.4 : value;
+};
+
 export const calculateVolumeInCubicInches = (dimensions: LayoutDimensions): number => {
   const w = toInches(dimensions.width, dimensions.unit);
   const h = toInches(dimensions.height, dimensions.unit);
-  const t = toInches(dimensions.thickness, dimensions.unit);
+  const t = normalizeThicknessInches(dimensions.thickness);
   return w * h * t;
 };
 

@@ -139,8 +139,10 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     return Number(inches.toFixed(2));
   };
 
-  // Convert thickness to inches for comparison
-  const thicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
+  const thicknessInches = (() => {
+    if (!(thickness > 0)) return 0;
+    return thickness > 10 ? mmToInches(thickness) : thickness;
+  })();
   const depthInchesFor = (t: DroppedTool) =>
     typeof t.depth === "number"
       ? t.unit === "mm"

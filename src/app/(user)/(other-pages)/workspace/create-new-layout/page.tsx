@@ -15,6 +15,12 @@ const CreateNewLayout = () => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [thickness, setThickness] = useState('');
     const [isInfoOpen, setIsInfoOpen] = useState(false);
+
+    const handleUnitsChange = (next: string) => {
+        if (next === units) return;
+        setUnits(next);
+        if (!thickness) setThickness('1.25');
+    };
     const [isInfoColorOpen, setIsInfoColorOpen] = useState(false);
     const [isInfoThicknessOpen, setIsInfoThicknessOpen] = useState(false);
 
@@ -42,7 +48,9 @@ const CreateNewLayout = () => {
             setWidth(parsed.width || '10');
             setLength(parsed.length || '24');
             setUnits(parsed.units || '');
-            setThickness(parsed.thickness || '');
+            const tRaw = parsed.thickness || '';
+            const tNum = Number(tRaw);
+            setThickness(isFinite(tNum) && tNum > 10 ? String(Number((tNum / 25.4).toFixed(3))) : tRaw);
             setMaterialColor(parsed.materialColor || '');
         }
     }, []);
@@ -52,6 +60,8 @@ const CreateNewLayout = () => {
         const data = { layoutName, width, length, units, materialColor, thickness };
         sessionStorage.setItem('layoutForm', JSON.stringify(data));
     }, [layoutName, width, length, units, materialColor, thickness]);
+
+    
 
     // Validation
     const validateForm = () => {
@@ -193,7 +203,7 @@ const CreateNewLayout = () => {
                                 </label>
                                 <select
                                     value={units}
-                                    onChange={(e) => setUnits(e.target.value)}
+                                    onChange={(e) => handleUnitsChange(e.target.value)}
                                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-primary text-gray-900 bg-gray
                                         ${errors.units ? 'border-red-500' : 'border-gray-300'}`}
                                 >

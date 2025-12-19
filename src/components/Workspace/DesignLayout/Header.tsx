@@ -134,7 +134,13 @@ const dropdownRef = useRef<HTMLDivElement>(null);
 const [dxfFailed, setDxfFailed] = useState(false);
 const { addToCart, cartItems } = useCart();
 
-  const thicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
+  const normalizeThicknessInches = (value: number) => {
+    if (!(value > 0)) return value;
+    return value > 10 ? mmToInches(value) : value;
+  };
+
+  const thicknessInches = normalizeThicknessInches(thickness);
+
   const allowedDepthInches = Math.max(0, thicknessInches - 0.25);
   const floorViolationCount = droppedTools.filter((t) => {
     const depthInches = typeof t.depth === "number" ? (t.unit === "mm" ? mmToInches(t.depth) : t.depth) : 0;
@@ -184,7 +190,7 @@ const { addToCart, cartItems } = useCart();
         return;
       }
 
-      const thicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
+      const thicknessInches = normalizeThicknessInches((additionalData.thickness ?? thickness) as number);
       const allowedDepthInches = Math.max(0, thicknessInches - 0.25);
       const depths = await Promise.all(droppedTools.map((t) => computeDepthInches(t)));
       const tooDeep = depths.some((d) => d > allowedDepthInches);
@@ -241,8 +247,8 @@ const { addToCart, cartItems } = useCart();
         canvas: {
           width: additionalData.canvasWidth ?? canvasWidth,
           height: additionalData.canvasHeight ?? canvasHeight,
-          unit,
-          thickness,
+          unit: (additionalData.units ?? unit) as 'mm' | 'inches',
+          thickness: normalizeThicknessInches((additionalData.thickness ?? thickness) as number),
           materialColor: additionalData.materialColor || materialColor,
         },
         tools: cartTools,
@@ -1253,13 +1259,14 @@ const { addToCart, cartItems } = useCart();
 
       // Step 2: Save layout data with image URL
       const nameToSave = await resolveLayoutName(additionalData);
+      const canvasUnit = (additionalData.units ?? unit) as 'mm' | 'inches';
       const layoutData = {
         name: nameToSave,
         canvas: {
           width: additionalData.canvasWidth ?? canvasWidth,
           height: additionalData.canvasHeight ?? canvasHeight,
-          unit: additionalData.units ?? unit,
-          thickness: additionalData.thickness ?? thickness,
+          unit: canvasUnit,
+          thickness: normalizeThicknessInches((additionalData.thickness ?? thickness) as number),
           materialColor: additionalData.materialColor || undefined,
         },
         tools: droppedTools.map((tool) => {
