@@ -70,17 +70,17 @@ interface ShapePayload {
   is_custom_shape: true;
   shape_type: "rectangle" | "circle" | "polygon" | "fingercut" | "text";
   shape_data:
-  | { width_inches: number; height_inches: number }
-  | { radius_inches: number }
-  | { points: { x: number; y: number }[] }
-  | {
-    width_inches: number;
-    height_inches: number;
-    content: string;
-    font_size_px: number;
-    align: "left" | "center" | "right";
-    color?: string;
-  };
+    | { width_inches: number; height_inches: number }
+    | { radius_inches: number }
+    | { points: { x: number; y: number }[] }
+    | {
+        width_inches: number;
+        height_inches: number;
+        content: string;
+        font_size_px: number;
+        align: "left" | "center" | "right";
+        color?: string;
+      };
   position_inches: { x: number; y: number; z: number };
   rotation_degrees: number;
   cut_depth_inches: number;
@@ -128,11 +128,11 @@ const Header: React.FC<HeaderProps> = ({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isDxfGenerating, setIsDxfGenerating] = useState(false);
-const [isCartInfoOpen, setIsCartInfoOpen] = useState(false);
-const [isAddingToCart, setIsAddingToCart] = useState(false);
-const dropdownRef = useRef<HTMLDivElement>(null);
-const [dxfFailed, setDxfFailed] = useState(false);
-const { addToCart, cartItems } = useCart();
+  const [isCartInfoOpen, setIsCartInfoOpen] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dxfFailed, setDxfFailed] = useState(false);
+  const { addToCart, cartItems } = useCart();
 
   const normalizeThicknessInches = (value: number) => {
     if (!(value > 0)) return value;
@@ -143,7 +143,12 @@ const { addToCart, cartItems } = useCart();
 
   const allowedDepthInches = Math.max(0, thicknessInches - 0.25);
   const floorViolationCount = droppedTools.filter((t) => {
-    const depthInches = typeof t.depth === "number" ? (t.unit === "mm" ? mmToInches(t.depth) : t.depth) : 0;
+    const depthInches =
+      typeof t.depth === "number"
+        ? t.unit === "mm"
+          ? mmToInches(t.depth)
+          : t.depth
+        : 0;
     return depthInches > allowedDepthInches;
   }).length;
   const isLayoutInvalid = hasOverlaps;
@@ -161,7 +166,6 @@ const { addToCart, cartItems } = useCart();
       );
       return;
     }
-
 
     setIsSaving(true);
     setIsAddingToCart(true);
@@ -190,9 +194,13 @@ const { addToCart, cartItems } = useCart();
         return;
       }
 
-      const thicknessInches = normalizeThicknessInches((additionalData.thickness ?? thickness) as number);
+      const thicknessInches = normalizeThicknessInches(
+        (additionalData.thickness ?? thickness) as number
+      );
       const allowedDepthInches = Math.max(0, thicknessInches - 0.25);
-      const depths = await Promise.all(droppedTools.map((t) => computeDepthInches(t)));
+      const depths = await Promise.all(
+        droppedTools.map((t) => computeDepthInches(t))
+      );
       const tooDeep = depths.some((d) => d > allowedDepthInches);
       // if (tooDeep) {
       //   const msg = "One or more tool pocket depths exceed the allowable depth for this material thickness.";
@@ -203,14 +211,16 @@ const { addToCart, cartItems } = useCart();
       // }
 
       const layoutName = await resolveLayoutName(additionalData);
-      const containerSize = `${additionalData.canvasWidth ?? canvasWidth}" × ${additionalData.canvasHeight ?? canvasHeight}"`;
+      const containerSize = `${additionalData.canvasWidth ?? canvasWidth}" × ${
+        additionalData.canvasHeight ?? canvasHeight
+      }"`;
       const saveResult = await handleSaveAndExit({ skipRedirect: true });
       if (!saveResult || !saveResult.id) {
         throw new Error("Failed to save layout");
       }
       const savedLayoutId = saveResult.id;
 
-      if (cartItems.some(i => i.id === savedLayoutId)) {
+      if (cartItems.some((i) => i.id === savedLayoutId)) {
         const msg = "Layout already exists in cart";
         setSaveError(msg);
         toast.error(msg);
@@ -247,8 +257,10 @@ const { addToCart, cartItems } = useCart();
         canvas: {
           width: additionalData.canvasWidth ?? canvasWidth,
           height: additionalData.canvasHeight ?? canvasHeight,
-          unit: (additionalData.units ?? unit) as 'mm' | 'inches',
-          thickness: normalizeThicknessInches((additionalData.thickness ?? thickness) as number),
+          unit: (additionalData.units ?? unit) as "mm" | "inches",
+          thickness: normalizeThicknessInches(
+            (additionalData.thickness ?? thickness) as number
+          ),
           materialColor: additionalData.materialColor || materialColor,
         },
         tools: cartTools,
@@ -314,21 +326,23 @@ const { addToCart, cartItems } = useCart();
   };
 
   // NEW: resolve the layout name without overwriting existing names on update
-  const resolveLayoutName = async (additionalData: LayoutFormData): Promise<string> => {
+  const resolveLayoutName = async (
+    additionalData: LayoutFormData
+  ): Promise<string> => {
     const fromSession = (additionalData.layoutName || "").trim();
     if (fromSession) return fromSession;
 
     let editingId: string | null = null;
     try {
       editingId = sessionStorage.getItem("editingLayoutId");
-    } catch { }
+    } catch {}
 
     if (editingId) {
       // Prefer cached name if available
       try {
         const cached = sessionStorage.getItem("editingLayoutName");
         if (cached && cached.trim()) return cached.trim();
-      } catch { }
+      } catch {}
 
       // Fallback: fetch existing layout name to avoid overwriting
       try {
@@ -343,11 +357,11 @@ const { addToCart, cartItems } = useCart();
           if (typeof existingName === "string" && existingName.trim()) {
             try {
               sessionStorage.setItem("editingLayoutName", existingName);
-            } catch { }
+            } catch {}
             return existingName;
           }
         }
-      } catch { }
+      } catch {}
     }
 
     // Final fallback for brand-new layouts
@@ -389,7 +403,8 @@ const { addToCart, cartItems } = useCart();
     const isFingerCut =
       droppedTool.toolBrand === "FINGERCUT" ||
       droppedTool.metadata?.isFingerCut;
-    const isText = droppedTool.toolBrand === "TEXT" || droppedTool.toolType === "text";
+    const isText =
+      droppedTool.toolBrand === "TEXT" || droppedTool.toolType === "text";
     if (!toolData && !isShape && !isFingerCut && !isText) {
       const authToken = getAuthToken();
       if (authToken) {
@@ -407,7 +422,7 @@ const { addToCart, cartItems } = useCart();
               toolData = json.tool;
             }
           }
-        } catch { }
+        } catch {}
       }
     }
 
@@ -427,7 +442,8 @@ const { addToCart, cartItems } = useCart();
 
     const rawDepth = droppedTool.depth;
     if (typeof rawDepth === "number" && rawDepth > 0) {
-      const inches = droppedTool.unit === "mm" ? mmToInches(rawDepth) : rawDepth;
+      const inches =
+        droppedTool.unit === "mm" ? mmToInches(rawDepth) : rawDepth;
       return parseFloat(inches.toFixed(3));
     }
     return 0.25;
@@ -439,9 +455,12 @@ const { addToCart, cartItems } = useCart();
     isX: boolean = true
   ): number => {
     const canvasInchesX = unit === "mm" ? mmToInches(canvasWidth) : canvasWidth;
-    const canvasInchesY = unit === "mm" ? mmToInches(canvasHeight) : canvasHeight;
+    const canvasInchesY =
+      unit === "mm" ? mmToInches(canvasHeight) : canvasHeight;
 
-    const canvasElement = document.querySelector('[data-canvas="true"]') as HTMLDivElement;
+    const canvasElement = document.querySelector(
+      '[data-canvas="true"]'
+    ) as HTMLDivElement;
     const DPI = 96;
 
     let baseWidthPx = canvasInchesX * DPI;
@@ -479,24 +498,32 @@ const { addToCart, cartItems } = useCart();
 
       // Legacy heuristic: treat obviously large values as px from older data
       const looksLikePx =
-        (tool.unit === 'inches' && ((tool.width ?? 0) > 50 || (tool.length ?? 0) > 2)) ||
-        (tool.unit === 'mm' && ((tool.width ?? 0) > 1000 || (tool.length ?? 0) > 50));
+        (tool.unit === "inches" &&
+          ((tool.width ?? 0) > 50 || (tool.length ?? 0) > 2)) ||
+        (tool.unit === "mm" &&
+          ((tool.width ?? 0) > 1000 || (tool.length ?? 0) > 50));
 
       if (looksLikePx) {
-        const widthPx = Math.max(10, typeof tool.width === 'number' ? tool.width : 50);
-        const heightPx = Math.max(10, typeof tool.length === 'number' ? tool.length : inchesToPx(0.2));
+        const widthPx = Math.max(
+          10,
+          typeof tool.width === "number" ? tool.width : 50
+        );
+        const heightPx = Math.max(
+          10,
+          typeof tool.length === "number" ? tool.length : inchesToPx(0.2)
+        );
         return { toolWidth: widthPx, toolHeight: heightPx };
       }
 
       const defaultThicknessInches = 0.2;
       const widthPx =
-        tool.unit === 'mm'
+        tool.unit === "mm"
           ? mmToPx(tool.width || 0)
           : inchesToPx(tool.width || 0);
       const heightPx =
-        tool.unit === 'mm'
-          ? mmToPx((tool.length ?? defaultThicknessInches * 25.4))
-          : inchesToPx((tool.length ?? defaultThicknessInches));
+        tool.unit === "mm"
+          ? mmToPx(tool.length ?? defaultThicknessInches * 25.4)
+          : inchesToPx(tool.length ?? defaultThicknessInches);
 
       return {
         toolWidth: Math.max(20, widthPx),
@@ -541,7 +568,7 @@ const { addToCart, cartItems } = useCart();
     // Image tools: use metadata.length (physical height) + aspect ratio
     if (tool.metadata?.length) {
       const len = tool.metadata.length;
-      const toolHeightPx = tool.unit === 'mm' ? mmToPx(len) : inchesToPx(len);
+      const toolHeightPx = tool.unit === "mm" ? mmToPx(len) : inchesToPx(len);
 
       let aspectRatio = 1.6;
       if (
@@ -666,7 +693,8 @@ const { addToCart, cartItems } = useCart();
         }
 
         if (isShape || isFingerCut) {
-          let shapeType: "rectangle" | "circle" | "polygon" | "fingercut" = "rectangle";
+          let shapeType: "rectangle" | "circle" | "polygon" | "fingercut" =
+            "rectangle";
           type ShapeData =
             | { width_inches: number; height_inches: number }
             | { radius_inches: number }
@@ -697,7 +725,8 @@ const { addToCart, cartItems } = useCart();
           ) {
             shapeType = "circle";
             const diameter = Math.max(droppedTool.width, droppedTool.length);
-            const radiusInches = unit === "mm" ? mmToInches(diameter / 2) : diameter / 2;
+            const radiusInches =
+              unit === "mm" ? mmToInches(diameter / 2) : diameter / 2;
             shapeData = { radius_inches: radiusInches };
           } else if (droppedTool.name.toLowerCase().includes("polygon")) {
             // Polygon: simple rectangle path (extend as needed)
@@ -717,9 +746,16 @@ const { addToCart, cartItems } = useCart();
               ],
             };
           } else {
-            const widthInches = unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
-            const heightInches = unit === "mm" ? mmToInches(droppedTool.length) : droppedTool.length;
-            shapeData = { width_inches: widthInches, height_inches: heightInches };
+            const widthInches =
+              unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
+            const heightInches =
+              unit === "mm"
+                ? mmToInches(droppedTool.length)
+                : droppedTool.length;
+            shapeData = {
+              width_inches: widthInches,
+              height_inches: heightInches,
+            };
             shapeType = "rectangle";
           }
 
@@ -769,8 +805,8 @@ const { addToCart, cartItems } = useCart();
           position_inches: { x: xInches, y: yInches, z: 0 },
           rotation_degrees: normalizeRotationDeg(droppedTool.rotation),
           height_diagonal_inches: computeLengthInches(droppedTool, tool),
-          depth_inches: await computeDepthInches(droppedTool, tool),
-          cut_depth_inches: await computeDepthInches(droppedTool, tool),
+          depth_inches: droppedTool.depth,
+          cut_depth_inches: droppedTool.depth,
           flip_horizontal: droppedTool.flipHorizontal || false,
           flip_vertical: droppedTool.flipVertical || false,
           opacity: droppedTool.opacity || 100,
@@ -853,19 +889,33 @@ const { addToCart, cartItems } = useCart();
           layoutName = layoutForm.layoutName || layoutName;
         } catch {}
       }
-      const canvasWidthInches = unit === "mm" ? mmToInches(canvasWidth) : canvasWidth;
-      const canvasHeightInches = unit === "mm" ? mmToInches(canvasHeight) : canvasHeight;
-      const canvasThicknessInches = unit === "mm" ? mmToInches(thickness) : thickness;
+      const canvasWidthInches =
+        unit === "mm" ? mmToInches(canvasWidth) : canvasWidth;
+      const canvasHeightInches =
+        unit === "mm" ? mmToInches(canvasHeight) : canvasHeight;
+      const canvasThicknessInches =
+        unit === "mm" ? mmToInches(thickness) : thickness;
       const authToken = localStorage.getItem("auth-token");
       if (!authToken) return null;
       const tools: ToolPayload[] = [];
       const shapes: ShapePayload[] = [];
       for (const droppedTool of droppedTools) {
         const { toolHeight, toolWidth } = getToolDimensions(droppedTool);
-        const xInches = convertPositionToInches(droppedTool.x, canvasWidth, true);
-        const yInches = convertPositionToInches(droppedTool.y + toolHeight, canvasHeight, false);
-        const isFingerCut = droppedTool.toolBrand === "FINGERCUT" || droppedTool.metadata?.isFingerCut;
-        const isTextTool = droppedTool.toolBrand === "TEXT" || droppedTool.toolType === "text";
+        const xInches = convertPositionToInches(
+          droppedTool.x,
+          canvasWidth,
+          true
+        );
+        const yInches = convertPositionToInches(
+          droppedTool.y + toolHeight,
+          canvasHeight,
+          false
+        );
+        const isFingerCut =
+          droppedTool.toolBrand === "FINGERCUT" ||
+          droppedTool.metadata?.isFingerCut;
+        const isTextTool =
+          droppedTool.toolBrand === "TEXT" || droppedTool.toolType === "text";
         if (isTextTool) {
           const DPI = 96;
           const widthInches = Number((toolWidth / DPI).toFixed(3));
@@ -894,27 +944,60 @@ const { addToCart, cartItems } = useCart();
           continue;
         }
         if (droppedTool.toolBrand === "SHAPE" || isFingerCut) {
-          let shapeType: "rectangle" | "circle" | "polygon" | "fingercut" = "rectangle";
+          let shapeType: "rectangle" | "circle" | "polygon" | "fingercut" =
+            "rectangle";
           let shapeData;
-          if (isFingerCut || droppedTool.name.toLowerCase().includes("finger")) {
-            const widthInches = unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
-            const heightInches = unit === "mm" ? mmToInches(droppedTool.length) : droppedTool.length;
-            shapeData = { width_inches: widthInches, height_inches: heightInches };
+          if (
+            isFingerCut ||
+            droppedTool.name.toLowerCase().includes("finger")
+          ) {
+            const widthInches =
+              unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
+            const heightInches =
+              unit === "mm"
+                ? mmToInches(droppedTool.length)
+                : droppedTool.length;
+            shapeData = {
+              width_inches: widthInches,
+              height_inches: heightInches,
+            };
             shapeType = "fingercut";
-          } else if (droppedTool.name.toLowerCase().includes("circle") || (droppedTool.image || "").includes("circle.svg")) {
+          } else if (
+            droppedTool.name.toLowerCase().includes("circle") ||
+            (droppedTool.image || "").includes("circle.svg")
+          ) {
             shapeType = "circle";
             const diameter = Math.max(droppedTool.width, droppedTool.length);
-            const radiusInches = unit === "mm" ? mmToInches(diameter / 2) : diameter / 2;
+            const radiusInches =
+              unit === "mm" ? mmToInches(diameter / 2) : diameter / 2;
             shapeData = { radius_inches: radiusInches };
           } else if (droppedTool.name.toLowerCase().includes("polygon")) {
             shapeType = "polygon";
-            const widthInches = unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
-            const heightInches = unit === "mm" ? mmToInches(droppedTool.length) : droppedTool.length;
-            shapeData = { points: [ { x: 0, y: 0 }, { x: widthInches, y: 0 }, { x: widthInches, y: heightInches }, { x: 0, y: heightInches } ] };
+            const widthInches =
+              unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
+            const heightInches =
+              unit === "mm"
+                ? mmToInches(droppedTool.length)
+                : droppedTool.length;
+            shapeData = {
+              points: [
+                { x: 0, y: 0 },
+                { x: widthInches, y: 0 },
+                { x: widthInches, y: heightInches },
+                { x: 0, y: heightInches },
+              ],
+            };
           } else {
-            const widthInches = unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
-            const heightInches = unit === "mm" ? mmToInches(droppedTool.length) : droppedTool.length;
-            shapeData = { width_inches: widthInches, height_inches: heightInches };
+            const widthInches =
+              unit === "mm" ? mmToInches(droppedTool.width) : droppedTool.width;
+            const heightInches =
+              unit === "mm"
+                ? mmToInches(droppedTool.length)
+                : droppedTool.length;
+            shapeData = {
+              width_inches: widthInches,
+              height_inches: heightInches,
+            };
             shapeType = "rectangle";
           }
           shapes.push({
@@ -933,11 +1016,16 @@ const { addToCart, cartItems } = useCart();
           });
           continue;
         }
-        const toolId = droppedTool.metadata?.originalId || droppedTool.id.split("-").slice(0, -1).join("-");
-        const toolRes = await fetch(`/api/user/tool/getTool?toolId=${toolId}`, { headers: { Authorization: `Bearer ${authToken}` } });
+        const toolId =
+          droppedTool.metadata?.originalId ||
+          droppedTool.id.split("-").slice(0, -1).join("-");
+        const toolRes = await fetch(`/api/user/tool/getTool?toolId=${toolId}`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
         if (!toolRes.ok) continue;
         const { tool } = await toolRes.json();
         if (!tool?.cvResponse?.dxf_url) continue;
+
         tools.push({
           tool_id: toolId,
           name: droppedTool.name,
@@ -947,8 +1035,8 @@ const { addToCart, cartItems } = useCart();
           position_inches: { x: xInches, y: yInches, z: 0 },
           rotation_degrees: normalizeRotationDeg(droppedTool.rotation),
           height_diagonal_inches: computeLengthInches(droppedTool, tool),
-          depth_inches: await computeDepthInches(droppedTool, tool),
-          cut_depth_inches: await computeDepthInches(droppedTool, tool),
+          depth_inches: droppedTool.depth,
+          cut_depth_inches: droppedTool.depth,
           flip_horizontal: droppedTool.flipHorizontal || false,
           flip_vertical: droppedTool.flipVertical || false,
           opacity: droppedTool.opacity || 100,
@@ -972,10 +1060,16 @@ const { addToCart, cartItems } = useCart();
         output_filename: `${layoutName.replace(/\s+/g, "_")}-layout.dxf`,
         upload_to_s3: true,
       };
-      const response = await fetch("/api/dxf-proxy", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(requestData) });
+      const response = await fetch("/api/dxf-proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestData),
+      });
       if (!response.ok) return null;
       const data = await response.json().catch(() => null);
-      return (data && (data.s3_url || data.s3Url)) ? (data.s3_url || data.s3Url) : null;
+      return data && (data.s3_url || data.s3Url)
+        ? data.s3_url || data.s3Url
+        : null;
     } catch {
       return null;
     }
@@ -992,12 +1086,15 @@ const { addToCart, cartItems } = useCart();
     // Canvas Information
     content += `CANVAS INFORMATION\n`;
     content += `${"-".repeat(20)}\n`;
-    content += `Width: ${unit === "mm" ? mmToInches(canvasWidth).toFixed(2) : canvasWidth
-      } inches\n`;
-    content += `Height: ${unit === "mm" ? mmToInches(canvasHeight).toFixed(2) : canvasHeight
-      } inches\n`;
-    content += `Thickness: ${unit === "mm" ? mmToInches(thickness).toFixed(2) : thickness
-      } inches\n`;
+    content += `Width: ${
+      unit === "mm" ? mmToInches(canvasWidth).toFixed(2) : canvasWidth
+    } inches\n`;
+    content += `Height: ${
+      unit === "mm" ? mmToInches(canvasHeight).toFixed(2) : canvasHeight
+    } inches\n`;
+    content += `Thickness: ${
+      unit === "mm" ? mmToInches(thickness).toFixed(2) : thickness
+    } inches\n`;
     content += `Has Overlaps: ${hasOverlaps ? "Yes" : "No"}\n`;
     content += `Total Tools: ${droppedTools.length}\n\n`;
 
@@ -1137,7 +1234,8 @@ const { addToCart, cartItems } = useCart();
     } catch (error) {
       console.error("Error uploading to DigitalOcean:", error);
       throw new Error(
-        `Upload failed: ${error instanceof Error ? error.message : "Unknown error"
+        `Upload failed: ${
+          error instanceof Error ? error.message : "Unknown error"
         }`
       );
     }
@@ -1173,7 +1271,7 @@ const { addToCart, cartItems } = useCart();
         backgroundColor: "#ffffff",
         cacheBust: true,
         pixelRatio: 1,
-        quality: 0.9
+        quality: 0.9,
       });
 
       // Convert base64 to Blob
@@ -1185,7 +1283,8 @@ const { addToCart, cartItems } = useCart();
     } catch (error) {
       console.error("Error capturing canvas image:", error);
       throw new Error(
-        `Failed to capture image: ${error instanceof Error ? error.message : "Unknown error"
+        `Failed to capture image: ${
+          error instanceof Error ? error.message : "Unknown error"
         }`
       );
     } finally {
@@ -1203,7 +1302,9 @@ const { addToCart, cartItems } = useCart();
     }
     // Block save when layout is invalid
     if (hasOverlaps) {
-      setSaveError("Cannot save layout with overlapping tools. Please fix overlaps first.");
+      setSaveError(
+        "Cannot save layout with overlapping tools. Please fix overlaps first."
+      );
       return;
     }
 
@@ -1227,8 +1328,6 @@ const { addToCart, cartItems } = useCart();
           console.error("Error parsing session data:", error);
         }
       }
-
-
 
       // Step 1: Capture and upload image
       try {
@@ -1259,14 +1358,16 @@ const { addToCart, cartItems } = useCart();
 
       // Step 2: Save layout data with image URL
       const nameToSave = await resolveLayoutName(additionalData);
-      const canvasUnit = (additionalData.units ?? unit) as 'mm' | 'inches';
+      const canvasUnit = (additionalData.units ?? unit) as "mm" | "inches";
       const layoutData = {
         name: nameToSave,
         canvas: {
           width: additionalData.canvasWidth ?? canvasWidth,
           height: additionalData.canvasHeight ?? canvasHeight,
           unit: canvasUnit,
-          thickness: normalizeThicknessInches((additionalData.thickness ?? thickness) as number),
+          thickness: normalizeThicknessInches(
+            (additionalData.thickness ?? thickness) as number
+          ),
           materialColor: additionalData.materialColor || undefined,
         },
         tools: droppedTools.map((tool) => {
@@ -1284,11 +1385,11 @@ const { addToCart, cartItems } = useCart();
               const widthInches =
                 tool.unit === "mm"
                   ? mmToInches(tool.width || 0)
-                  : (tool.width || 0);
+                  : tool.width || 0;
               const heightInches =
                 tool.unit === "mm"
                   ? mmToInches(tool.length || 0)
-                  : (tool.length || 0);
+                  : tool.length || 0;
 
               shapeType = "rectangle";
               shapeData = {
@@ -1451,7 +1552,7 @@ const { addToCart, cartItems } = useCart();
       try {
         sessionStorage.setItem("editingLayoutId", savedLayoutId);
         sessionStorage.setItem("editingLayoutName", nameToSave);
-      } catch { }
+      } catch {}
 
       setSaveError(null);
       setSaveSuccess(true);
@@ -1464,7 +1565,7 @@ const { addToCart, cartItems } = useCart();
       if (!options?.skipRedirect) {
         try {
           sessionStorage.removeItem("layoutForm");
-        } catch { }
+        } catch {}
       }
 
       // Return for callers like Add to Cart
@@ -1482,7 +1583,7 @@ const { addToCart, cartItems } = useCart();
   const handleExit = () => {
     try {
       sessionStorage.removeItem("layoutForm");
-    } catch { }
+    } catch {}
     window.location.href = "/workspace";
   };
 
@@ -1509,7 +1610,9 @@ const { addToCart, cartItems } = useCart();
               try {
                 const s = sessionStorage.getItem("layoutForm");
                 const p = s ? JSON.parse(s) : null;
-                return typeof (p && p.materialColor) === "string" && p.materialColor;
+                return (
+                  typeof (p && p.materialColor) === "string" && p.materialColor
+                );
               } catch {
                 return "";
               }
@@ -1542,12 +1645,13 @@ const { addToCart, cartItems } = useCart();
             <div className="flex items-center space-x-2">
               <>
                 <button
-                  className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors ${isSaving || hasOverlaps || droppedTools.length === 0
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : saveSuccess
+                  className={`flex items-center space-x-2 px-5 py-4 rounded-2xl text-sm font-medium transition-colors ${
+                    isSaving || hasOverlaps || droppedTools.length === 0
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : saveSuccess
                       ? "bg-green-500 hover:bg-green-600"
                       : "bg-primary"
-                    } text-white`}
+                  } text-white`}
                   onClick={() => handleSaveAndExit()}
                   disabled={
                     isSaving || hasOverlaps || droppedTools.length === 0
@@ -1585,8 +1689,15 @@ const { addToCart, cartItems } = useCart();
           {!readOnly && (
             <div className="relative" ref={dropdownRef}>
               <button
-                className={`px-4 py-4 rounded-2xl transition-colors ${hasOverlaps || droppedTools.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-primary hover:bg-primary/90'}`}
-                onClick={() => { if (hasOverlaps || droppedTools.length === 0) return; setShowDropdown(!showDropdown); }}
+                className={`px-4 py-4 rounded-2xl transition-colors ${
+                  hasOverlaps || droppedTools.length === 0
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-primary hover:bg-primary/90"
+                }`}
+                onClick={() => {
+                  if (hasOverlaps || droppedTools.length === 0) return;
+                  setShowDropdown(!showDropdown);
+                }}
                 disabled={hasOverlaps || droppedTools.length === 0}
               >
                 <MoreHorizontal className="w-5 h-5 text-white" />
@@ -1604,10 +1715,11 @@ const { addToCart, cartItems } = useCart();
                         role="button"
                         tabIndex={0}
                         aria-disabled={option.disabled}
-                        className={`w-full px-4 py-3 text-left text-sm flex items-center space-x-3 transition-colors ${option.disabled
-                          ? "text-gray-400 cursor-not-allowed"
-                          : "text-gray-700 hover:bg-gray-50 cursor-pointer"
-                          }`}
+                        className={`w-full px-4 py-3 text-left text-sm flex items-center space-x-3 transition-colors ${
+                          option.disabled
+                            ? "text-gray-400 cursor-not-allowed"
+                            : "text-gray-700 hover:bg-gray-50 cursor-pointer"
+                        }`}
                         onClick={option.disabled ? undefined : option.action}
                       >
                         {option.loading ? (
@@ -1617,31 +1729,37 @@ const { addToCart, cartItems } = useCart();
                         )}
                         <span>
                           {option.loading
-                            ? (option.action === handleAddToCart ? "Adding to cart..." : "Downloading DXF...")
+                            ? option.action === handleAddToCart
+                              ? "Adding to cart..."
+                              : "Downloading DXF..."
                             : option.label}
                         </span>
-                        {option.action === handleAddToCart && option.disabled && floorViolationCount > 0 && (
-                          <div className="relative flex-shrink-0">
-                            <button
-                              type="button"
-                              className="ml-8 text-gray-400 hover:text-gray-600"
-                              onClick={(e) => { e.stopPropagation(); setIsCartInfoOpen(!isCartInfoOpen); }}
-                            >
-                              <Info className="w-4 h-4" />
-                            </button>
+                        {option.action === handleAddToCart &&
+                          option.disabled &&
+                          floorViolationCount > 0 && (
+                            <div className="relative flex-shrink-0">
+                              <button
+                                type="button"
+                                className="ml-8 text-gray-400 hover:text-gray-600"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setIsCartInfoOpen(!isCartInfoOpen);
+                                }}
+                              >
+                                <Info className="w-4 h-4" />
+                              </button>
 
-                            {isCartInfoOpen && (
-                              <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-md shadow-lg p-3 w-80 z-50">
-                                <p className="text-xs text-gray-700">
-                                  {floorViolationCount === 1
-                                    ? "This layout can’t be added to your cart because 1 tool pocket exceeds the allowable depth for this material thickness. Each pocket must maintain at least a 0.25-inch floor (e.g., with 1-inch material, the deepest pocket allowed is 0.75 inches)."
-                                    : `This layout can’t be added to your cart because ${floorViolationCount} tool pockets exceed the allowable depth for this material thickness. Each pocket must maintain at least a 0.25-inch floor (e.g., with 1-inch material, the deepest pocket allowed is 0.75 inches).`}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-
-                        )}
+                              {isCartInfoOpen && (
+                                <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-md shadow-lg p-3 w-80 z-50">
+                                  <p className="text-xs text-gray-700">
+                                    {floorViolationCount === 1
+                                      ? "This layout can’t be added to your cart because 1 tool pocket exceeds the allowable depth for this material thickness. Each pocket must maintain at least a 0.25-inch floor (e.g., with 1-inch material, the deepest pocket allowed is 0.75 inches)."
+                                      : `This layout can’t be added to your cart because ${floorViolationCount} tool pockets exceed the allowable depth for this material thickness. Each pocket must maintain at least a 0.25-inch floor (e.g., with 1-inch material, the deepest pocket allowed is 0.75 inches).`}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         {option.disabled &&
                           !option.loading &&
                           droppedTools.length === 0 && (
