@@ -59,6 +59,7 @@ interface DatabaseTool {
     outlinesImg: string;
     length: number;
     depth: number;
+    unit?: 'mm' | 'inches';
     SKUorPartNumber: string;
     dxfLink: string;
     scaleFactor: number;
@@ -272,6 +273,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             outlinesImg,
             length,
             depth,
+            unit: toolUnit,
             SKUorPartNumber,
             dxfLink,
             scaleFactor,
@@ -291,6 +293,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             contour_image_url: cvResponse?.contour_image_url,
             length,
             depth,
+            unit: toolUnit,
             SKUorPartNumber,
             dxfLink,
             scaleFactor,
@@ -448,7 +451,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 toolBrand: extractedData.toolBrand,
                 toolType: extractedData.toolType,
                 image: extractedData.contour_image_url || extractedData.imageUrl,
-                unit: (typeof extractedData.length === 'number' && extractedData.length > 45) ? 'mm' : 'inches',
+                unit: extractedData.unit ?? ((typeof extractedData.length === 'number' && extractedData.length > 45) ? 'mm' : 'inches'),
                 metadata: {
                     userEmail: extractedData.userEmail,
                     toolBrand: extractedData.toolBrand,
