@@ -21,6 +21,7 @@ export interface Tool {
     contour_image_url?: string;
     length?: number;
     gapInches?: number;
+    unit?: 'mm' | 'inches';
     dxfLink?: string;
     scaleFactor?: number;
     createdAt?: string;

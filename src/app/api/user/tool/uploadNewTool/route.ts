@@ -58,11 +58,20 @@ interface ToolUpdateData {
 // ===============================
 // UTILS
 // ===============================
-function convertToInches(value: number, unit: string): number {
-  const normalizedUnit = unit.toLowerCase().trim();
-  if (normalizedUnit === "mm" || normalizedUnit === "millimeters") {
-    return value * MM_TO_INCHES;
-  }
+type NormalizedUnit = "mm" | "inches";
+
+function normalizeUnit(unit: unknown): NormalizedUnit | null {
+  if (typeof unit !== "string") return null;
+  const u = unit.toLowerCase().trim();
+
+  if (u === "mm" || u === "millimeter" || u === "millimeters") return "mm";
+  if (u === "in" || u === "inch" || u === "inches") return "inches";
+
+  return null;
+}
+
+function convertToInches(value: number, unit: NormalizedUnit): number {
+  if (unit === "mm") return value * MM_TO_INCHES;
   return value;
 }
 
@@ -216,9 +225,16 @@ export async function POST(req: Request) {
       );
     }
 
-    const unitValue = unit ? String(unit) : "inches";
-    const lengthInches = convertToInches(lengthNum, unitValue);
-    const depthInches = convertToInches(depthNum, unitValue);
+    const normalizedUnit = normalizeUnit(unit);
+    if (!normalizedUnit) {
+      return NextResponse.json(
+        { error: "Invalid unit. Expected 'mm' or 'inches'." },
+        { status: 400 }
+      );
+    }
+
+    const lengthInches = convertToInches(lengthNum, normalizedUnit);
+    const depthInches = convertToInches(depthNum, normalizedUnit);
 
     console.log("Processing tool upload:", {
       email: decoded.email,
@@ -229,7 +245,7 @@ export async function POST(req: Request) {
       toolBrand: String(toolBrand),
       toolType: String(toolType),
       SKUorPartNumber: String(SKUorPartNumber),
-      unit: unitValue,
+      unit: normalizedUnit,
       imageSize: imageFile.size,
     });
 
@@ -238,7 +254,7 @@ export async function POST(req: Request) {
       userEmail: decoded.email,
       length: lengthNum,
       depth: depthNum,
-      unit: unitValue.toLowerCase().trim(),
+      unit: normalizedUnit,
       toolBrand: String(toolBrand),
       toolType: String(toolType),
       SKUorPartNumber: String(SKUorPartNumber),
