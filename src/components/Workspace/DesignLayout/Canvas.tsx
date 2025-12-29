@@ -447,10 +447,12 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             const blurAmount = (tool.smooth || 0) / 10;
 
             // Maintain a physical 0.25 inch gap between outer and inner vectors
-            const GAP_INCHES =
+            const gapInchesRaw =
               typeof tool.metadata?.gapInches === "number"
                 ? tool.metadata.gapInches
-                : 0.5;
+                : undefined;
+            const GAP_INCHES =
+              gapInchesRaw === 0.5 ? 0.25 : (gapInchesRaw ?? 0.25);
             const gapPx =
               tool.unit === "mm"
                 ? mmToPx(GAP_INCHES * 25.4)

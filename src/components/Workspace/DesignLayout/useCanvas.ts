@@ -465,8 +465,10 @@ export const useCanvas = ({
     const a1 = getOverlapTransformedAABB(tool1);
     const a2 = getOverlapTransformedAABB(tool2);
 
-    const gapInches1 = typeof tool1.metadata?.gapInches === 'number' ? tool1.metadata.gapInches : 0.5;
-    const gapInches2 = typeof tool2.metadata?.gapInches === 'number' ? tool2.metadata.gapInches : 0.5;
+    const gapInchesRaw1 = typeof tool1.metadata?.gapInches === 'number' ? tool1.metadata.gapInches : undefined;
+    const gapInchesRaw2 = typeof tool2.metadata?.gapInches === 'number' ? tool2.metadata.gapInches : undefined;
+    const gapInches1 = gapInchesRaw1 === 0.5 ? 0.25 : (gapInchesRaw1 ?? 0.25);
+    const gapInches2 = gapInchesRaw2 === 0.5 ? 0.25 : (gapInchesRaw2 ?? 0.25);
     const gapPx1 = tool1.toolBrand === 'SHAPE' ? (tool1.unit === 'mm' ? mmToPx(gapInches1 * 25.4) : inchesToPx(gapInches1)) : 0;
     const gapPx2 = tool2.toolBrand === 'SHAPE' ? (tool2.unit === 'mm' ? mmToPx(gapInches2 * 25.4) : inchesToPx(gapInches2)) : 0;
 
@@ -495,8 +497,10 @@ export const useCanvas = ({
     const a1 = getOverlapTransformedAABB(tool1);
     const a2 = getOverlapTransformedAABB(tool2);
 
-    const gapInches1 = typeof tool1.metadata?.gapInches === 'number' ? tool1.metadata.gapInches : 0.5;
-    const gapInches2 = typeof tool2.metadata?.gapInches === 'number' ? tool2.metadata.gapInches : 0.5;
+    const gapInchesRaw1 = typeof tool1.metadata?.gapInches === 'number' ? tool1.metadata.gapInches : undefined;
+    const gapInchesRaw2 = typeof tool2.metadata?.gapInches === 'number' ? tool2.metadata.gapInches : undefined;
+    const gapInches1 = gapInchesRaw1 === 0.5 ? 0.25 : (gapInchesRaw1 ?? 0.25);
+    const gapInches2 = gapInchesRaw2 === 0.5 ? 0.25 : (gapInchesRaw2 ?? 0.25);
     const gapPx1 = tool1.toolBrand === 'SHAPE' ? (tool1.unit === 'mm' ? mmToPx(gapInches1 * 25.4) : inchesToPx(gapInches1)) : 0;
     const gapPx2 = tool2.toolBrand === 'SHAPE' ? (tool2.unit === 'mm' ? mmToPx(gapInches2 * 25.4) : inchesToPx(gapInches2)) : 0;
 
@@ -551,8 +555,10 @@ export const useCanvas = ({
     // Compute bounding overlap region using rotated AABBs (expanded by shape gap)
     const a1o = getOverlapTransformedAABB(tool1);
     const a2o = getOverlapTransformedAABB(tool2);
-    const gapInches1 = typeof tool1.metadata?.gapInches === 'number' ? tool1.metadata.gapInches : 0.5;
-    const gapInches2 = typeof tool2.metadata?.gapInches === 'number' ? tool2.metadata.gapInches : 0.5;
+    const gapInchesRaw1 = typeof tool1.metadata?.gapInches === 'number' ? tool1.metadata.gapInches : undefined;
+    const gapInchesRaw2 = typeof tool2.metadata?.gapInches === 'number' ? tool2.metadata.gapInches : undefined;
+    const gapInches1 = gapInchesRaw1 === 0.5 ? 0.25 : (gapInchesRaw1 ?? 0.25);
+    const gapInches2 = gapInchesRaw2 === 0.5 ? 0.25 : (gapInchesRaw2 ?? 0.25);
     const gapPx1 = tool1.toolBrand === 'SHAPE' ? (tool1.unit === 'mm' ? mmToPx(gapInches1 * 25.4) : inchesToPx(gapInches1)) : 0;
     const gapPx2 = tool2.toolBrand === 'SHAPE' ? (tool2.unit === 'mm' ? mmToPx(gapInches2 * 25.4) : inchesToPx(gapInches2)) : 0;
     const a1 = { left: a1o.left - gapPx1, top: a1o.top - gapPx1, right: a1o.right + gapPx1, bottom: a1o.bottom + gapPx1 };
@@ -589,7 +595,8 @@ export const useCanvas = ({
 
       const isShape = tool.toolBrand === 'SHAPE' && !tool.metadata?.isFingerCut;
       if (isShape) {
-        const gapInches = typeof tool.metadata?.gapInches === 'number' ? tool.metadata.gapInches : 0.5;
+        const gapInchesRaw = typeof tool.metadata?.gapInches === 'number' ? tool.metadata.gapInches : undefined;
+        const gapInches = gapInchesRaw === 0.5 ? 0.25 : (gapInchesRaw ?? 0.25);
         const gapPx = tool.unit === 'mm' ? mmToPx(gapInches * 25.4) : inchesToPx(gapInches);
         ctx.globalAlpha = 1;
         ctx.fillStyle = '#000';
@@ -742,7 +749,8 @@ export const useCanvas = ({
         }
       } else {
         const a0 = getOverlapTransformedAABB(tool);
-        const gapInches = typeof tool.metadata?.gapInches === 'number' ? tool.metadata.gapInches : 0.5;
+        const gapInchesRaw = typeof tool.metadata?.gapInches === 'number' ? tool.metadata.gapInches : undefined;
+        const gapInches = gapInchesRaw === 0.5 ? 0.25 : (gapInchesRaw ?? 0.25);
         const gapPxShape = tool.toolBrand === 'SHAPE' && !tool.metadata?.isFingerCut ? (unit === 'mm' ? mmToPx(gapInches * 25.4) : inchesToPx(gapInches)) : 0;
         const a = { left: a0.left - gapPxShape, top: a0.top - gapPxShape, right: a0.right + gapPxShape, bottom: a0.bottom + gapPxShape };
         if (
