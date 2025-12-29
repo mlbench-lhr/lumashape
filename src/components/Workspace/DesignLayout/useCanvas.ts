@@ -360,7 +360,7 @@ export const useCanvas = ({
   const constrainToCanvas = useCallback((tool: DroppedTool, x: number, y: number) => {
     const { toolWidth: w, toolHeight: h } = getToolDimensions(tool);
     const { width: canvasWidthPx, height: canvasHeightPx } = getCanvasBounds();
-    const GAP_INCHES = 0.5;
+    const GAP_INCHES = 0.25;
     const gapPx = unit === 'mm' ? mmToPx(GAP_INCHES * 25.4) : inchesToPx(GAP_INCHES);
     const innerWidth = Math.max(0, canvasWidthPx - 2 * gapPx);
     const innerHeight = Math.max(0, canvasHeightPx - 2 * gapPx);
@@ -667,7 +667,7 @@ export const useCanvas = ({
   // Detect tools touching gray boundary or outside inner canvas
   const detectOutOfBounds = useCallback((): string[] => {
     const { width: canvasWidthPx, height: canvasHeightPx } = getCanvasBounds();
-    const GAP_INCHES = 0.5;
+    const GAP_INCHES = 0.25;
     const gapPx = unit === 'mm' ? mmToPx(GAP_INCHES * 25.4) : inchesToPx(GAP_INCHES);
     const innerLeft = gapPx;
     const innerTop = gapPx;
