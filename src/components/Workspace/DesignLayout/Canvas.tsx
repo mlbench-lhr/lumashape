@@ -174,8 +174,11 @@ const Canvas: React.FC<CanvasProps> = (props) => {
       const cx = tool.x + toolWidth / 2;
       const cy = tool.y + toolHeight / 2;
 
-      const DPI = 96;
-      const gapPx = (unit === "mm" ? 0.5 * 25.4 : 0.5) * DPI;
+      const inchesToPx = (inches: number) => inches * 96;
+      const mmToPx = (mm: number) => (mm / 25.4) * 96;
+
+      const GAP_INCHES = 0.25;
+      const gapPx = unit === "mm" ? mmToPx(GAP_INCHES * 25.4) : inchesToPx(GAP_INCHES);
 
       const left = cx - rotW / 2;
       const top = cy - rotH / 2;
@@ -348,7 +351,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
             boxShadow: (() => {
               const inchesToPx = (inches: number) => inches * 96;
               const mmToPx = (mm: number) => (mm / 25.4) * 96;
-              const GAP_INCHES = 0.5;
+              const GAP_INCHES = 0.25;
               const gapPx =
                 unit === "mm"
                   ? mmToPx(GAP_INCHES * 25.4)
