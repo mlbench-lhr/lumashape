@@ -4,17 +4,44 @@ import TrendingTab from "./TrendingTab";
 import PublishedToolsTab from "./PublishedToolsTab";
 import PublishedLayoutsTab from "./PublishedLayoutsTab";
 
+type RelatedToolFilter = {
+  toolId: string;
+  toolBrand: string;
+  toolType: string;
+  SKUorPartNumber: string;
+};
+
 const Explore = () => {
   const [activeTab, setActiveTab] = useState("trending");
+  const [relatedTool, setRelatedTool] = useState<RelatedToolFilter | undefined>(undefined);
 
   const renderTabContent = () => {
     switch (activeTab) {
       case "trending":
-        return <TrendingTab />;
+        return (
+          <TrendingTab
+            onExploreRelatedLayouts={(tool) => {
+              setRelatedTool(tool);
+              setActiveTab("publishedlayouts");
+            }}
+          />
+        );
       case "publishedtools":
-        return <PublishedToolsTab />;
+        return (
+          <PublishedToolsTab
+            onExploreRelatedLayouts={(tool) => {
+              setRelatedTool(tool);
+              setActiveTab("publishedlayouts");
+            }}
+          />
+        );
       case "publishedlayouts":
-        return <PublishedLayoutsTab />;
+        return (
+          <PublishedLayoutsTab
+            relatedTool={relatedTool}
+            onClearRelatedTool={() => setRelatedTool(undefined)}
+          />
+        );
       default:
         return null;
     }
@@ -27,9 +54,10 @@ const Explore = () => {
         {["Trending", "Published Tools", "Published Layouts"].map((tab) => (
           <button
             key={tab}
-            onClick={() =>
-              setActiveTab(tab.toLowerCase().replace(/\s/g, ""))
-            }
+            onClick={() => {
+              setRelatedTool(undefined);
+              setActiveTab(tab.toLowerCase().replace(/\s/g, ""));
+            }}
             className={`flex-shrink-0 px-2 sm:px-3 pb-1 
               font-medium transition-colors 
               text-sm sm:text-base md:text-lg lg:text-xl 

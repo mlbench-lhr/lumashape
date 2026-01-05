@@ -44,7 +44,18 @@ interface ToolWithInteraction {
     createdBy?: { username?: string; email?: string };
 }
 
-const PublishedToolsTab = () => {
+type ExploreRelatedLayoutsPayload = {
+    toolId: string;
+    toolBrand: string;
+    toolType: string;
+    SKUorPartNumber: string;
+};
+
+const PublishedToolsTab = ({
+    onExploreRelatedLayouts,
+}: {
+    onExploreRelatedLayouts: (tool: ExploreRelatedLayoutsPayload) => void;
+}) => {
     const [publishedTools, setPublishedTools] = useState<ToolWithInteraction[]>([]);
     const [loading, setLoading] = useState(false);
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
@@ -199,8 +210,12 @@ const PublishedToolsTab = () => {
         if (action === "Add") {
             handleAddToInventory(tool)
         } else if (action === "Explore") {
-            console.log("Explore related layouts for:", tool);
-            // TODO: navigate to layouts page
+            onExploreRelatedLayouts({
+                toolId: tool._id,
+                toolBrand: tool.toolBrand,
+                toolType: tool.toolType,
+                SKUorPartNumber: tool.SKUorPartNumber,
+            });
         }
         setOpenDropdown(null); // close dropdown after action
     };
