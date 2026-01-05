@@ -11,6 +11,13 @@ interface UserInteraction {
     hasDownloaded: boolean;
 }
 
+type RelatedToolFilter = {
+    toolId: string;
+    toolBrand: string;
+    toolType: string;
+    SKUorPartNumber: string;
+};
+
 interface LayoutWithInteraction {
     _id: string;
     name: string;
@@ -42,16 +49,25 @@ interface LayoutWithInteraction {
     };
     tools?: Array<{
         id: string;
+        originalId?: string;
         name: string;
         thickness?: number;
         toolBrand?: string;
-        metadata?: {
+        metadata?: Record<string, unknown> & {
             toolBrand?: string;
+            toolType?: string;
+            SKUorPartNumber?: string;
+            originalId?: string;
         };
     }>;
 }
 
-const PublishedLayoutsTab = () => {
+type PublishedLayoutsTabProps = {
+    relatedTool?: RelatedToolFilter;
+    onClearRelatedTool?: () => void;
+};
+
+const PublishedLayoutsTab = ({ relatedTool, onClearRelatedTool }: PublishedLayoutsTabProps) => {
     const [publishedLayouts, setPublishedLayouts] = useState<LayoutWithInteraction[]>([]);
     const [filteredLayouts, setFilteredLayouts] = useState<LayoutWithInteraction[]>([]);
     const [loading, setLoading] = useState(false);
@@ -197,9 +213,23 @@ const PublishedLayoutsTab = () => {
     }, []);
 
     useEffect(() => {
+        if (!relatedTool) return;
+        setSearchTerm("");
+        setSelectedBrand("");
+        setSelectedContainerType("");
+        setSelectedThickness("");
+        setSelectedUnit("");
+        setSelectedLength("");
+        setSelectedWidth("");
+        setSelectedToolType("");
+        setSelectedToolBrand("");
+        setOpenDropdown(null);
+    }, [relatedTool?.toolId]);
+
+    useEffect(() => {
         applyFilters();
         extractDynamicOptions();
-    }, [publishedLayouts, searchTerm, selectedBrand, selectedContainerType,
+    }, [publishedLayouts, relatedTool?.toolId, searchTerm, selectedBrand, selectedContainerType,
         selectedThickness, selectedUnit, selectedLength, selectedWidth,
         selectedToolType, selectedToolBrand]);
 
@@ -281,6 +311,44 @@ const PublishedLayoutsTab = () => {
 
     const applyFilters = () => {
         let filtered = [...publishedLayouts];
+
+        if (relatedTool) {
+            const normalize = (value: unknown) =>
+                typeof value === "string" ? value.trim().toLowerCase() : "";
+
+            const targetId = relatedTool.toolId;
+            const targetBrand = normalize(relatedTool.toolBrand);
+            const targetType = normalize(relatedTool.toolType);
+            const targetSku = normalize(relatedTool.SKUorPartNumber);
+
+            filtered = filtered.filter((layout) =>
+                (layout.tools ?? []).some((tool) => {
+                    const meta = tool.metadata;
+
+                    const idMatch =
+                        tool.originalId === targetId ||
+                        tool.id === targetId ||
+                        normalize(meta?.originalId) === normalize(targetId);
+
+                    const layoutSku = normalize(meta?.SKUorPartNumber);
+                    const layoutBrand =
+                        normalize(tool.toolBrand) || normalize(meta?.toolBrand);
+                    const layoutType =
+                        normalize(meta?.toolType) || normalize(tool.name);
+
+                    const brandTypeMatch =
+                        (!targetBrand || layoutBrand === targetBrand) &&
+                        (!targetType || layoutType === targetType);
+
+                    if (targetSku) {
+                        return idMatch ||
+                            (layoutSku ? layoutSku === targetSku : brandTypeMatch);
+                    }
+
+                    return idMatch || brandTypeMatch;
+                })
+            );
+        }
 
         // Search filter
         if (searchTerm.trim()) {
@@ -508,6 +576,7 @@ const PublishedLayoutsTab = () => {
     };
 
     const clearFilters = () => {
+        onClearRelatedTool?.();
         setSearchTerm("");
         setSelectedBrand("");
         setSelectedContainerType("");
@@ -519,9 +588,18 @@ const PublishedLayoutsTab = () => {
         setSelectedToolBrand("");
     };
 
-    const hasActiveFilters = searchTerm || selectedBrand || selectedContainerType ||
-        selectedThickness || selectedUnit || selectedLength || selectedWidth ||
-        selectedToolType || selectedToolBrand;
+    const hasActiveFilters = !!(
+        relatedTool ||
+        searchTerm ||
+        selectedBrand ||
+        selectedContainerType ||
+        selectedThickness ||
+        selectedUnit ||
+        selectedLength ||
+        selectedWidth ||
+        selectedToolType ||
+        selectedToolBrand
+    );
 
     const handleLengthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -680,7 +758,7 @@ const PublishedLayoutsTab = () => {
                     </div>
 
                     {/* Clear Filters */}
-                    {(searchTerm || selectedToolType || selectedToolBrand || selectedLength || selectedWidth || selectedUnit || selectedThickness) && (
+                    {hasActiveFilters && (
                         <button
                             onClick={clearFilters}
                             className="px-3 py-3 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50 focus:outline-none"

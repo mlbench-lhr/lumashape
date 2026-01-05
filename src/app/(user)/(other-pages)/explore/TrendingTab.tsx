@@ -78,7 +78,18 @@ interface TrendingLayout {
     };
 }
 
-const TrendingTab = () => {
+type ExploreRelatedLayoutsPayload = {
+    toolId: string;
+    toolBrand: string;
+    toolType: string;
+    SKUorPartNumber: string;
+};
+
+const TrendingTab = ({
+    onExploreRelatedLayouts,
+}: {
+    onExploreRelatedLayouts: (tool: ExploreRelatedLayoutsPayload) => void;
+}) => {
     const [trendingTools, setTrendingTools] = useState<TrendingTool[]>([]);
     const [trendingLayouts, setTrendingLayouts] = useState<TrendingLayout[]>([]);
     const [loading, setLoading] = useState(false);
@@ -399,7 +410,12 @@ const TrendingTab = () => {
                 handleAddToInventory(tool);
             }
         } else if (action === "Explore") {
-            console.log("Explore related layouts for:", tool);
+            onExploreRelatedLayouts({
+                toolId: tool._id,
+                toolBrand: tool.toolBrand,
+                toolType: tool.toolType,
+                SKUorPartNumber: tool.SKUorPartNumber,
+            });
         }
         setOpenDropdown(null);
     };
