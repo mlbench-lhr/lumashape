@@ -896,57 +896,64 @@ export const useCanvas = ({
     const cx = tool.x + toolWidth / 2;
     const cy = tool.y + toolHeight / 2;
 
-    // Undo rotation to get local coords inside the unrotated box
     const vx = pos.x - cx;
     const vy = pos.y - cy;
     const ux = Math.cos(-angleRad) * vx - Math.sin(-angleRad) * vy;
     const uy = Math.sin(-angleRad) * vx + Math.cos(-angleRad) * vy;
-    const localX = ux + toolWidth / 2;
-    const localY = uy + toolHeight / 2;
 
     const natW = imgEl.naturalWidth || tool.metadata?.naturalWidth || 0;
     const natH = imgEl.naturalHeight || tool.metadata?.naturalHeight || 0;
-    if (!natW || !natH) return true;
+    if (!natW || !natH) return false;
 
-    // object-fit: contain math
-    const scale = Math.min(toolWidth / natW, toolHeight / natH);
+    const imagePadPx = 96;
+    const padHalf = imagePadPx / 2;
+    const boxW = toolWidth + imagePadPx;
+    const boxH = toolHeight + imagePadPx;
+
+    let localX = ux + toolWidth / 2;
+    let localY = uy + toolHeight / 2;
+
+    let boxX = localX + padHalf;
+    let boxY = localY + padHalf;
+
+    if (tool.flipHorizontal) boxX = boxW - boxX;
+    if (tool.flipVertical) boxY = boxH - boxY;
+
+    const scale = Math.min(boxW / natW, boxH / natH);
     const contentW = natW * scale;
     const contentH = natH * scale;
-    const offsetX = (toolWidth - contentW) / 2;
-    const offsetY = (toolHeight - contentH) / 2;
+    const offsetX = (boxW - contentW) / 2;
+    const offsetY = (boxH - contentH) / 2;
 
-    // Click landed in letterbox area → not a hit
-    if (localX < offsetX || localX > offsetX + contentW || localY < offsetY || localY > offsetY + contentH) {
+    if (boxX < offsetX || boxX > offsetX + contentW || boxY < offsetY || boxY > offsetY + contentH) {
       return false;
     }
 
-    const px = Math.floor((localX - offsetX) / scale);
-    const py = Math.floor((localY - offsetY) / scale);
+    const px = Math.floor((boxX - offsetX) / scale);
+    const py = Math.floor((boxY - offsetY) / scale);
 
-    // Offscreen canvas per image
     let offscreen = imageCanvasCacheRef.current.get(imgEl.src);
     if (!offscreen) {
       offscreen = document.createElement('canvas');
       offscreen.width = natW;
       offscreen.height = natH;
       const ctx = offscreen.getContext('2d', { willReadFrequently: true });
-      if (!ctx) return true;
+      if (!ctx) return false;
       try {
         ctx.drawImage(imgEl, 0, 0);
         imageCanvasCacheRef.current.set(imgEl.src, offscreen);
       } catch {
-        // Cross-origin taint fallback: treat as hit to avoid blocking
-        return true;
+        return false;
       }
     }
 
     const ctx = offscreen.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return true;
+    if (!ctx) return false;
     try {
       const alpha = ctx.getImageData(px, py, 1, 1).data[3];
-      return alpha > 10; // threshold; ignore almost-transparent pixels
+      return alpha > 10;
     } catch {
-      return true;
+      return false;
     }
   }, [getToolDimensions, screenToCanvas]);
 
@@ -1249,69 +1256,117 @@ export const useCanvas = ({
   }, [isResizing, handleResizeEnd]);
 
   const handleToolMouseDown = useCallback((e: React.MouseEvent, toolId: string) => {
-    // Allow finger cut placement to bubble up to canvas
     if (activeTool === 'fingercut') {
       return;
     }
 
-    // If clicking an image, only accept if an opaque pixel was hit
-    const clickedTool = droppedTools.find(t => t.id === toolId);
     const target = e.target as HTMLElement;
-    if (clickedTool && target && target.tagName === 'IMG') {
-      const isOpaqueHit = isHitOnImagePixel(e, clickedTool);
-      if (!isOpaqueHit) {
-        // Do not block the event; let it bubble to the canvas for selection/finger-cut
-        return;
+
+    let effectiveToolId = toolId;
+    let effectiveTool = droppedTools.find(t => t.id === effectiveToolId);
+
+    const isFingerCutTool = (t: DroppedTool) =>
+      t.id.startsWith('cylinder_') || t.name === 'Finger Cut' || t.metadata?.isFingerCut;
+
+    const getUnderlyingToolId = () => {
+      const currentTarget = e.currentTarget as HTMLElement | null;
+      const toolContainer = currentTarget?.closest('[data-tool-id]') as HTMLElement | null;
+      if (!toolContainer) return null;
+
+      const prevPointerEvents = toolContainer.style.pointerEvents;
+      try {
+        toolContainer.style.pointerEvents = 'none';
+        const underEl = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+        const underToolEl = underEl?.closest('[data-tool-id]') as HTMLElement | null;
+        const underId = underToolEl?.dataset?.toolId || null;
+        if (!underId || underId === effectiveToolId) return null;
+        return underId;
+      } finally {
+        toolContainer.style.pointerEvents = prevPointerEvents;
       }
+    };
+
+    let isHit = true;
+
+    if (effectiveTool) {
+      if (target?.tagName === 'IMG') {
+        isHit = isHitOnImagePixel(e, effectiveTool);
+      } else if (isFingerCutTool(effectiveTool)) {
+        const { toolWidth, toolHeight } = getToolDimensions(effectiveTool);
+        const pos = screenToCanvas(e.clientX, e.clientY);
+        const angleRad = (((effectiveTool.rotation || 0)) * Math.PI) / 180;
+        const cx = effectiveTool.x + toolWidth / 2;
+        const cy = effectiveTool.y + toolHeight / 2;
+
+        const vx = pos.x - cx;
+        const vy = pos.y - cy;
+        const ux = Math.cos(-angleRad) * vx - Math.sin(-angleRad) * vy;
+        const uy = Math.sin(-angleRad) * vx + Math.cos(-angleRad) * vy;
+        const localX = ux + toolWidth / 2;
+        const localY = uy + toolHeight / 2;
+
+        const r = toolHeight / 2;
+        const inRect = localX >= r && localX <= (toolWidth - r) && localY >= 0 && localY <= toolHeight;
+        const dy = localY - r;
+        const dxL = localX - r;
+        const dxR = localX - (toolWidth - r);
+        const inLeftCap = (dxL * dxL + dy * dy) <= (r * r);
+        const inRightCap = (dxR * dxR + dy * dy) <= (r * r);
+
+        isHit = inRect || inLeftCap || inRightCap;
+      }
+    }
+
+    if (!isHit) {
+      const underId = getUnderlyingToolId();
+      if (!underId) return;
+      const underTool = droppedTools.find(t => t.id === underId);
+      if (!underTool) return;
+      effectiveToolId = underId;
+      effectiveTool = underTool;
     }
 
     e.preventDefault();
     e.stopPropagation();
 
-    // Check for middle mouse button - enable panning
     if (e.button === 1) {
       startPan(e);
       return;
     }
 
     if (activeTool === 'cursor') {
-      // Handle tool selection
       if (e.ctrlKey || e.metaKey) {
-        if (selectedTools.includes(toolId)) {
-          setSelectedTools(prev => prev.filter(id => id !== toolId));
-          if (selectedTool === toolId) {
-            setSelectedTool(selectedTools.find(id => id !== toolId) || null);
+        if (selectedTools.includes(effectiveToolId)) {
+          setSelectedTools(prev => prev.filter(id => id !== effectiveToolId));
+          if (selectedTool === effectiveToolId) {
+            setSelectedTool(selectedTools.find(id => id !== effectiveToolId) || null);
           }
         } else {
-          setSelectedTools(prev => [...prev, toolId]);
-          setSelectedTool(toolId);
+          setSelectedTools(prev => [...prev, effectiveToolId]);
+          setSelectedTool(effectiveToolId);
         }
       } else {
-        if (selectedTools.includes(toolId)) {
-          setSelectedTool(toolId);
+        if (selectedTools.includes(effectiveToolId)) {
+          setSelectedTool(effectiveToolId);
         } else {
-          setSelectedTools([toolId]);
-          setSelectedTool(toolId);
+          setSelectedTools([effectiveToolId]);
+          setSelectedTool(effectiveToolId);
         }
       }
 
       if (readOnly) {
-        // Do not start dragging in inspect mode.
         return;
       }
 
-      // Setup drag for the tool(s)
       const canvasPos = screenToCanvas(e.clientX, e.clientY);
 
-      if (clickedTool) {
-        // Set drag offset relative to the tool's position
+      if (effectiveTool) {
         setDragOffset({
-          x: canvasPos.x - clickedTool.x,
-          y: canvasPos.y - clickedTool.y
+          x: canvasPos.x - effectiveTool.x,
+          y: canvasPos.y - effectiveTool.y
         });
 
-        // Store initial positions of all selected tools
-        const toolsToMove = selectedTools.includes(toolId) ? selectedTools : [toolId];
+        const toolsToMove = selectedTools.includes(effectiveToolId) ? selectedTools : [effectiveToolId];
         const positions: Record<string, { x: number; y: number }> = {};
 
         droppedTools.forEach(tool => {
@@ -1325,10 +1380,9 @@ export const useCanvas = ({
         beginInteraction?.();
       }
     } else if (activeTool === 'hand') {
-      // In hand mode, start panning the viewport
       startPan(e);
     }
-  }, [activeTool, selectedTool, selectedTools, setSelectedTool, setSelectedTools, startPan, screenToCanvas, droppedTools, readOnly, beginInteraction, isHitOnImagePixel]);
+  }, [activeTool, beginInteraction, droppedTools, getToolDimensions, isHitOnImagePixel, readOnly, screenToCanvas, selectedTool, selectedTools, setSelectedTool, setSelectedTools, startPan]);
 
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
     // Check for middle mouse button - enable panning regardless of active tool
