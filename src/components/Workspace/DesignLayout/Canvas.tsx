@@ -472,6 +472,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
               // Inside the Canvas component, in the map over tools
               <div
                 key={tool.id}
+                data-tool-id={tool.id}
                 className="absolute select-none group"
                 style={{
                   left: tool.x,
