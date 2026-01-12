@@ -484,14 +484,16 @@ const Canvas: React.FC<CanvasProps> = (props) => {
                   height: `${toolHeight}px`,
                   cursor: getToolCursor(tool.id),
                   zIndex:
-                    isText
+                    isPrimarySelection
+                      ? 11000
+                      : isSelected
+                      ? 10900
+                      : isText
                       ? 10000
                       : hoveredToolId === tool.id
                       ? 9999
                       : isFingerCut
                       ? 0
-                      : isSelected
-                      ? 20
                       : 10,
                 }}
                 // REMOVED: onMouseDown on wrapper so empty rectangle doesn't grab clicks
