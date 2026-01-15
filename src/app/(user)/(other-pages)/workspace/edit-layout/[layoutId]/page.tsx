@@ -254,12 +254,21 @@ export default function EditLayoutPage({
         } as DroppedTool;
       });
 
+      const allowedColors = new Set(['blue', 'black', 'yellow', 'red']);
+      const normalizedMaterialColorRaw =
+        typeof layout.canvas.materialColor === 'string'
+          ? layout.canvas.materialColor.trim().toLowerCase()
+          : '';
+      const resolvedMaterialColor = allowedColors.has(normalizedMaterialColorRaw)
+        ? normalizedMaterialColorRaw
+        : 'blue';
+
       setInitialCanvas({
         width: layout.canvas.width,
         height: layout.canvas.height,
         unit: layout.canvas.unit,
         thickness: layout.canvas.thickness,
-        materialColor: layout.canvas.materialColor,
+        materialColor: resolvedMaterialColor,
       });
 
       setInitialTools(mapped);
@@ -272,7 +281,7 @@ export default function EditLayoutPage({
           canvasHeight: layout.canvas.height,
           units: layout.canvas.unit,
           thickness: layout.canvas.thickness,
-          materialColor: layout.canvas.materialColor || '',
+          materialColor: resolvedMaterialColor,
         })
       );
       sessionStorage.setItem('editingLayoutId', layoutId);

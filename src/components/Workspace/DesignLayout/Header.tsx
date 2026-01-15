@@ -106,6 +106,12 @@ type FetchedTool = {
 const mmToInches = (mm: number) => mm / 25.4;
 const inchesToMm = (inches: number) => inches * 25.4;
 
+const normalizeMaterialColor = (value: unknown): string => {
+  if (typeof value !== "string") return "";
+  const c = value.trim().toLowerCase();
+  return c === "blue" || c === "black" || c === "yellow" || c === "red" ? c : "";
+};
+
 function normalizeRotationDeg(deg?: number): number {
   const d = typeof deg === "number" ? deg : 0;
   return Math.round(((d % 360) + 360) % 360);
@@ -183,9 +189,8 @@ const Header: React.FC<HeaderProps> = ({
       }
 
       const effectiveMaterialColor =
-        (materialColor && materialColor.trim()) ||
-        (additionalData.materialColor && additionalData.materialColor.trim()) ||
-        "";
+        normalizeMaterialColor(materialColor) ||
+        normalizeMaterialColor(additionalData.materialColor);
       if (!effectiveMaterialColor) {
         const msg = "Please select a material color before adding to cart.";
         setSaveError(msg);
@@ -261,7 +266,9 @@ const Header: React.FC<HeaderProps> = ({
           thickness: normalizeThicknessInches(
             (additionalData.thickness ?? thickness) as number
           ),
-          materialColor: additionalData.materialColor || materialColor,
+          materialColor:
+            normalizeMaterialColor(additionalData.materialColor) ||
+            normalizeMaterialColor(materialColor),
         },
         tools: cartTools,
       };
@@ -1368,7 +1375,10 @@ const Header: React.FC<HeaderProps> = ({
           thickness: normalizeThicknessInches(
             (additionalData.thickness ?? thickness) as number
           ),
-          materialColor: additionalData.materialColor || undefined,
+          materialColor:
+            normalizeMaterialColor(additionalData.materialColor) ||
+            normalizeMaterialColor(materialColor) ||
+            undefined,
         },
         tools: droppedTools.map((tool) => {
           // Determine shape info
@@ -1604,15 +1614,13 @@ const Header: React.FC<HeaderProps> = ({
         hasOverlaps ||
         droppedTools.length === 0 ||
         !(
-          materialColor ||
+          normalizeMaterialColor(materialColor) ||
           (typeof window !== "undefined" &&
             (() => {
               try {
                 const s = sessionStorage.getItem("layoutForm");
                 const p = s ? JSON.parse(s) : null;
-                return (
-                  typeof (p && p.materialColor) === "string" && p.materialColor
-                );
+                return normalizeMaterialColor(p && p.materialColor);
               } catch {
                 return "";
               }

@@ -88,7 +88,10 @@ const ControlBar: React.FC<ControlBarProps> = ({
             setThickness(normalizeThicknessInches(Number(parsed.thickness)));
           }
           if (typeof parsed.materialColor === 'string') {
-            setMaterialColor(parsed.materialColor);
+            const c = parsed.materialColor.trim().toLowerCase();
+            if (c === 'blue' || c === 'black' || c === 'yellow' || c === 'red') {
+              setMaterialColor(c);
+            }
           }
         } catch (error) {
           console.error('Error parsing sessionStorage data:', error);
