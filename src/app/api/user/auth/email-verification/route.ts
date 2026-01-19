@@ -12,9 +12,17 @@ const generateOTP = (): string => {
 
 // Send Email Verification OTP endpoint
 export async function POST(req: NextRequest) {
-  const logoUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? ""}mailLogo.jpg`;
-  const linkedinUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? ""}linkedin.jpg`;
-  const youtubeUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? ""}youtube.jpg`;
+  const baseUrlRaw = (
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.VERCEL_URL ||
+    "https://www.lumashape.com"
+  ).trim();
+  const baseUrl = new URL(baseUrlRaw.startsWith("http") ? baseUrlRaw : `https://${baseUrlRaw}`).origin;
+  const assetUrl = (path: string) => new URL(path.startsWith("/") ? path : `/${path}`, baseUrl).toString();
+
+  const logoUrl = assetUrl("/mailLogo.jpg");
+  const linkedinUrl = assetUrl("/linkedin.jpg");
+  const youtubeUrl = assetUrl("/youtube.jpg");
 
   try {
     await dbConnect();
