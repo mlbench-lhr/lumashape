@@ -176,7 +176,7 @@ const MyToolContours = () => {
                                                 className="absolute top-12 right-2 bg-white border border-gray-200 rounded-lg shadow-lg z-20 w-[220px]"
                                                 onClick={(e) => e.stopPropagation()}
                                             >
-                                                <button
+                                                {/* <button
                                                     onClick={() => handleMenuClick("Edit", tool)}
                                                     className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-50"
                                                 >
@@ -189,7 +189,7 @@ const MyToolContours = () => {
                                                     <span className="text-[#266ca8] text-sm font-medium">
                                                         Edit Tool
                                                     </span>
-                                                </button>
+                                                </button> */}
                                                 <button
                                                     onClick={() => handleMenuClick("Delete", tool)}
                                                     className="w-full px-3 py-2 text-left flex items-center gap-2 hover:bg-gray-50"

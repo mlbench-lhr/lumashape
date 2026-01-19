@@ -208,7 +208,7 @@ const MyLayouts = () => {
                                     )}
 
                                     {/* Three Dots Button (non-functional) */}
-                                    <button
+                                    {/* <button
                                         className="absolute top-0 right-0 w-6 h-6 bg-white border border-[#E6E6E6] flex items-center justify-center hover:bg-gray-50"
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -216,10 +216,10 @@ const MyLayouts = () => {
                                         }}
                                     >
                                         <MoreVertical className="w-4 h-4 text-[#266ca8]" />
-                                    </button>
+                                    </button> */}
 
                                     {/* Dropdown menu (non-functional) */}
-                                    {openDropdown === layout._id && (
+                                    {/* {openDropdown === layout._id && (
                                         <div
                                             className="absolute top-12 right-2 bg-white border border-gray-200 rounded-lg shadow-lg z-20 w-[220px]"
                                             onClick={(e) => e.stopPropagation()}
@@ -253,7 +253,7 @@ const MyLayouts = () => {
                                                 </span>
                                             </button>
                                         </div>
-                                    )}
+                                    )} */}
                                 </div>
                             </div>
 
