@@ -92,7 +92,14 @@ export async function POST(req: NextRequest) {
     })
 
     try {
-      const logoUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? ''}mailLogo.jpg`
+      const baseUrlRaw = (
+        process.env.NEXT_PUBLIC_BASE_URL ||
+        process.env.VERCEL_URL ||
+        'https://www.lumashape.com'
+      ).trim()
+      const baseUrl = new URL(baseUrlRaw.startsWith('http') ? baseUrlRaw : `https://${baseUrlRaw}`).origin
+      const logoUrl = new URL('/mailLogo.jpg', baseUrl).toString()
+
       const from = `"Lumashape" <${process.env.EMAIL_FROM || 'no-reply@lumashape.com'}>`;
       const ship: Partial<IShipping> = (order.shipping || {}) as Partial<IShipping>
       const itemsHtml = Array.isArray(order.items) ? order.items.map(i => {

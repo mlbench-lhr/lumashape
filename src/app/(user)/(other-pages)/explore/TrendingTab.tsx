@@ -455,6 +455,7 @@ const TrendingTab = ({
         return (
             tool.toolType.toLowerCase().includes(searchLower) ||
             tool.toolBrand.toLowerCase().includes(searchLower) ||
+            tool.SKUorPartNumber?.toLowerCase().includes(searchLower) ||
             tool.createdBy?.username?.toLowerCase().includes(searchLower) ||
             tool.createdBy?.email?.toLowerCase().includes(searchLower)
         );

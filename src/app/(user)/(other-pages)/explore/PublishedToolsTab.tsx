@@ -98,9 +98,12 @@ const PublishedToolsTab = ({
     };
 
     const filteredTools = publishedTools.filter((tool) => {
-        const matchesSearch =
-            tool.toolType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            tool.toolBrand.toLowerCase().includes(searchTerm.toLowerCase());
+        const term = searchTerm.toLowerCase().trim();
+        const matchesSearch = !term
+            ? true
+            : tool.toolType.toLowerCase().includes(term) ||
+              tool.toolBrand.toLowerCase().includes(term) ||
+              tool.SKUorPartNumber?.toLowerCase().includes(term);
 
         const matchesType = selectedToolType ? tool.toolType === selectedToolType : true;
         const matchesBrand = selectedBrand ? tool.toolBrand === selectedBrand : true;
