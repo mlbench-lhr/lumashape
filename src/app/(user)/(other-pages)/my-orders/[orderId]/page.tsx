@@ -204,7 +204,7 @@ export default function OrderDetails() {
                               <div className="text-sm">
                                 <span className="text-gray-600">Thickness:</span>
                                 <span className="ml-2 font-medium text-gray-900">
-                                  {`${item.canvas.thickness}"`}
+                                  {item.canvas.thickness} {item.canvas.unit}
                                 </span>
                               </div>
                               {item.canvas.materialColor && (

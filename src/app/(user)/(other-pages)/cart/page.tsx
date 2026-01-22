@@ -80,8 +80,8 @@ const Cart = () => {
     return unit === "mm" ? `${value}mm` : `${value}"`;
   };
 
-  const formatThicknessValue = (value: number) => {
-    return value > 10 ? `${value}mm` : `${value}"`;
+  const formatThicknessValue = (value: number, unit: "mm" | "inches") => {
+    return unit === "mm" ? `${value}mm` : `${value}"`;
   };
 
   const getContainerSizeLabel = (item: CartItem) => {
@@ -89,7 +89,7 @@ const Cart = () => {
     if (canvas) {
       const width = formatCanvasValue(canvas.width, canvas.unit);
       const height = formatCanvasValue(canvas.height, canvas.unit);
-      const thickness = formatThicknessValue(canvas.thickness);
+      const thickness = formatThicknessValue(canvas.thickness, canvas.unit);
       return `${width} x ${height} x ${thickness}`;
     }
 

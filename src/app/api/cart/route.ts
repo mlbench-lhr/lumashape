@@ -5,6 +5,7 @@ import Cart, { ICartItem } from '@/lib/models/Cart'
 import User from '@/lib/models/User'
 import Tool from '@/lib/models/Tool'
 import { calculateOrderPricing, DEFAULT_PRICING } from '@/utils/pricing'
+import { coerceThicknessFromPersisted, normalizeThicknessToInches } from '../../../utils/thickness'
 
 interface CvDimensions {
   depth_inches?: number
@@ -212,14 +213,12 @@ export async function POST(req: NextRequest) {
     if (typeof canvasThickness !== 'number' || !(canvasThickness > 0) || (canvasUnit !== 'mm' && canvasUnit !== 'inches')) {
       return NextResponse.json({ message: 'Invalid canvas thickness or unit' }, { status: 400 })
     }
-    const normalizeThicknessInches = (value: number) => {
-      if (!(value > 0)) return value
-      return value > 10 ? mmToInches(value) : value
-    }
-    const thicknessInches = normalizeThicknessInches(canvasThickness)
+    const coercedThickness = coerceThicknessFromPersisted(canvasThickness, canvasUnit)
     if (itemData?.layoutData?.canvas) {
-      itemData.layoutData.canvas.thickness = thicknessInches
+      itemData.layoutData.canvas.thickness = coercedThickness
     }
+
+    const thicknessInches = normalizeThicknessToInches(coercedThickness, canvasUnit)
     const allowedDepthInches = Math.max(0, thicknessInches - 0.25)
     const offending = (itemData.layoutData.tools || []).filter((t: ToolShape) => {
       const d = typeof t.depth === 'number' ? t.depth : 0

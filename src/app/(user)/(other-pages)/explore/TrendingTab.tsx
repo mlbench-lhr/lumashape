@@ -806,7 +806,7 @@ const TrendingTab = ({
                                                         <span>Thickness:</span>
                                                         <span className="font-semibold text-gray-800">
                                                             {(layout.canvas?.thickness ?? layout.metadata?.thickness) ?? "-"}{" "}
-                                                            {"inches"}
+                                                            {(layout.canvas?.unit ?? layout.metadata?.units) ?? ""}
                                                         </span>
                                                     </div>
                                                 </div>
