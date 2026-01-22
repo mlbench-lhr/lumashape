@@ -445,7 +445,7 @@ const MyLayouts = () => {
                               <span>Thickness:</span>
                               <span className="font-semibold text-gray-800">
                                 {(layout.canvas?.thickness) ?? "-"}{" "}
-                                {"inches"}
+                                {(layout.canvas?.unit) ?? ""}
                               </span>
                             </div>
                           </div>

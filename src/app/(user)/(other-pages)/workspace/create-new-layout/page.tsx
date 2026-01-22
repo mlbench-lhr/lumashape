@@ -1,16 +1,27 @@
 'use client'
 import React, { useState, useEffect } from 'react';
+
 import { ChevronDown, Info } from 'lucide-react';
 import Image from 'next/image';
+
 import { useRouter } from 'next/navigation';
+import {
+    coerceThicknessBetweenUnits,
+    coerceThicknessFromPersisted,
+    defaultThicknessForUnit,
+    getThicknessOptions,
+    isAllowedThickness,
+    type Unit,
+} from '../../../../../utils/thickness';
 
 const CreateNewLayout = () => {
+
     const router = useRouter();
     const [layoutName, setLayoutName] = useState('');
     const [isEditingName, setIsEditingName] = useState(false);
     const [width, setWidth] = useState('10');
     const [length, setLength] = useState('24');
-    const [units, setUnits] = useState('');
+    const [units, setUnits] = useState<Unit | ''>('');
     const [materialColor, setMaterialColor] = useState('');
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [thickness, setThickness] = useState('');
@@ -18,8 +29,22 @@ const CreateNewLayout = () => {
 
     const handleUnitsChange = (next: string) => {
         if (next === units) return;
-        setUnits(next);
-        if (!thickness) setThickness('1.25');
+        if (next !== 'mm' && next !== 'inches') {
+            setUnits('');
+            setThickness('');
+            return;
+        }
+
+        const nextUnit: Unit = next;
+        const prevUnit: Unit | null = (units === 'mm' || units === 'inches') ? units : null;
+        const t = Number(thickness);
+        const nextThickness =
+            prevUnit && thickness && isFinite(t)
+                ? coerceThicknessBetweenUnits(t, prevUnit, nextUnit)
+                : defaultThicknessForUnit(nextUnit);
+
+        setUnits(nextUnit);
+        setThickness(String(nextThickness));
     };
     const [isInfoColorOpen, setIsInfoColorOpen] = useState(false);
     const [isInfoThicknessOpen, setIsInfoThicknessOpen] = useState(false);
@@ -47,10 +72,15 @@ const CreateNewLayout = () => {
             setLayoutName(parsed.layoutName || '');
             setWidth(parsed.width || '10');
             setLength(parsed.length || '24');
-            setUnits(parsed.units || '');
-            const tRaw = parsed.thickness || '';
-            const tNum = Number(tRaw);
-            setThickness(isFinite(tNum) && tNum > 10 ? String(Number((tNum / 25.4).toFixed(3))) : tRaw);
+            const u: Unit | '' = parsed.units === 'mm' || parsed.units === 'inches' ? parsed.units : '';
+            setUnits(u);
+
+            const tNum = Number(parsed.thickness);
+            if (u && isFinite(tNum) && tNum > 0) {
+                setThickness(String(coerceThicknessFromPersisted(tNum, u)));
+            } else {
+                setThickness('');
+            }
             setMaterialColor(parsed.materialColor || '');
         }
     }, []);
@@ -93,6 +123,10 @@ const CreateNewLayout = () => {
             newErrors.thickness = 'Thickness is required.';
         } else if (isNaN(Number(thickness))) {
             newErrors.thickness = 'Thickness must be a number.';
+        } else if (units === 'mm' || units === 'inches') {
+            if (!isAllowedThickness(Number(thickness), units)) {
+                newErrors.thickness = 'Invalid thickness selection.';
+            }
         }
 
         if (!materialColor) {
@@ -299,10 +333,12 @@ const CreateNewLayout = () => {
                                                             }`}
                                                     >
                                                         <option value="">Select Thickness</option>
-                                                        <option value="1.25">1.25</option>
-                                                        {/* <option value="2.00">2.00</option>
-                                                        <option value="2.50">2.50</option>
-                                                        <option value="3.00">3.00</option> */}
+                                                        {(units === 'mm' || units === 'inches') &&
+                                                            getThicknessOptions(units).map((opt) => (
+                                                                <option key={opt.value} value={String(opt.value)}>
+                                                                    {opt.label}
+                                                                </option>
+                                                            ))}
                                                     </select>
 
                                                     {/* Simple SVG arrow */}

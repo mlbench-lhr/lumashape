@@ -2,6 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Info } from 'lucide-react';
+import {
+  coerceThicknessBetweenUnits,
+  coerceThicknessFromPersisted,
+  getThicknessOptions,
+  type Unit,
+} from '../../../utils/thickness';
 
 interface ControlBarProps {
   canvasWidth: number;
@@ -48,9 +54,10 @@ const ControlBar: React.FC<ControlBarProps> = ({
   const [isInfoColorOpen, setIsInfoColorOpen] = useState(false);
   const [isInfoThicknessOpen, setIsInfoThicknessOpen] = useState(false);
 
-  const normalizeThicknessInches = (value: number) => {
-    if (!(value > 0)) return value;
-    return value > 10 ? Number((value / 25.4).toFixed(3)) : value;
+  const handleUnitChange = (nextUnit: Unit) => {
+    if (nextUnit === unit) return;
+    setThickness(coerceThicknessBetweenUnits(thickness, unit, nextUnit));
+    setUnit(nextUnit);
   };
 
   // Load initial values from sessionStorage only once on first load
@@ -62,9 +69,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
           const parsed = JSON.parse(savedData);
 
           // Load units first
-          if (parsed.units && (parsed.units === 'mm' || parsed.units === 'inches')) {
-            setUnit(parsed.units);
-          }
+          const parsedUnit = parsed.units === 'mm' || parsed.units === 'inches' ? parsed.units : unit;
+          setUnit(parsedUnit);
 
           // Load canvas dimensions - map from width/length to canvasWidth/canvasHeight
           if (parsed.width !== undefined && !isNaN(Number(parsed.width))) {
@@ -85,7 +91,8 @@ const ControlBar: React.FC<ControlBarProps> = ({
           }
 
           if (parsed.thickness !== undefined && !isNaN(Number(parsed.thickness))) {
-            setThickness(normalizeThicknessInches(Number(parsed.thickness)));
+            const u: Unit = (parsed.units === 'mm' || parsed.units === 'inches') ? parsed.units : unit;
+            setThickness(coerceThicknessFromPersisted(Number(parsed.thickness), u));
           }
           if (typeof parsed.materialColor === 'string') {
             const c = parsed.materialColor.trim().toLowerCase();
@@ -159,7 +166,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
           <label className="text-sm font-medium">Unit</label>
           <select
             value={unit}
-            onChange={(e) => setUnit(e.target.value as 'mm' | 'inches')}
+            onChange={(e) => handleUnitChange(e.target.value as Unit)}
             disabled={readOnly}
             className="bg-white text-gray-900 w-28 py-1 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
           >
@@ -238,7 +245,11 @@ const ControlBar: React.FC<ControlBarProps> = ({
             disabled={readOnly}
             className="bg-white text-gray-900 px-2 py-1 w-32 rounded text-sm border-0 focus:ring-2 focus:ring-blue-400 disabled:opacity-60"
           >
-            <option value={1.25}>1.25 inches</option>
+            {getThicknessOptions(unit).map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label} {unit}
+              </option>
+            ))}
           </select>
 
         </div>

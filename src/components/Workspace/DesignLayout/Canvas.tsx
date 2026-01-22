@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useCanvas } from "./useCanvas";
 import RotationWheel from "./RotationWheel";
+import { normalizeThicknessToInches } from "../../../utils/thickness";
 
 // conversion helper
 const mmToInches = (mm: number) => mm / 25.4;
@@ -139,10 +140,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
     return Number(inches.toFixed(2));
   };
 
-  const thicknessInches = (() => {
-    if (!(thickness > 0)) return 0;
-    return thickness > 10 ? mmToInches(thickness) : thickness;
-  })();
+  const thicknessInches = normalizeThicknessToInches(thickness, props.unit);
   const depthInchesFor = (t: DroppedTool) =>
     typeof t.depth === "number"
       ? t.unit === "mm"

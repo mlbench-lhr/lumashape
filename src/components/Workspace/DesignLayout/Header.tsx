@@ -19,7 +19,8 @@ import { DroppedTool } from "./types";
 import * as htmlToImage from "html-to-image";
 import { useCart } from "@/context/CartContext";
 import { toast } from "react-toastify";
-import { calculatePriceFromLayoutData } from "@/utils/pricing";
+import { calculatePriceFromLayoutData } from "../../../utils/pricing";
+import { coerceThicknessFromPersisted, normalizeThicknessToInches } from "../../../utils/thickness";
 import router from "next/router";
 
 interface HeaderProps {
@@ -136,6 +137,7 @@ const Header: React.FC<HeaderProps> = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [isDxfGenerating, setIsDxfGenerating] = useState(false);
   const [isCartInfoOpen, setIsCartInfoOpen] = useState(false);
+  const [isInfoMaxPocketDepthOpen, setIsInfoMaxPocketDepthOpen] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dxfFailed, setDxfFailed] = useState(false);
@@ -147,14 +149,11 @@ const Header: React.FC<HeaderProps> = ({
     (t) => t.toolBrand !== "SHAPE" && t.toolBrand !== "TEXT" && t.toolType !== "text"
   ).length;
 
-  const normalizeThicknessInches = (value: number) => {
-    if (!(value > 0)) return value;
-    return value > 10 ? mmToInches(value) : value;
-  };
-
-  const thicknessInches = normalizeThicknessInches(thickness);
+  const thicknessInches = normalizeThicknessToInches(thickness, unit);
 
   const allowedDepthInches = Math.max(0, thicknessInches - 0.25);
+  const allowedDepthMm = allowedDepthInches * 25.4;
+
   const floorViolationCount = droppedTools.filter((t) => {
     const depthInches =
       typeof t.depth === "number"
@@ -206,8 +205,15 @@ const Header: React.FC<HeaderProps> = ({
         return;
       }
 
-      const thicknessInches = normalizeThicknessInches(
-        (additionalData.thickness ?? thickness) as number
+      const layoutName = await resolveLayoutName(additionalData);
+      const canvasUnit = (additionalData.units ?? unit) as "mm" | "inches";
+      const canvasThickness = coerceThicknessFromPersisted(
+        (additionalData.thickness ?? thickness) as number,
+        canvasUnit
+      );
+      const thicknessInches = normalizeThicknessToInches(
+        canvasThickness,
+        canvasUnit
       );
       const allowedDepthInches = Math.max(0, thicknessInches - 0.25);
       const depths = await Promise.all(
@@ -221,9 +227,6 @@ const Header: React.FC<HeaderProps> = ({
       //   setIsSaving(false);
       //   return;
       // }
-
-      const layoutName = await resolveLayoutName(additionalData);
-      const canvasUnit = (additionalData.units ?? unit) as "mm" | "inches";
       const formatCanvasValue = (value: number) =>
         canvasUnit === "mm" ? `${value}mm` : `${value}"`;
       const containerSize = `${formatCanvasValue(
@@ -272,10 +275,8 @@ const Header: React.FC<HeaderProps> = ({
         canvas: {
           width: additionalData.canvasWidth ?? canvasWidth,
           height: additionalData.canvasHeight ?? canvasHeight,
-          unit: (additionalData.units ?? unit) as "mm" | "inches",
-          thickness: normalizeThicknessInches(
-            (additionalData.thickness ?? thickness) as number
-          ),
+          unit: canvasUnit,
+          thickness: canvasThickness,
           materialColor:
             normalizeMaterialColor(additionalData.materialColor) ||
             normalizeMaterialColor(materialColor),
@@ -665,8 +666,7 @@ const Header: React.FC<HeaderProps> = ({
         unit === "mm" ? mmToInches(canvasWidth) : canvasWidth;
       const canvasHeightInches =
         unit === "mm" ? mmToInches(canvasHeight) : canvasHeight;
-      const canvasThicknessInches =
-        unit === "mm" ? mmToInches(thickness) : thickness;
+      const canvasThicknessInches = normalizeThicknessToInches(thickness, unit);
 
       const authToken = localStorage.getItem("auth-token");
       if (!authToken) throw new Error("Missing auth token");
@@ -858,7 +858,7 @@ const Header: React.FC<HeaderProps> = ({
         canvas_information: {
           width_inches: canvasWidthInches,
           height_inches: canvasHeightInches,
-          thickness_inches: thickness,
+          thickness_inches: canvasThicknessInches,
           has_overlaps: hasOverlaps,
           canvas_color: materialColor,
         },
@@ -950,8 +950,7 @@ const Header: React.FC<HeaderProps> = ({
         unit === "mm" ? mmToInches(canvasWidth) : canvasWidth;
       const canvasHeightInches =
         unit === "mm" ? mmToInches(canvasHeight) : canvasHeight;
-      const canvasThicknessInches =
-        unit === "mm" ? mmToInches(thickness) : thickness;
+      const canvasThicknessInches = normalizeThicknessToInches(thickness, unit);
       const authToken = localStorage.getItem("auth-token");
       if (!authToken) return null;
       const tools: ToolPayload[] = [];
@@ -1428,15 +1427,17 @@ const Header: React.FC<HeaderProps> = ({
       // Step 2: Save layout data with image URL
       const nameToSave = await resolveLayoutName(additionalData);
       const canvasUnit = (additionalData.units ?? unit) as "mm" | "inches";
+      const canvasThickness = coerceThicknessFromPersisted(
+        (additionalData.thickness ?? thickness) as number,
+        canvasUnit
+      );
       const layoutData = {
         name: nameToSave,
         canvas: {
           width: additionalData.canvasWidth ?? canvasWidth,
           height: additionalData.canvasHeight ?? canvasHeight,
           unit: canvasUnit,
-          thickness: normalizeThicknessInches(
-            (additionalData.thickness ?? thickness) as number
-          ),
+          thickness: canvasThickness,
           materialColor:
             normalizeMaterialColor(additionalData.materialColor) ||
             normalizeMaterialColor(materialColor) ||
@@ -1929,6 +1930,46 @@ const Header: React.FC<HeaderProps> = ({
             <span className="font-medium">
               {canvasWidth} × {canvasHeight} {unit}
             </span>
+          </span>
+
+          <span className="text-gray-600 inline-flex items-center gap-1 relative">
+            <span>
+              Current Max Pocket Depth:{" "}
+              <span className="font-medium">
+                {allowedDepthInches.toFixed(2)} inch ({allowedDepthMm.toFixed(1)}mm)
+              </span>
+            </span>
+
+            <button
+              type="button"
+              onClick={() =>
+                setIsInfoMaxPocketDepthOpen(!isInfoMaxPocketDepthOpen)
+              }
+              className="text-gray-500 hover:text-gray-700"
+              aria-label="Current Max Pocket Depth info"
+            >
+              <Info size={16} />
+            </button>
+
+            {isInfoMaxPocketDepthOpen && (
+              <div className="absolute left-0 top-full mt-2 w-120 rounded-md border border-gray-200 bg-white shadow-lg p-3 z-100">
+                <div className="flex items-start flex-col gap-3">
+                  <Image
+                    src="/images/workspace/create_new_layout/thickness-info.png"
+                    alt="Info"
+                    width={700}
+                    height={700}
+                    className="rounded"
+                  />
+                  <p className="text-sm text-gray-700">
+                    Lumashape order fulfillment does not cut entirely through the
+                    material thickness. A minimum floor thickness of 0.25 inches
+                    must remain beneath all tool pockets to ensure proper vacuum
+                    hold-down during manufacturing.
+                  </p>
+                </div>
+              </div>
+            )}
           </span>
         </div>
 

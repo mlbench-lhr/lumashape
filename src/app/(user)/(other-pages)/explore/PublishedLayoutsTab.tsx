@@ -4,6 +4,7 @@ import Image from "next/image";
 import { MoreVertical, Download, Check, ChevronDown, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
+import { getThicknessOptions, normalizeThicknessToInches, type Unit } from '../../../../utils/thickness';
 
 interface UserInteraction {
     hasLiked: boolean;
@@ -299,14 +300,10 @@ const PublishedLayoutsTab = ({ relatedTool, onClearRelatedTool }: PublishedLayou
         return value;
     };
 
-    // Get thickness options based on selected unit
-    const getThicknessOptions = () => {
-        return [
-            { value: "1.25", label: "1.25" },
-            // { value: "2.0", label: "2.0" },
-            // { value: "2.5", label: "2.5" },
-            // { value: "3.0", label: "3.0" },
-        ];
+    // Get thickness options based on selected unit (defaults to inches when no unit filter is selected)
+    const getThicknessOptionsForSelectedUnit = () => {
+        const u: Unit = selectedUnit === "mm" || selectedUnit === "inches" ? selectedUnit : "inches";
+        return getThicknessOptions(u).map((opt) => ({ value: String(opt.value), label: opt.label }));
     };
 
     const applyFilters = () => {
@@ -387,21 +384,20 @@ const PublishedLayoutsTab = ({ relatedTool, onClearRelatedTool }: PublishedLayou
             );
         }
 
-        // Thickness filter — independent of unit
+        // Thickness filter (unit-aware; defaults to inches when no unit filter is selected)
         if (selectedThickness) {
             const targetThickness = parseFloat(selectedThickness);
+            const targetUnit: Unit = selectedUnit === "mm" || selectedUnit === "inches" ? selectedUnit : "inches";
 
-            filtered = filtered.filter(layout => {
-                const layoutThickness = layout.canvas?.thickness || layout.metadata?.thickness;
-                const layoutUnit = layout.canvas?.unit || layout.metadata?.units;
+            filtered = filtered.filter((layout) => {
+                const layoutThickness = layout.canvas?.thickness ?? layout.metadata?.thickness;
+                const layoutUnitRaw = layout.canvas?.unit ?? layout.metadata?.units;
 
-                if (!layoutThickness) return false;
+                if (!(typeof layoutThickness === "number") || !(layoutThickness > 0)) return false;
 
-                // If selectedUnit exists, normalize to it
-                let normalizedThickness = layoutThickness;
-                if (selectedUnit && layoutUnit) {
-                    normalizedThickness = normalizeToSelectedUnit(layoutThickness, layoutUnit);
-                }
+                const layoutUnit: Unit = layoutUnitRaw === "mm" || layoutUnitRaw === "inches" ? layoutUnitRaw : "inches";
+                const thicknessInches = normalizeThicknessToInches(layoutThickness, layoutUnit);
+                const normalizedThickness = targetUnit === "mm" ? thicknessInches * 25.4 : thicknessInches;
 
                 return Math.abs(normalizedThickness - targetThickness) < 0.01;
             });
@@ -653,7 +649,7 @@ const PublishedLayoutsTab = ({ relatedTool, onClearRelatedTool }: PublishedLayou
                             onChange={(e) => setSelectedThickness(e.target.value)}
                         >
                             <option value="">Thickness</option>
-                            {getThicknessOptions().map(option => (
+                            {getThicknessOptionsForSelectedUnit().map(option => (
                                 <option key={option.value} value={option.value}>
                                     {option.label}
                                 </option>
@@ -919,7 +915,7 @@ const PublishedLayoutsTab = ({ relatedTool, onClearRelatedTool }: PublishedLayou
                                                     <span>Thickness:</span>
                                                     <span className="font-semibold text-gray-800">
                                                         {(layout.canvas?.thickness ?? layout.metadata?.thickness) ?? "-"}{" "}
-                                                        {"inches"}
+                                                        {(layout.canvas?.unit ?? layout.metadata?.units) ?? ""}
                                                     </span>
                                                 </div>
                                             </div>

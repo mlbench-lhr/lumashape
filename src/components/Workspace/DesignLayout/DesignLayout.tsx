@@ -6,6 +6,7 @@ import Canvas from "./Canvas";
 import Sidebar from "./Sidebar";
 import { DroppedTool, Tool } from "./types";
 import { useUndoRedo } from './toolUtils';
+import { coerceThicknessBetweenUnits, coerceThicknessFromPersisted, defaultThicknessForUnit } from "../../../utils/thickness";
 
 function DesignLayout({
   initialDroppedTools,
@@ -32,10 +33,13 @@ function DesignLayout({
   const [selectedTools, setSelectedTools] = useState<string[]>([]);
 
   // Canvas dimensions (controlled by ControlBar)
+  const initialUnit = initialCanvas?.unit ?? "mm";
   const [canvasWidth, setCanvasWidth] = useState<number>(initialCanvas?.width ?? 400);
   const [canvasHeight, setCanvasHeight] = useState<number>(initialCanvas?.height ?? 300);
-  const [thickness, setThickness] = useState<number>(initialCanvas?.thickness ?? 1.25);
-  const [unit, setUnit] = useState<'mm' | 'inches'>(initialCanvas?.unit ?? 'mm');
+  const [unit, setUnit] = useState<'mm' | 'inches'>(initialUnit);
+  const [thickness, setThickness] = useState<number>(
+    initialCanvas?.thickness ?? defaultThicknessForUnit(initialUnit)
+  );
   const [materialColor, setMaterialColor] = useState<string>(initialCanvas?.materialColor ?? 'blue');
 
   useEffect(() => {
@@ -97,9 +101,12 @@ function DesignLayout({
     const convertedCanvasWidth = parseFloat(convertValue(canvasWidth, unit, newUnit).toFixed(3));
     const convertedCanvasHeight = parseFloat(convertValue(canvasHeight, unit, newUnit).toFixed(3));
 
+    const convertedThickness = coerceThicknessBetweenUnits(thickness, unit, newUnit);
+
     setCanvasWidth(convertedCanvasWidth);
     setCanvasHeight(convertedCanvasHeight);
     setUnit(newUnit);
+    setThickness(convertedThickness);
 
     updateDroppedTools(prev =>
       prev.map(tool => {
