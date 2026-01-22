@@ -26,7 +26,10 @@ export interface IUser extends Document {
   subscriptionId?: string
   subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete' | null
   subscriptionPlan?: 'Free' | 'Pro' | 'Premium' | null
+  subscriptionPeriodStart?: Date
   subscriptionPeriodEnd?: Date
+  cancelAtPeriodEnd?: boolean
+  dxfDownloadsUsed?: number
   createdAt: Date
   updatedAt: Date
 
@@ -141,12 +144,24 @@ const UserSchema: Schema<IUser> = new mongoose.Schema(
       enum: ['Free', 'Pro', 'Premium', null],
       default: 'Free',
     },
+    subscriptionPeriodStart: {
+      type: Date,
+      default: null,
+    },
     subscriptionPeriodEnd: {
       type: Date,
       default: null,
     },
+    cancelAtPeriodEnd: {
+      type: Boolean,
+      default: false,
+    },
 
-    // Profit sharing / Stripe Connect
+    dxfDownloadsUsed: {
+      type: Number,
+      default: 0,
+    },
+
     stripeAccountId: {
       type: String,
       default: null,

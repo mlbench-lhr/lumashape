@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ChevronDown, TrendingUp, TrendingDown } from "lucide-react";
 import SimpleBarChart from "@/components/ui/barChart";
 
-type Monthly = { label: string; revenue: number; kaiser: number; lumashape: number; orders: number; year: number; month: number; key: string };
+type Monthly = { label: string; revenue: number; kaiser: number; lumashape: number; orders: number; subscriptionRevenue: number; year: number; month: number; key: string };
 type StripeMetrics = { totalTransactions: number; feesCents: number; refundsCents: number };
 type UserItem = { username?: string; email?: string; avatar?: string; profilePic?: string };
 
@@ -135,6 +135,7 @@ export default function AdminDashboardPage() {
   const revenueGrowth = growthOf(selected?.revenue || 0, prevValue(m => m.revenue));
   const kaiserGrowth = growthOf(selected?.kaiser || 0, prevValue(m => m.kaiser));
   const lumaGrowth = growthOf(selected?.lumashape || 0, prevValue(m => m.lumashape));
+  const subscriptionGrowth = growthOf(selected?.subscriptionRevenue || 0, prevValue(m => m.subscriptionRevenue));
 
   const monthsShort = (data?.monthlyRevenue || []).map((m) => {
     const label = m.label;
@@ -143,6 +144,7 @@ export default function AdminDashboardPage() {
   });
   const chartData = (data?.monthlyRevenue || []).map((m, i) => ({ date: `${m.year}-${m.month}`, name: monthsShort[i]?.short || m.label, value: Math.round(m.revenue) }));
   const sparkRevenue = (data?.monthlyRevenue || []).map(m => m.revenue);
+  const sparkSubscriptionRevenue = (data?.monthlyRevenue || []).map(m => m.subscriptionRevenue || 0);
   const sparkKaiser = (data?.monthlyRevenue || []).map(m => m.kaiser);
   const sparkLuma = (data?.monthlyRevenue || []).map(m => m.lumashape);
   const userSpark = (data?.userInsights.monthly || []).map(u => u.count);
@@ -231,7 +233,7 @@ export default function AdminDashboardPage() {
         {MonthDropdown}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <MetricCard
           title="Total Revenue"
           amount={selected.revenue}
@@ -245,7 +247,19 @@ export default function AdminDashboardPage() {
           series={sparkRevenue}
         />
         <MetricCard
-          title="Kaiser Mfg. Payout"
+          title="Subscription Revenue"
+          amount={selected.subscriptionRevenue || 0}
+          growth={subscriptionGrowth}
+          icon={
+            <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-2 0-3 1-3 2s1 2 3 2 3 1 3 2-1 2-3 2m0-10v10m-7-5a7 7 0 1114 0a7 7 0 01-14 0z" />
+            </svg>
+          }
+          iconBg="bg-blue-50"
+          series={sparkSubscriptionRevenue}
+        />
+        <MetricCard
+          title="Track My Tools Payout"
           amount={selected.kaiser}
           growth={kaiserGrowth}
           icon={

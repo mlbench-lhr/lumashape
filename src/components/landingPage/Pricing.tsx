@@ -72,7 +72,7 @@ const bilingPlans: DataItem[] = [
     id: 2,
     desc: 'For Small Teams',
     title: 'Pro',
-    price: '$20/Month',
+    price: '$8/Month',
     price_id: process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID!,
     plan_name: 'Pro',
     include: [
@@ -103,49 +103,7 @@ const bilingPlans: DataItem[] = [
     smallTextColor: '#FFFFFFB2',
     icon: '/images/icons/LandingPage/White Check Circle.svg',
   },
-  {
-    id: 3,
-    desc: 'For Professionals',
-    title: 'Premium',
-    price: '$100/Month',
-    price_id: process.env.NEXT_PUBLIC_STRIPE_PREMIUM_PRICE_ID!,
-    plan_name: 'Premium',
-    include: [
-      {
-        id: 1,
-        text: 'Unlimited DXF downloads',
-      },
-      {
-        id: 2,
-        text: 'Share and manage layouts within your team',
-      },
-      {
-        id: 3,
-        text: 'Access to custom foam design services',
-      },
-      {
-        id: 4,
-        text: 'Add up to 5 users to your organization',
-      },
-      {
-        id: 5,
-        text: 'Exclusive Customer Support',
-      },
-      {
-        id: 6,
-        text: 'And more…',
-      },
-    ],
-    buttonText: 'Get Started',
-    height: 70,
-    backgroundColor: 'white',
-    textColor: 'black',
-    buttonColor: '#266CA8',
-    buttonTextColor: 'white',
-    priceColor: '#266CA8',
-    smallTextColor: '#22222280',
-    icon: '/images/icons/LandingPage/Check Circle.svg',
-  },
+
 ]
 
 function Pricing() {
@@ -226,7 +184,7 @@ function Pricing() {
         </Text>
       </motion.div>
       <div className="w-full overflow-hidden">
-        <div className="w-full grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-2 justify-stretch items-center mt-12">
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2 justify-stretch items-center mt-12">
           {bilingPlans.map((item) => (
             <motion.div
               key={item.id}

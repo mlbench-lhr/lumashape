@@ -40,9 +40,19 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Price ID is required' }, { status: 400 })
         }
 
-        // Create or retrieve Stripe customer
+        // Create or retrieve Stripe customer (validate existing ID)
         let customerId = user.stripeCustomerId
-        if (!customerId) {
+        let validCustomer = false
+        if (customerId) {
+            try {
+                const existing = await stripe.customers.retrieve(customerId)
+                validCustomer = Boolean(existing && (existing as any).id === customerId)
+            } catch (e) {
+                console.warn('Existing Stripe customer invalid or not found, recreating:', customerId)
+                validCustomer = false
+            }
+        }
+        if (!customerId || !validCustomer) {
             console.log('Creating new Stripe customer')
             try {
                 const customer = await stripe.customers.create({

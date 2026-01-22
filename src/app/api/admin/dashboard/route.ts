@@ -23,6 +23,37 @@ const rangeForMonth = (d: Date) => {
 const labelForMonth = (y: number, m: number) =>
   `${new Date(y, m - 1, 1).toLocaleString(undefined, { month: "short" })} ${String(y)}`;
 
+const subscriptionRevenueCentsForMonth = async (start: Date, end: Date): Promise<number> => {
+  const gte = Math.floor(start.getTime() / 1000);
+  const lt = Math.floor(end.getTime() / 1000);
+
+  let total = 0;
+  let startingAfter: string | undefined = undefined;
+
+  while (true) {
+    const invoicePage: Stripe.ApiList<Stripe.Invoice> = await stripe.invoices.list({
+      created: { gte, lt },
+      limit: 100,
+      starting_after: startingAfter,
+      status: "paid",
+    });
+
+    for (const inv of invoicePage.data) {
+      const reason = String((inv as unknown as Record<string, unknown>).billing_reason || "");
+      const subscription = (inv as unknown as Record<string, unknown>).subscription;
+      const isSubscription = reason.startsWith("subscription");
+      if (!isSubscription && !subscription) continue;
+      const amountPaid = (inv as unknown as Record<string, unknown>).amount_paid;
+      total += typeof amountPaid === "number" ? amountPaid : 0;
+    }
+
+    if (!invoicePage.has_more || invoicePage.data.length === 0) break;
+    startingAfter = invoicePage.data[invoicePage.data.length - 1].id;
+  }
+
+  return total;
+};
+
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
@@ -59,6 +90,7 @@ export async function GET(req: NextRequest) {
     months.reverse();
 
     const monthly: MonthSummary[] = [];
+    const subscriptionRevenueCents: number[] = [];
     for (const m of months) {
       const agg = await ManufacturingOrder.aggregate([
         { $match: { status: "paid", createdAt: { $gte: m.start, $lt: m.end } } },
@@ -81,6 +113,12 @@ export async function GET(req: NextRequest) {
         lumashape: row.lumashape || 0,
         orders: row.orders || 0,
       });
+
+      try {
+        subscriptionRevenueCents.push(await subscriptionRevenueCentsForMonth(m.start, m.end));
+      } catch {
+        subscriptionRevenueCents.push(0);
+      }
     }
 
     const thisIdx = monthly.length - 1;
@@ -149,6 +187,7 @@ export async function GET(req: NextRequest) {
         kaiser: m.kaiser,
         lumashape: m.lumashape,
         orders: m.orders,
+        subscriptionRevenue: (subscriptionRevenueCents[i] || 0) / 100,
         year: m.year,
         month: m.month,
         key: `${m.year}-${m.month}`,

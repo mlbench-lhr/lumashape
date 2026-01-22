@@ -28,7 +28,7 @@ export default function FAQSection() {
         },
         {
             question: "Is Lumashape free to use?",
-            answer: "Yes — scanning tools, building layouts, and downloading cut files are completely free. The only costs occur when you submit your shadowboard for order fullfilment (to cover material and shipping) or import a completed layout from another creator.",
+            answer: "Yes — scanning tools, building layouts, and submitting your layout for order fulfillment are all completely free. Downloading DXF files is available under the Pro plan",
         },
         {
             question: "Why does importing a layout cost money?",

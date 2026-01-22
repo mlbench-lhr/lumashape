@@ -12,6 +12,7 @@ import {
   File,
   ShoppingCart,
   Info,
+  Gem,
 } from "lucide-react";
 import Image from "next/image";
 import { DroppedTool } from "./types";
@@ -138,7 +139,13 @@ const Header: React.FC<HeaderProps> = ({
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dxfFailed, setDxfFailed] = useState(false);
+  const [dxfRemaining, setDxfRemaining] = useState<number | null>(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const { addToCart, cartItems } = useCart();
+
+  const actualToolCount = droppedTools.filter(
+    (t) => t.toolBrand !== "SHAPE" && t.toolBrand !== "TEXT" && t.toolType !== "text"
+  ).length;
 
   const normalizeThicknessInches = (value: number) => {
     if (!(value > 0)) return value;
@@ -216,9 +223,12 @@ const Header: React.FC<HeaderProps> = ({
       // }
 
       const layoutName = await resolveLayoutName(additionalData);
-      const containerSize = `${additionalData.canvasWidth ?? canvasWidth}" × ${
-        additionalData.canvasHeight ?? canvasHeight
-      }"`;
+      const canvasUnit = (additionalData.units ?? unit) as "mm" | "inches";
+      const formatCanvasValue = (value: number) =>
+        canvasUnit === "mm" ? `${value}mm` : `${value}"`;
+      const containerSize = `${formatCanvasValue(
+        additionalData.canvasWidth ?? canvasWidth
+      )} x ${formatCanvasValue(additionalData.canvasHeight ?? canvasHeight)}`;
       const saveResult = await handleSaveAndExit({ skipRedirect: true });
       if (!saveResult || !saveResult.id) {
         throw new Error("Failed to save layout");
@@ -273,7 +283,7 @@ const Header: React.FC<HeaderProps> = ({
         tools: cartTools,
       };
       const calculatedPrice = calculatePriceFromLayoutData(cartLayoutData);
-      const dxfUrl = await composeDxfForLayout().catch(() => null);
+      const dxfUrl = await composeDxfForLayout("cart").catch(() => null);
       if (!dxfUrl) {
         const msg = "DXF generation failed. Try again.";
         setSaveError(msg);
@@ -331,6 +341,28 @@ const Header: React.FC<HeaderProps> = ({
       return null;
     }
   };
+
+  const handleUpgradeClick = () => {
+    setShowDropdown(false);
+    window.location.href = '/#pricing';
+  };
+
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) return;
+    fetch('/api/profile', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => {
+        const u = data?.user || {};
+        const plan = u.subscriptionPlan;
+        const status = u.subscriptionStatus;
+        const subscribed = status === 'active' && plan === 'Pro';
+        setIsSubscribed(Boolean(subscribed));
+        const used = typeof u.dxfDownloadsUsed === 'number' ? u.dxfDownloadsUsed : 0;
+        setDxfRemaining(subscribed ? null : Math.max(0, 10 - used));
+      })
+      .catch(() => {});
+  }, []);
 
   // NEW: resolve the layout name without overwriting existing names on update
   const resolveLayoutName = async (
@@ -847,9 +879,20 @@ const Header: React.FC<HeaderProps> = ({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify(requestData),
       });
+
+      if (response.status === 402) {
+        const quota = await response.json().catch(() => ({}));
+        setSaveError(
+          quota?.error || "DXF downloads are locked. Upgrade to Pro to continue."
+        );
+        setShowDropdown(false);
+        setDxfRemaining(0);
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(`Request failed with status ${response.status}`);
@@ -859,6 +902,11 @@ const Header: React.FC<HeaderProps> = ({
 
       if (!data.success) {
         throw new Error(data.error || "Failed to download DXF file");
+      }
+
+      if (data?.dxf_usage && !isSubscribed) {
+        const remaining = data.dxf_usage.remaining;
+        if (typeof remaining === "number") setDxfRemaining(remaining);
       }
 
       // Download the file
@@ -885,7 +933,9 @@ const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const composeDxfForLayout = async (): Promise<string | null> => {
+  const composeDxfForLayout = async (
+    purpose: "cart" | "download" = "download"
+  ): Promise<string | null> => {
     if (droppedTools.length === 0) return null;
     try {
       let layoutName = "Tool Layout";
@@ -1069,11 +1119,23 @@ const Header: React.FC<HeaderProps> = ({
       };
       const response = await fetch("/api/dxf-proxy", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-dxf-purpose": purpose,
+          Authorization: `Bearer ${getAuthToken()}`,
+        },
         body: JSON.stringify(requestData),
       });
+      if (response.status === 402) {
+        setDxfRemaining(0);
+        return null;
+      }
       if (!response.ok) return null;
       const data = await response.json().catch(() => null);
+      if (data?.dxf_usage && !isSubscribed) {
+        const remaining = data.dxf_usage.remaining;
+        if (typeof remaining === "number") setDxfRemaining(remaining);
+      }
       return data && (data.s3_url || data.s3Url)
         ? data.s3_url || data.s3Url
         : null;
@@ -1103,7 +1165,7 @@ const Header: React.FC<HeaderProps> = ({
       unit === "mm" ? mmToInches(thickness).toFixed(2) : thickness
     } inches\n`;
     content += `Has Overlaps: ${hasOverlaps ? "Yes" : "No"}\n`;
-    content += `Total Tools: ${droppedTools.length}\n\n`;
+    content += `Total Tools: ${actualToolCount}\n\n`;
 
     // Session Data
     const sessionData = sessionStorage.getItem("layoutForm");
@@ -1504,7 +1566,7 @@ const Header: React.FC<HeaderProps> = ({
             : base;
         }),
         stats: {
-          totalTools: droppedTools.length,
+          totalTools: actualToolCount,
           validLayout: !hasOverlaps,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -1600,9 +1662,14 @@ const Header: React.FC<HeaderProps> = ({
   const exportOptions = [
     {
       icon: File,
-      label: "Download DXF File",
+      label:
+        !isSubscribed && typeof dxfRemaining === "number"
+          ? `Download DXF File (${dxfRemaining}/10 remaining)`
+          : "Download DXF File",
       action: generateDxfFile,
-      disabled: droppedTools.length === 0,
+      ctaOnDisabled: handleUpgradeClick,
+      disabled:
+        droppedTools.length === 0 || (!isSubscribed && dxfRemaining === 0),
       loading: isDxfGenerating,
     },
     {
@@ -1710,6 +1777,15 @@ const Header: React.FC<HeaderProps> = ({
               >
                 <MoreHorizontal className="w-5 h-5 text-white" />
               </button>
+              {!isSubscribed && dxfRemaining === 0 && (
+                <button
+                  className="ml-2 px-3 py-3 rounded-2xl bg-purple-100 text-purple-600"
+                  title="DXF gated — Upgrade to Pro"
+                  onClick={handleUpgradeClick}
+                >
+                  <Gem className="w-5 h-5" />
+                </button>
+              )}
 
               {showDropdown && (
                 <div className="right-0 z-50 absolute bg-white shadow-lg mt-2 border border-gray-200 rounded-lg w-56">
@@ -1728,7 +1804,7 @@ const Header: React.FC<HeaderProps> = ({
                             ? "text-gray-400 cursor-not-allowed"
                             : "text-gray-700 hover:bg-gray-50 cursor-pointer"
                         }`}
-                        onClick={option.disabled ? undefined : option.action}
+                        onClick={option.disabled ? (option as any).ctaOnDisabled || undefined : option.action}
                       >
                         {option.loading ? (
                           <RefreshCw className="w-4 h-4 animate-spin" />
@@ -1846,7 +1922,7 @@ const Header: React.FC<HeaderProps> = ({
       <div className="flex justify-between items-center mt-3 text-sm">
         <div className="flex items-center space-x-4">
           <span className="text-gray-600">
-            Tools: <span className="font-medium">{droppedTools.length}</span>
+            Tools: <span className="font-medium">{actualToolCount}</span>
           </span>
           <span className="text-gray-600">
             Canvas:{" "}

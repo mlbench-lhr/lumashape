@@ -25,6 +25,7 @@ export interface User {
   subscriptionPlan?: 'Free' | 'Pro' | 'Premium' | null;
   subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete' | null;
   subscriptionPeriodEnd?: string | null;
+  dxfDownloadsUsed?: number;
 }
 
 // Define UserContext interface
@@ -86,6 +87,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           subscriptionPlan: userData.subscriptionPlan,
           subscriptionStatus: userData.subscriptionStatus,
           subscriptionPeriodEnd: userData.subscriptionPeriodEnd,
+          dxfDownloadsUsed: typeof userData.dxfDownloadsUsed === 'number' ? userData.dxfDownloadsUsed : 0,
         });
       }
     } catch (error) {
@@ -118,8 +120,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   // Function to check if user is subscribed
   const isSubscribed = () => {
-    return user?.subscriptionStatus === 'active' && 
-           (user?.subscriptionPlan === 'Pro' || user?.subscriptionPlan === 'Premium');
+    return user?.subscriptionStatus === 'active' && user?.subscriptionPlan === 'Pro';
   };
 
   // Function to check if user has premium subscription

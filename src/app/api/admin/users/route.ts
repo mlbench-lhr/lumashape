@@ -59,14 +59,20 @@ export async function GET(req: NextRequest) {
     }
 
     const total = await User.countDocuments(query);
+    const proTotal = await User.countDocuments({
+      ...query,
+      subscriptionPlan: "Pro",
+      subscriptionStatus: { $in: ["active", "trialing"] },
+    });
+
     const users = await User.find(query)
-      .select("firstName lastName username email createdAt avatar profilePic")
+      .select("firstName lastName username email createdAt avatar profilePic subscriptionPlan subscriptionStatus")
       .sort({ createdAt: -1 })
       .skip((page - 1) * perPage)
       .limit(perPage)
       .lean<IUser[]>();
 
-    return NextResponse.json({ success: true, users, total, page, perPage });
+    return NextResponse.json({ success: true, users, total, proTotal, page, perPage });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });

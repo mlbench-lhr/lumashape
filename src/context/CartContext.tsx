@@ -1,7 +1,7 @@
 "use client";
 import React, { createContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useUser } from "./UserContext";
-import { calculateOrderPricing } from "@/utils/pricing";
+import { calculateOrderPricing, type OrderPricingResult } from "@/utils/pricing";
 
 // Define the cart item interface based on layout structure
 export interface CartItem {
@@ -57,6 +57,7 @@ interface CartContextType {
   toggleSelectAll: (selected: boolean) => Promise<void>;
   clearCart: () => Promise<void>;
   totalPrice: number;
+  pricing: OrderPricingResult | null;
   loading: boolean;
   syncCart: () => Promise<void>;
 }
@@ -75,6 +76,7 @@ export const CartContext = createContext<CartContextType>({
   toggleSelectAll: async () => { },
   clearCart: async () => { },
   totalPrice: 0,
+  pricing: null,
   loading: false,
   syncCart: async () => { },
 });
@@ -83,6 +85,7 @@ export const CartContext = createContext<CartContextType>({
 export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [totalPrice, setTotalPrice] = useState<number>(0);
+  const [pricing, setPricing] = useState<OrderPricingResult | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const { user } = useUser();
 
@@ -100,6 +103,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       if (!token) {
         console.log('No auth token found, clearing cart');
         setCartItems([]);
+        setPricing(null);
         setTotalPrice(0);
         return;
       }
@@ -139,6 +143,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     } else {
       console.log('No auth token, clearing cart');
       setCartItems([]);
+      setPricing(null);
       setTotalPrice(0);
     }
   }, [user, syncCart]); // Include syncCart in dependencies
@@ -174,6 +179,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     });
 
     const pricing = calculateOrderPricing(itemsForPricing);
+    setPricing(pricing);
     setTotalPrice(pricing.totals.customerTotal);
   }, [cartItems]);
 
@@ -384,7 +390,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
       if (response.ok) {
         setCartItems([]);
-        setTotalPrice(0);
+      setPricing(null);
+      setTotalPrice(0);
       }
     } catch (error) {
       console.error('Error clearing cart:', error);
@@ -404,6 +411,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         toggleSelectAll,
         clearCart,
         totalPrice,
+        pricing,
         loading,
         syncCart
       }}

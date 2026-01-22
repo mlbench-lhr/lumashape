@@ -455,7 +455,20 @@ function CheckoutContent() {
                             </div>
 
                             <div className="p-6 border-t border-gray-200 space-y-3">
-                                <div className="flex justify-between items-center">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-600">Subtotal</span>
+                                    <span className="text-gray-900">${pricing.totals.customerSubtotal.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-600">Discount</span>
+                                    <span className="text-gray-900">-${pricing.totals.discountAmount.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-600">Shipping</span>
+                                    <span className="text-gray-900">${pricing.totals.shippingCost.toFixed(2)}</span>
+                                </div>
+
+                                <div className="flex justify-between items-center pt-2">
                                     <span className="text-lg font-bold text-gray-900">Total</span>
                                     <span className="text-2xl font-bold text-gray-900">${actualTotal.toFixed(2)}</span>
                                 </div>

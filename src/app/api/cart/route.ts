@@ -4,6 +4,7 @@ import dbConnect from '@/utils/dbConnect'
 import Cart, { ICartItem } from '@/lib/models/Cart'
 import User from '@/lib/models/User'
 import Tool from '@/lib/models/Tool'
+import { calculateOrderPricing, DEFAULT_PRICING } from '@/utils/pricing'
 
 interface CvDimensions {
   depth_inches?: number
@@ -124,14 +125,44 @@ export async function GET(req: NextRequest) {
       await cart.save()
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    const selected = Array.isArray(cart.items) ? cart.items.filter((i) => i.selected) : []
+
+    const itemsForPricing = selected.map((i) => {
+      const canvas = i.layoutData?.canvas
+        ? {
+            width: i.layoutData.canvas.width,
+            height: i.layoutData.canvas.height,
+            unit: i.layoutData.canvas.unit,
+            thickness: i.layoutData.canvas.thickness,
+            materialColor: i.layoutData.canvas.materialColor,
+          }
+        : undefined
+
+      const toolsMini = Array.isArray(i.layoutData?.tools)
+        ? i.layoutData!.tools!.map((t) => ({
+            isText:
+              t.name === 'TEXT' ||
+              t.name.toLowerCase() === 'text' ||
+              (typeof (t as unknown as { toolBrand?: string }).toolBrand === 'string' &&
+                (t as unknown as { toolBrand: string }).toolBrand === 'TEXT') ||
+              (typeof (t as unknown as { toolType?: string }).toolType === 'string' &&
+                (t as unknown as { toolType: string }).toolType === 'text'),
+          }))
+        : undefined
+
+      return canvas
+        ? { id: i.id, name: i.name, quantity: i.quantity, layoutData: { canvas, tools: toolsMini } }
+        : { id: i.id, name: i.name, quantity: i.quantity }
+    })
+
+    const pricing = calculateOrderPricing(itemsForPricing, DEFAULT_PRICING)
+
+    return NextResponse.json({
+      success: true,
       cart: {
         items: cart.items,
-        totalPrice: cart.items.reduce((sum, item) => 
-          item.selected ? sum + (item.price * item.quantity) : sum, 0
-        )
-      }
+        totalPrice: pricing.totals.customerTotal,
+      },
     })
   } catch (error) {
     console.error('Error fetching cart:', error)

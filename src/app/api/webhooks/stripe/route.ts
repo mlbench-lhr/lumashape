@@ -94,11 +94,19 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       ? subscription.status
       : null
 
-  // Type-safe period end
-  const periodEnd = subscription['current_period_end' as keyof typeof subscription]
-  const subscriptionPeriodEnd = periodEnd && typeof periodEnd === 'number'
-    ? new Date(periodEnd * 1000)
-    : undefined
+  const interval = subscription.items.data[0]?.price?.recurring?.interval || 'month'
+  const pStartNum = subscription['current_period_start' as keyof typeof subscription] as number | undefined
+  let subscriptionPeriodStart = pStartNum ? new Date(pStartNum * 1000) : new Date(typeof session.created === 'number' ? session.created * 1000 : Date.now())
+
+  const pEndNum = subscription['current_period_end' as keyof typeof subscription] as number | undefined
+  let subscriptionPeriodEnd = pEndNum ? new Date(pEndNum * 1000) : new Date(subscriptionPeriodStart)
+  if (!pEndNum) {
+    if (interval === 'year') {
+      subscriptionPeriodEnd.setFullYear(subscriptionPeriodEnd.getFullYear() + 1)
+    } else {
+      subscriptionPeriodEnd.setMonth(subscriptionPeriodEnd.getMonth() + 1)
+    }
+  }
 
   await User.findOneAndUpdate(
     { stripeCustomerId: customerId },
@@ -106,7 +114,9 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
       subscriptionId: subscriptionId,
       subscriptionStatus: subscriptionStatus,
       subscriptionPlan: typedPlanName,
-      subscriptionPeriodEnd: subscriptionPeriodEnd,
+      subscriptionPeriodStart: subscriptionPeriodStart ?? null,
+      subscriptionPeriodEnd: subscriptionPeriodEnd ?? null,
+      cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
     }
   )
 }
@@ -133,18 +143,28 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       ? subscription.status
       : null
 
-  // Type-safe period end
-  const periodEnd = subscription['current_period_end' as keyof typeof subscription]
-  const subscriptionPeriodEnd = periodEnd && typeof periodEnd === 'number'
-    ? new Date(periodEnd * 1000)
-    : undefined
+  const interval = subscription.items.data[0]?.price?.recurring?.interval || 'month'
+  const pStartNum = subscription['current_period_start' as keyof typeof subscription] as number | undefined
+  let subscriptionPeriodStart = pStartNum ? new Date(pStartNum * 1000) : new Date()
+
+  const pEndNum = subscription['current_period_end' as keyof typeof subscription] as number | undefined
+  let subscriptionPeriodEnd = pEndNum ? new Date(pEndNum * 1000) : new Date(subscriptionPeriodStart)
+  if (!pEndNum) {
+    if (interval === 'year') {
+      subscriptionPeriodEnd.setFullYear(subscriptionPeriodEnd.getFullYear() + 1)
+    } else {
+      subscriptionPeriodEnd.setMonth(subscriptionPeriodEnd.getMonth() + 1)
+    }
+  }
 
   await User.findOneAndUpdate(
     { stripeCustomerId: customerId },
     {
       subscriptionStatus: subscriptionStatus,
       subscriptionPlan: typedPlanName,
-      subscriptionPeriodEnd: subscriptionPeriodEnd,
+      subscriptionPeriodStart: subscriptionPeriodStart ?? null,
+      subscriptionPeriodEnd: subscriptionPeriodEnd ?? null,
+      cancelAtPeriodEnd: Boolean(subscription.cancel_at_period_end),
     }
   )
 }
@@ -159,7 +179,9 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       subscriptionId: null,
       subscriptionStatus: null,
       subscriptionPlan: 'Free',
+      subscriptionPeriodStart: null,
       subscriptionPeriodEnd: null,
+      cancelAtPeriodEnd: false,
     }
   )
 }

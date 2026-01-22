@@ -108,7 +108,7 @@ export default function OrderDetails() {
     )
   }
 
-  const shortId = `#${order._id.slice(-8).toUpperCase()}`
+  const shortId = `ORD-${order._id.slice(-6).toUpperCase()}`
   const orderDate = new Date(order.createdAt).toLocaleDateString('en-US', { 
     year: 'numeric', 
     month: 'long', 

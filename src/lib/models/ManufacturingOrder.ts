@@ -17,19 +17,29 @@ export interface IPricingTotals {
   materialCost: number
   materialCostWithWaste: number
   engravingFee: number
+  designTimeCost: number
+  machineTimeCost: number
   consumablesCost: number
   packagingCost: number
   totalCostBeforeMargins: number
   kaiserPayout: number
   lumashapePayout: number
+  customerSubtotal: number
+  discountPct: number
+  discountAmount: number
+  customerSubtotalAfterDiscount: number
+  shippingCost: number
   customerTotal: number
 }
 
 export interface IPricingParams {
   materialCostPerIn3: number
   engravingFlatFee: number
+  designTimeFlatFee: number
   wasteFactor: number
-  consumablesCostPerInsert: number
+  machineTimeFlatFee: number
+  consumablesFlatFee: number
+  shippingFlatFee: number
   packagingCostPerOrder: number
   kaiserMarginPct: number
   lumashapeMarginPct: number
@@ -83,18 +93,28 @@ const ManufacturingOrderSchema = new Schema<IManufacturingOrder>({
     materialCost: { type: Number, required: true },
     materialCostWithWaste: { type: Number, required: true },
     engravingFee: { type: Number, required: true },
+    designTimeCost: { type: Number, required: true, default: 0 },
+    machineTimeCost: { type: Number, required: true, default: 0 },
     consumablesCost: { type: Number, required: true },
     packagingCost: { type: Number, required: true },
     totalCostBeforeMargins: { type: Number, required: true },
     kaiserPayout: { type: Number, required: true },
     lumashapePayout: { type: Number, required: true },
+    customerSubtotal: { type: Number, required: true, default: 0 },
+    discountPct: { type: Number, required: true, default: 0 },
+    discountAmount: { type: Number, required: true, default: 0 },
+    customerSubtotalAfterDiscount: { type: Number, required: true, default: 0 },
+    shippingCost: { type: Number, required: true, default: 0 },
     customerTotal: { type: Number, required: true },
   },
   parameters: {
     materialCostPerIn3: { type: Number, required: true },
     engravingFlatFee: { type: Number, required: true },
+    designTimeFlatFee: { type: Number, required: true, default: 0 },
     wasteFactor: { type: Number, required: true },
-    consumablesCostPerInsert: { type: Number, required: true },
+    machineTimeFlatFee: { type: Number, required: true, default: 0 },
+    consumablesFlatFee: { type: Number, required: true, default: 0 },
+    shippingFlatFee: { type: Number, required: true, default: 0 },
     packagingCostPerOrder: { type: Number, required: true },
     kaiserMarginPct: { type: Number, required: true },
     lumashapeMarginPct: { type: Number, required: true },

@@ -72,15 +72,33 @@ export async function POST(req: NextRequest) {
     
     user.subscriptionPlan = typedPlanName
     
-    // Type-safe period end
-    const periodEnd = subscription['current_period_end' as keyof typeof subscription]
-    if (periodEnd && typeof periodEnd === 'number') {
-      user.subscriptionPeriodEnd = new Date(periodEnd * 1000)
-    } else {
-      user.subscriptionPeriodEnd = undefined
+    // Type-safe interval + manual fallbacks for start/end
+    const interval = subscription.items.data[0]?.price?.recurring?.interval || 'month'
+    const pStartNum = subscription['current_period_start' as keyof typeof subscription] as number | undefined
+    const pEndNum = subscription['current_period_end' as keyof typeof subscription] as number | undefined
+
+    const computedStart = pStartNum ? new Date(pStartNum * 1000) : new Date(typeof session.created === 'number' ? session.created * 1000 : Date.now())
+    let computedEnd = pEndNum ? new Date(pEndNum * 1000) : new Date(computedStart)
+    if (!pEndNum) {
+      if (interval === 'year') computedEnd.setFullYear(computedEnd.getFullYear() + 1)
+      else computedEnd.setMonth(computedEnd.getMonth() + 1)
     }
-    
-    await user.save()
+
+    const cancelAt = Boolean((subscription as Stripe.Subscription).cancel_at_period_end)
+
+    await User.findOneAndUpdate(
+      { email: userEmail },
+      {
+        $set: {
+          subscriptionId: subscription.id,
+          subscriptionStatus: subscriptionStatus,
+          subscriptionPlan: typedPlanName,
+          subscriptionPeriodStart: computedStart ?? null,
+          subscriptionPeriodEnd: computedEnd ?? null,
+          cancelAtPeriodEnd: cancelAt,
+        }
+      }
+    )
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Package, Truck, CheckCircle, XCircle, Clock, Download, Eye, MapPin, Phone, Mail } from "lucide-react";
-import { calculateUnitMaterialCostWithWaste, DEFAULT_PRICING } from "@/utils/pricing";
+import { calculateVolumeInCubicInches, DEFAULT_PRICING } from "@/utils/pricing";
 
 type Canvas = { width: number; height: number; unit: "mm" | "inches"; thickness: number; materialColor?: string };
 type OrderItem = { layoutId: string; name: string; quantity: number; canvas?: Canvas; hasTextEngraving: boolean; dxfUrl?: string };
@@ -103,7 +103,7 @@ export default function AdminOrderDetails() {
     );
   }
 
-  const shortId = `#${order._id.slice(-8).toUpperCase()}`;
+  const shortId = `ORD-${order._id.slice(-6).toUpperCase()}`;
   const dateOrdered = new Date(order.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
   const totalTop = order.totals.customerTotal;
   const shippingAddress = order.shipping
@@ -112,9 +112,35 @@ export default function AdminOrderDetails() {
   const lineItemAmount = (item: OrderItem) => {
     const c = item.canvas;
     if (!c) return 0;
-    const unitCost = calculateUnitMaterialCostWithWaste({ width: c.width, height: c.height, thickness: c.thickness, unit: c.unit }, DEFAULT_PRICING);
-    const engraving = item.hasTextEngraving ? DEFAULT_PRICING.engravingFlatFee : 0;
-    return Math.round((unitCost * item.quantity + engraving) * 100) / 100;
+
+    const round2 = (n: number) => Math.round(n * 100) / 100;
+
+    const unitVolumeIn3 = calculateVolumeInCubicInches({
+      width: c.width,
+      height: c.height,
+      thickness: c.thickness,
+      unit: c.unit,
+    });
+
+    const unitMaterialCost = round2(unitVolumeIn3 * DEFAULT_PRICING.materialCostPerIn3);
+
+    const perUnitCostBeforeMargins =
+      unitMaterialCost +
+      DEFAULT_PRICING.designTimeFlatFee +
+      DEFAULT_PRICING.machineTimeFlatFee +
+      DEFAULT_PRICING.consumablesFlatFee +
+      DEFAULT_PRICING.shippingFlatFee;
+
+    const perUnitKaiser = round2(perUnitCostBeforeMargins * (1 + DEFAULT_PRICING.kaiserMarginPct));
+    const perUnitLuma = round2(perUnitKaiser * DEFAULT_PRICING.lumashapeMarginPct);
+    const perUnitCustomer = round2(perUnitKaiser + perUnitLuma);
+
+    const engravingCost = item.hasTextEngraving ? DEFAULT_PRICING.engravingFlatFee : 0;
+    const engravingKaiser = round2(engravingCost * (1 + DEFAULT_PRICING.kaiserMarginPct));
+    const engravingLuma = round2(engravingKaiser * DEFAULT_PRICING.lumashapeMarginPct);
+    const engravingCustomer = round2(engravingKaiser + engravingLuma);
+
+    return round2(perUnitCustomer * item.quantity + engravingCustomer);
   };
 
   return (

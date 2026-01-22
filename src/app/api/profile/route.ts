@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/utils/dbConnect";
 import Tool from "@/lib/models/Tool";
 import Layout from "@/lib/models/layout";
-import User from "@/lib/models/User";
+import User, { IUser } from "@/lib/models/User";
 import jwt from "jsonwebtoken";
 
 interface JwtPayload {
@@ -36,11 +36,17 @@ export async function GET(request: NextRequest) {
     const userEmail = decoded.email;
 
     const user = await User.findOne({ email: userEmail, isDeleted: false })
-      .select("firstName lastName username bio email isPublic profilePic avatar")
-      .lean();
+      .select("firstName lastName username bio email isPublic profilePic avatar stripeCustomerId subscriptionId subscriptionPlan subscriptionStatus subscriptionPeriodEnd dxfDownloadsUsed")
+      .lean<IUser>();
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const usedRaw = user.dxfDownloadsUsed;
+    const usedNum = Math.max(0, Math.min(10, Number(usedRaw ?? 0)));
+    if (typeof usedRaw === 'undefined' || Number.isNaN(usedNum)) {
+      await User.updateOne({ email: userEmail, isDeleted: false }, { $set: { dxfDownloadsUsed: 0 } });
     }
 
     const publishedLayouts = await Layout.find({
@@ -90,6 +96,12 @@ export async function GET(request: NextRequest) {
         followers: 43,
         following: 43,
         isPublic: user.isPublic,
+        stripeCustomerId: user.stripeCustomerId,
+        subscriptionId: user.subscriptionId,
+        subscriptionPlan: user.subscriptionPlan,
+        subscriptionStatus: user.subscriptionStatus,
+        subscriptionPeriodEnd: user.subscriptionPeriodEnd,
+        dxfDownloadsUsed: usedNum,
       },
       stats: {
         upvotes: totalUpvotes,
