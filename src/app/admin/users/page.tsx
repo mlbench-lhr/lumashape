@@ -12,11 +12,14 @@ type AdminUser = {
   createdAt?: string;
   avatar?: string;
   profilePic?: string;
+  subscriptionPlan?: "Free" | "Pro" | "Premium" | null;
+  subscriptionStatus?: "active" | "canceled" | "past_due" | "trialing" | "incomplete" | null;
 };
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState(0);
+  const [proTotal, setProTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [search, setSearch] = useState("");
@@ -44,6 +47,7 @@ export default function AdminUsersPage() {
         if (res.ok && data.success) {
           setUsers(data.users || []);
           setTotal(data.total || 0);
+          setProTotal(data.proTotal || 0);
         }
       } finally {
         setLoading(false);
@@ -63,7 +67,7 @@ export default function AdminUsersPage() {
   return (
     <div className="min-h-screen bg-white p-6">
       <div className="mb-2">
-        <p className="text-sm text-gray-500">Total Users: {total}</p>
+        <p className="text-sm text-gray-500">Total Users: {total} | Pro Users: {proTotal}</p>
       </div>
       <DataTable
         title="All Users"
@@ -71,6 +75,7 @@ export default function AdminUsersPage() {
           { id: "firstName", label: "First name" },
           { id: "lastName", label: "Last Name" },
           { id: "username", label: "Username", className: "w-1/3" },
+          { id: "subscription", label: "Subscription" },
           { id: "dateJoined", label: "Date Joined" },
           { id: "action", label: "Action" },
         ]}
@@ -87,6 +92,10 @@ export default function AdminUsersPage() {
               </div>
             </div>
           );
+          if (col === "subscription") {
+            const isPro = u.subscriptionPlan === "Pro" && (u.subscriptionStatus === "active" || u.subscriptionStatus === "trialing");
+            return <span className="text-gray-800">{isPro ? "Pro" : "Free"}</span>;
+          }
           if (col === "dateJoined") return <span className="text-gray-800">{formatDate(u.createdAt)}</span>;
           if (col === "action") return (
             <Link href={`/admin/users/${u._id}`} className="text-primary underline">View Details</Link>

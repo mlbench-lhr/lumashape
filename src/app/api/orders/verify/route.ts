@@ -108,6 +108,7 @@ export async function POST(req: NextRequest) {
       }).join('') : ''
       const totalQty = Array.isArray(order.items) ? order.items.reduce((s, x) => s + x.quantity, 0) : 0
       const total = order.totals?.customerTotal || 0
+      const orderIdDisplay = `ORD-${String(order._id).slice(-6).toUpperCase()}`
       const html = `
   <div style="font-family: Arial, sans-serif; max-width: 680px; margin: 0 auto; color: #000;">
     <div style="text-align:center;margin-bottom:16px;">
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest) {
     </div>
 
     <h2 style="text-align:center;color:#2E6C99;margin:0 0 8px;">Order Confirmation</h2>
+    <p style="text-align:center;margin:0 0 8px;"><strong>Order ID:</strong> ${orderIdDisplay}</p>
     <p style="text-align:center;margin:0 0 24px;">Thank you for your order. Please review your shipping details and items below.</p>
 
     <h3 style="margin:16px 0 8px;">Shipping Address</h3>
@@ -163,7 +165,7 @@ export async function POST(req: NextRequest) {
   </div>
 `;
 
-      const text = `Order Confirmation\n\nShipping:\n${ship.name || ''}\n${ship.address1 || ''}${ship.address2 ? ', ' + ship.address2 : ''}\n${ship.city || ''}${ship.state ? ', ' + ship.state : ''} ${ship.postalCode || ''}\n${ship.country || ''}\n${ship.phone ? 'Phone: ' + ship.phone : ''}\n${ship.email ? 'Email: ' + ship.email : ''}\n\nItems:\n${Array.isArray(order.items) ? order.items.map(i => `- ${i.name} x${i.quantity}`).join('\n') : ''}\n\nTotal Inserts: ${totalQty}\nOrder Total: ${Number(total).toFixed(2)}`
+      const text = `Order Confirmation\nOrder ID: ${orderIdDisplay}\n\nShipping:\n${ship.name || ''}\n${ship.address1 || ''}${ship.address2 ? ', ' + ship.address2 : ''}\n${ship.city || ''}${ship.state ? ', ' + ship.state : ''} ${ship.postalCode || ''}\n${ship.country || ''}\n${ship.phone ? 'Phone: ' + ship.phone : ''}\n${ship.email ? 'Email: ' + ship.email : ''}\n\nItems:\n${Array.isArray(order.items) ? order.items.map(i => `- ${i.name} x${i.quantity}`).join('\n') : ''}\n\nTotal Inserts: ${totalQty}\nOrder Total: ${Number(total).toFixed(2)}`
       await resend.emails.send({
         from,
         to: order.buyerEmail,
