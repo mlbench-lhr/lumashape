@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Info } from 'lucide-react';
 import {
@@ -53,6 +53,26 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
   const [isInfoColorOpen, setIsInfoColorOpen] = useState(false);
   const [isInfoThicknessOpen, setIsInfoThicknessOpen] = useState(false);
+
+  const thicknessInfoRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isInfoThicknessOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        thicknessInfoRef.current &&
+        !thicknessInfoRef.current.contains(event.target as Node)
+      ) {
+        setIsInfoThicknessOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isInfoThicknessOpen]);
 
   const handleUnitChange = (nextUnit: Unit) => {
     if (nextUnit === unit) return;
@@ -205,7 +225,7 @@ const ControlBar: React.FC<ControlBarProps> = ({
 
         {/* Thickness */}
         <div className="flex items-center space-x-2">
-          <div className="flex items-center gap-2 relative">
+          <div className="flex items-center gap-2 relative" ref={thicknessInfoRef}>
             <label className="block text-sm font-medium text-white">
               Thickness
             </label>

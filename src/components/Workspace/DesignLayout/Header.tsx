@@ -140,14 +140,24 @@ const Header: React.FC<HeaderProps> = ({
   const [isInfoMaxPocketDepthOpen, setIsInfoMaxPocketDepthOpen] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const maxPocketDepthInfoRef = useRef<HTMLSpanElement>(null);
   const [dxfFailed, setDxfFailed] = useState(false);
   const [dxfRemaining, setDxfRemaining] = useState<number | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const { addToCart, cartItems } = useCart();
 
-  const actualToolCount = droppedTools.filter(
-    (t) => t.toolBrand !== "SHAPE" && t.toolBrand !== "TEXT" && t.toolType !== "text"
-  ).length;
+  const actualToolCount = droppedTools.filter((t) => {
+    const isText = t.toolBrand === "TEXT" || t.toolType === "text";
+    const isShape = t.toolBrand === "SHAPE";
+    const isFingerGrip =
+      t.toolBrand === "FINGERCUT" ||
+      t.metadata?.isFingerCut ||
+      t.name === "Finger Cut" ||
+      t.id?.startsWith("fingercut-") ||
+      t.id?.startsWith("cylinder_");
+
+    return !isText && !isShape && !isFingerGrip;
+  }).length;
 
   const thicknessInches = normalizeThicknessToInches(thickness, unit);
 
@@ -332,6 +342,24 @@ const Header: React.FC<HeaderProps> = ({
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isInfoMaxPocketDepthOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        maxPocketDepthInfoRef.current &&
+        !maxPocketDepthInfoRef.current.contains(event.target as Node)
+      ) {
+        setIsInfoMaxPocketDepthOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isInfoMaxPocketDepthOpen]);
 
   // Helper function to get auth token from localStorage
   const getAuthToken = (): string | null => {
@@ -1930,7 +1958,10 @@ const Header: React.FC<HeaderProps> = ({
             </span>
           </span>
 
-          <span className="text-gray-600 inline-flex items-center gap-1 relative">
+          <span
+            className="text-gray-600 inline-flex items-center gap-1 relative"
+            ref={maxPocketDepthInfoRef}
+          >
             <span>
               Current Max Pocket Depth:{" "}
               <span className="font-medium">

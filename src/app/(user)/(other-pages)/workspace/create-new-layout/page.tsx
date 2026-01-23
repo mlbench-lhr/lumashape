@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import { ChevronDown, Info } from 'lucide-react';
 import Image from 'next/image';
@@ -48,6 +48,26 @@ const CreateNewLayout = () => {
     };
     const [isInfoColorOpen, setIsInfoColorOpen] = useState(false);
     const [isInfoThicknessOpen, setIsInfoThicknessOpen] = useState(false);
+
+    const thicknessInfoRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!isInfoThicknessOpen) return;
+
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                thicknessInfoRef.current &&
+                !thicknessInfoRef.current.contains(event.target as Node)
+            ) {
+                setIsInfoThicknessOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isInfoThicknessOpen]);
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
@@ -288,7 +308,10 @@ const CreateNewLayout = () => {
                                         <div>
                                             {/* Label + Info button side-by-side */}
                                             {/* Label + Info button side-by-side (with popup relative to this wrapper) */}
-                                            <div className="flex items-center mb-2 gap-2 relative">
+                                            <div
+                                                className="flex items-center mb-2 gap-2 relative"
+                                                ref={thicknessInfoRef}
+                                            >
                                                 <label className="block text-sm font-medium text-gray-700">
                                                     Thickness
                                                 </label>
