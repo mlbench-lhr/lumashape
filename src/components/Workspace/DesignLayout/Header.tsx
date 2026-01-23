@@ -661,12 +661,10 @@ const Header: React.FC<HeaderProps> = ({
         }
       }
 
-      // Convert canvas dimensions to inches
-      const canvasWidthInches =
-        unit === "mm" ? mmToInches(canvasWidth) : canvasWidth;
-      const canvasHeightInches =
-        unit === "mm" ? mmToInches(canvasHeight) : canvasHeight;
-      const canvasThicknessInches = normalizeThicknessToInches(thickness, unit);
+      // Use canvas dimensions as-is and include unit in payload
+      const canvasWidthInches = canvasWidth;
+      const canvasHeightInches = canvasHeight;
+      const canvasThicknessInches = thickness;
 
       const authToken = localStorage.getItem("auth-token");
       if (!authToken) throw new Error("Missing auth token");
@@ -859,6 +857,7 @@ const Header: React.FC<HeaderProps> = ({
           width_inches: canvasWidthInches,
           height_inches: canvasHeightInches,
           thickness_inches: canvasThicknessInches,
+          unit,
           has_overlaps: hasOverlaps,
           canvas_color: materialColor,
         },
@@ -946,11 +945,9 @@ const Header: React.FC<HeaderProps> = ({
           layoutName = layoutForm.layoutName || layoutName;
         } catch {}
       }
-      const canvasWidthInches =
-        unit === "mm" ? mmToInches(canvasWidth) : canvasWidth;
-      const canvasHeightInches =
-        unit === "mm" ? mmToInches(canvasHeight) : canvasHeight;
-      const canvasThicknessInches = normalizeThicknessToInches(thickness, unit);
+      const canvasWidthInches = canvasWidth;
+      const canvasHeightInches = canvasHeight;
+      const canvasThicknessInches = thickness;
       const authToken = localStorage.getItem("auth-token");
       if (!authToken) return null;
       const tools: ToolPayload[] = [];
@@ -1104,6 +1101,7 @@ const Header: React.FC<HeaderProps> = ({
           width_inches: canvasWidthInches,
           height_inches: canvasHeightInches,
           thickness_inches: canvasThicknessInches,
+          unit,
           has_overlaps: hasOverlaps,
           canvas_color: materialColor,
         },
