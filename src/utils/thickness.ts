@@ -2,7 +2,7 @@ export type Unit = 'mm' | 'inches';
 
 const OPTIONS: Record<Unit, number[]> = {
   inches: [0.5, 1.0, 1.25, 2.0],
-  mm: [12.7, 25.4, 31.75, 50.8],
+  mm: [15, 20, 25],
 };
 
 const round3 = (n: number) => Math.round(n * 1000) / 1000;
