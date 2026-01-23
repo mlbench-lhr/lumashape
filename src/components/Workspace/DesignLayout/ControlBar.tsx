@@ -247,10 +247,11 @@ const ControlBar: React.FC<ControlBarProps> = ({
           >
             {getThicknessOptions(unit).map((opt) => (
               <option key={opt.value} value={opt.value}>
-                {opt.label} {unit}
+                {opt.label}
               </option>
             ))}
           </select>
+          <span className="text-sm inline-block w-12">{unit}</span>
 
         </div>
 

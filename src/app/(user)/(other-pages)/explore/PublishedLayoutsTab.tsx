@@ -4,7 +4,7 @@ import Image from "next/image";
 import { MoreVertical, Download, Check, ChevronDown, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/context/UserContext';
-import { getThicknessOptions, normalizeThicknessToInches, type Unit } from '../../../../utils/thickness';
+import { coerceThicknessBetweenUnits, getThicknessOptions, normalizeThicknessToInches, type Unit } from '../../../../utils/thickness';
 
 interface UserInteraction {
     hasLiked: boolean;
@@ -300,10 +300,14 @@ const PublishedLayoutsTab = ({ relatedTool, onClearRelatedTool }: PublishedLayou
         return value;
     };
 
-    // Get thickness options based on selected unit (defaults to inches when no unit filter is selected)
+    // Get thickness options based on selected unit (only available once a unit is selected)
     const getThicknessOptionsForSelectedUnit = () => {
-        const u: Unit = selectedUnit === "mm" || selectedUnit === "inches" ? selectedUnit : "inches";
-        return getThicknessOptions(u).map((opt) => ({ value: String(opt.value), label: opt.label }));
+        const u: Unit | null =
+            selectedUnit === "mm" || selectedUnit === "inches" ? selectedUnit : null;
+
+        return u
+            ? getThicknessOptions(u).map((opt) => ({ value: String(opt.value), label: opt.label }))
+            : [];
     };
 
     const applyFilters = () => {
@@ -612,8 +616,29 @@ const PublishedLayoutsTab = ({ relatedTool, onClearRelatedTool }: PublishedLayou
     };
 
     const handleUnitChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setSelectedUnit(e.target.value);
-        // thickness is independent of unit, do not reset it
+        const nextUnitRaw = e.target.value;
+        const prevUnit: Unit | null =
+            selectedUnit === "mm" || selectedUnit === "inches" ? selectedUnit : null;
+        const nextUnit: Unit | null =
+            nextUnitRaw === "mm" || nextUnitRaw === "inches" ? nextUnitRaw : null;
+
+        setSelectedUnit(nextUnitRaw);
+
+        if (!nextUnit) {
+            setSelectedThickness("");
+            return;
+        }
+
+        if (selectedThickness && prevUnit) {
+            const nextThickness = coerceThicknessBetweenUnits(
+                parseFloat(selectedThickness),
+                prevUnit,
+                nextUnit
+            );
+            setSelectedThickness(String(nextThickness));
+        } else {
+            setSelectedThickness("");
+        }
     };
 
 
@@ -641,29 +666,9 @@ const PublishedLayoutsTab = ({ relatedTool, onClearRelatedTool }: PublishedLayou
 
                 {/* Filters Row */}
                 <div className="flex flex-wrap items-center gap-3">
-                    {/* Thickness */}
-                    <div className="relative">
-                        <select
-                            className="appearance-none py-2 pl-3 pr-8 border rounded-md text-gray-700 focus:outline-none min-w-[120px]"
-                            value={selectedThickness}
-                            onChange={(e) => setSelectedThickness(e.target.value)}
-                        >
-                            <option value="">Thickness</option>
-                            {getThicknessOptionsForSelectedUnit().map(option => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                        <img
-                            src="/images/icons/explore/published_layouts/thickness.svg"
-                            alt="thickness"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4"
-                        />
-                    </div>
 
-                    {/* Unit + Length + Width */}
-                    <div className="appearance-none relative flex items-center gap-1 py-1 pl-3 pr-3 border rounded-md text-gray-700 focus:outline-none min-w-[300px]">
+                    {/* Unit + Length + Width + Thickness */}
+                    <div className="appearance-none relative flex items-center gap-1 py-1 pl-3 pr-4 border rounded-md text-gray-700 focus:outline-none min-w-[460px]">
                         {/* Unit */}
                         <div className="relative">
                             <select
@@ -691,7 +696,7 @@ const PublishedLayoutsTab = ({ relatedTool, onClearRelatedTool }: PublishedLayou
                                 min="0"
                                 step={selectedUnit === "mm" ? "1" : "0.1"}
                                 disabled={!selectedUnit}
-                                className="bg-transparent border-none outline-none w-[40px] text-gray-800 disabled:text-gray-400"
+                                className="bg-transparent border-none outline-none w-[72px] text-gray-800 disabled:text-gray-400"
                             />
                             <img
                                 src="/images/icons/explore/published_layouts/length.svg"
@@ -713,13 +718,33 @@ const PublishedLayoutsTab = ({ relatedTool, onClearRelatedTool }: PublishedLayou
                                 min="0"
                                 step={selectedUnit === "mm" ? "1" : "0.1"}
                                 disabled={!selectedUnit}
-                                className="bg-transparent border-none outline-none w-[40px] text-gray-800 disabled:text-gray-400"
+                                className="bg-transparent border-none outline-none w-[72px] text-gray-800 disabled:text-gray-400"
                             />
                             <img
                                 src="/images/icons/explore/published_layouts/width.svg"
                                 alt="width"
                                 className="w-5 h-5"
                             />
+                        </div>
+
+                        <span className="h-5 w-px bg-gray-200" />
+
+                        {/* Thickness */}
+                        <div className="relative flex items-center gap-2">
+                            <span className="text-gray-500 text-sm">Thickness</span>
+                            <select
+                                className="appearance-none bg-transparent border-none outline-none w-[96px] text-gray-800 disabled:text-gray-400"
+                                value={selectedThickness}
+                                onChange={(e) => setSelectedThickness(e.target.value)}
+                                disabled={!selectedUnit}
+                            >
+                                <option value="">Select</option>
+                                {getThicknessOptionsForSelectedUnit().map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
 

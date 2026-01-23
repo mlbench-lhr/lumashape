@@ -168,13 +168,13 @@ export const calculateOrderPricing = (
     computedItems.reduce((sum, itm) => sum + (itm.hasTextEngraving ? params.engravingFlatFee : 0), 0)
   );
 
-  const totalLineItems = computedItems.reduce((sum, itm) => sum + itm.qty, 0);
+  const distinctLayoutCount = computedItems.length;
 
-  const designTimeCost = hasItems ? round2(params.designTimeFlatFee * totalLineItems) : 0;
-  const machineTimeCost = hasItems ? round2(params.machineTimeFlatFee * totalLineItems) : 0;
-  const consumablesCost = hasItems ? round2(params.consumablesFlatFee * totalLineItems) : 0;
+  const designTimeCost = hasItems ? round2(params.designTimeFlatFee * distinctLayoutCount) : 0;
+  const machineTimeCost = hasItems ? round2(params.machineTimeFlatFee * distinctLayoutCount) : 0;
+  const consumablesCost = hasItems ? round2(params.consumablesFlatFee * distinctLayoutCount) : 0;
   const packagingCost = 0;
-  const shippingCost = hasItems ? round2(params.shippingFlatFee * totalLineItems) : 0;
+  const shippingCost = hasItems ? round2(params.shippingFlatFee * distinctLayoutCount) : 0;
 
   const totalCostBeforeMargins = round2(
     materialCostWithWaste + engravingFee + designTimeCost + machineTimeCost + consumablesCost + shippingCost
@@ -184,8 +184,7 @@ export const calculateOrderPricing = (
   const lumashapePayout = round2(kaiserPayout * params.lumashapeMarginPct);
   const customerSubtotal = round2(kaiserPayout + lumashapePayout);
 
-  const lineItemCount = computedItems.length;
-  const discountPct = lineItemCount >= 10 ? 0.15 : lineItemCount >= 5 ? 0.1 : lineItemCount >= 2 ? 0.05 : 0;
+  const discountPct = distinctLayoutCount >= 10 ? 0.15 : distinctLayoutCount >= 5 ? 0.1 : distinctLayoutCount >= 2 ? 0.05 : 0;
   const discountAmount = round2(customerSubtotal * discountPct);
   const customerSubtotalAfterDiscount = round2(customerSubtotal - discountAmount);
 
