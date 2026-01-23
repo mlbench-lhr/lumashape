@@ -40,37 +40,45 @@ const bilingPlans: DataItem[] = [
   {
     id: 1,
     desc: '',
-    title: 'Free Trial',
+    title: '',
     price: 'Free',
     price_id: '',
     plan_name: 'Free',
     include: [
       {
         id: 1,
-        text: 'Create & submit foam insert layouts for cutting',
+        text: 'Unlimited tool Scans',
       },
       {
         id: 2,
-        text: 'Access to public layout & tool contour library',
+        text: 'Create unlimited tool layouts',
       },
       {
         id: 3,
+        text: 'Submit layouts for custom cut foam inserts',
+      },
+      {
+        id: 4,
+        text: 'Limited DXF downloads',
+      },
+      {
+        id: 5,
         text: 'No payment info required',
       },
     ],
-    buttonText: 'Start Free Trial',
+    buttonText: 'Create Free Account',
     height: 70,
     backgroundColor: 'white',
     textColor: 'black',
     buttonColor: '#266CA8',
     buttonTextColor: 'white',
-    priceColor: '#266CA8',
+    priceColor: '#111111',
     smallTextColor: '#22222280',
     icon: '/images/icons/LandingPage/Check Circle.svg',
   },
   {
     id: 2,
-    desc: 'For Small Teams',
+    desc: 'For Makers',
     title: 'Pro',
     price: '$8/Month',
     price_id: process.env.NEXT_PUBLIC_STRIPE_BASIC_PRICE_ID!,
@@ -78,15 +86,15 @@ const bilingPlans: DataItem[] = [
     include: [
       {
         id: 1,
-        text: 'Unlimited DXF downloads',
+        text: 'Everything included in free plan',
       },
       {
         id: 2,
-        text: 'Full access to DXF customization tools',
+        text: 'Unlimited DXF downloads',
       },
       {
         id: 3,
-        text: 'Customer Support',
+        text: 'Priority Support',
       },
       {
         id: 4,
@@ -179,8 +187,7 @@ function Pricing() {
           as="p1"
           className="text-center text-secondary-light mx-auto font-medium md:max-w-[90%]"
         >
-          Choose a plan that fits your needs, and let&apos;s start designing
-          together.
+          Start free, upgrade when you need more.
         </Text>
       </motion.div>
       <div className="w-full overflow-hidden">

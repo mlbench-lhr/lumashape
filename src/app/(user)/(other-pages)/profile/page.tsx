@@ -300,26 +300,26 @@ const Profile = () => {
           <div className="flex gap-4 sm:gap-6 md:gap-8 overflow-x-auto">
             <button
               onClick={() => setActiveTab("layouts")}
-              className={`pb-2 font-medium flex items-center gap-2 text-sm sm:text-base whitespace-nowrap ${activeTab === "layouts" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-600 hover:text-gray-800"}`}
+              className={`pb-2 font-medium flex items-center gap-2 text-sm sm:text-base whitespace-nowrap ${activeTab === "layouts" ? "text-primary border-b-2 border-primary" : "text-gray-600 hover:text-gray-800"}`}
             >
               My Published Layouts
             </button>
             <button
               onClick={() => setActiveTab("contours")}
-              className={`pb-2 font-medium flex items-center gap-2 text-sm sm:text-base whitespace-nowrap ${activeTab === "contours" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-600 hover:text-gray-800"}`}
+              className={`pb-2 font-medium flex items-center gap-2 text-sm sm:text-base whitespace-nowrap ${activeTab === "contours" ? "text-primary border-b-2 border-primary" : "text-gray-600 hover:text-gray-800"}`}
             >
               My Published Tool Contours
             </button>
             <button
               onClick={() => setActiveTab("subscription")}
-              className={`pb-2 font-medium flex items-center gap-2 text-sm sm:text-base whitespace-nowrap ${activeTab === "subscription" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-600 hover:text-gray-800"}`}
+              className={`pb-2 font-medium flex items-center gap-2 text-sm sm:text-base whitespace-nowrap ${activeTab === "subscription" ? "text-primary border-b-2 border-primary" : "text-gray-600 hover:text-gray-800"}`}
             >
               Subscription
             </button>
           </div>
 
           {/* Right-aligned Profit Sharing Button */}
-          <button
+          {/* <button
             onClick={() => router.push("/profile/edit/ProfitSharing")}
             className="flex items-center mb-3 mr-3 gap-2 bg-primary text-white px-3 py-2 text-xs sm:px-5 sm:py-3 sm:text-sm md:px-8 md:py-4 md:text-base rounded-lg font-semibold cursor-pointer hover:bg-primary/90 transition"
           >
@@ -329,7 +329,7 @@ const Profile = () => {
               alt="Logout"
               className="w-5 h-5"
             />
-          </button>
+          </button> */}
         </div>
 
         {/* Tab Content */}
@@ -369,7 +369,7 @@ const Profile = () => {
                       </h3>
                     </div>
                   </div>
-                  <span
+                  {/* <span
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
                       subscription?.status === "active"
                         ? "bg-green-100 text-green-700"
@@ -382,7 +382,7 @@ const Profile = () => {
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
                     {subscription?.status || "Inactive"}
-                  </span>
+                  </span> */}
                 </div>
 
                 <div className="space-y-3">
@@ -434,9 +434,9 @@ const Profile = () => {
               </div>
 
               {/* DXF Downloads Card */}
-              <div className="bg-gradient-to-br from-purple-50 to-white rounded-2xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow">
+              <div className="bg-gradient-to-br from-blue-50 to-white rounded-2xl shadow-md border border-gray-100 p-6 hover:shadow-lg transition-shadow">
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-14 h-14 rounded-xl bg-purple-600 flex items-center justify-center shadow-md">
+                  <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center shadow-md">
                     <svg
                       className="w-7 h-7 text-white"
                       fill="none"
@@ -474,7 +474,7 @@ const Profile = () => {
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2.5">
                         <div
-                          className="bg-purple-600 h-2.5 rounded-full transition-all duration-500"
+                          className="bg-primary h-2.5 rounded-full transition-all duration-500"
                           style={{
                             width: `${((subscription?.dxfDownloadsUsed ?? 0) / 10) * 100}%`,
                           }}
@@ -489,8 +489,8 @@ const Profile = () => {
                 )}
 
                 {subscription?.plan === "Pro" && (
-                  <div className="bg-purple-50 rounded-lg p-4 mt-4">
-                    <p className="text-sm text-purple-700 font-medium flex items-center gap-2">
+                  <div className="bg-primary rounded-lg p-4 mt-4">
+                    <p className="text-sm text-primary font-medium flex items-center gap-2">
                       <svg
                         className="w-5 h-5"
                         fill="currentColor"
@@ -598,7 +598,7 @@ const Profile = () => {
                             <span
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                                 inv.status === "paid"
-                                  ? "bg-green-100 text-green-700"
+                                  ? "bg-blue-100 text-blue-700"
                                   : inv.status === "pending"
                                     ? "bg-yellow-100 text-yellow-700"
                                     : "bg-gray-100 text-gray-700"

@@ -497,12 +497,12 @@ const Cart = () => {
                     </div>
                   )}
 
-                  <div className="flex justify-between items-center text-sm">
+                  {/* <div className="flex justify-between items-center text-sm">
                     <span className="text-gray-600">Shipping</span>
                     <span className="font-semibold text-gray-900">
                       ${(pricing?.totals.shippingCost ?? 0).toFixed(2)}
                     </span>
-                  </div>
+                  </div> */}
                 </div>
 
                 {/* Total */}
