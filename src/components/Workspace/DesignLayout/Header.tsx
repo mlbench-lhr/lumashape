@@ -1690,7 +1690,7 @@ const Header: React.FC<HeaderProps> = ({
     {
       icon: File,
       label:
-        !isSubscribed && typeof dxfRemaining === "number"
+        !isSubscribed && typeof dxfRemaining === "number" && dxfRemaining > 0
           ? `Download DXF File (${dxfRemaining}/10 remaining)`
           : "Download DXF File",
       action: generateDxfFile,
@@ -1804,15 +1804,6 @@ const Header: React.FC<HeaderProps> = ({
               >
                 <MoreHorizontal className="w-5 h-5 text-white" />
               </button>
-              {!isSubscribed && dxfRemaining === 0 && (
-                <button
-                  className="ml-2 px-3 py-3 rounded-2xl bg-purple-100 text-purple-600"
-                  title="DXF gated — Upgrade to Pro"
-                  onClick={handleUpgradeClick}
-                >
-                  <Gem className="w-5 h-5" />
-                </button>
-              )}
 
               {showDropdown && (
                 <div className="right-0 z-50 absolute bg-white shadow-lg mt-2 border border-gray-200 rounded-lg w-56">
@@ -1838,12 +1829,17 @@ const Header: React.FC<HeaderProps> = ({
                         ) : (
                           <option.icon className="w-4 h-4" />
                         )}
-                        <span>
+                        <span className="flex items-center gap-1">
                           {option.loading
                             ? option.action === handleAddToCart
                               ? "Adding to cart..."
                               : "Downloading DXF..."
                             : option.label}
+                          {option.action === generateDxfFile &&
+                            !isSubscribed &&
+                            dxfRemaining === 0 && (
+                              <Gem className="w-4 h-4 text-purple-600" />
+                            )}
                         </span>
                         {option.action === handleAddToCart &&
                           option.disabled &&
