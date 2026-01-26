@@ -55,14 +55,18 @@ const bilingPlans: DataItem[] = [
       },
       {
         id: 3,
-        text: 'Submit layouts for custom cut foam inserts',
+        text: 'Unlimted access to public tool scan and layout library',
       },
       {
         id: 4,
-        text: 'Limited DXF downloads',
+        text: 'Submit layouts for custom cut foam inserts',
       },
       {
         id: 5,
+        text: 'Limited DXF downloads',
+      },
+      {
+        id: 6,
         text: 'No payment info required',
       },
     ],
